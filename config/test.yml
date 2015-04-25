@@ -1,0 +1,13 @@
+#--------------------------
+# Example of configuration
+#--------------------------
+
+pdfsets:
+  - name: NNPDF30_nlo_as_0118
+    reps: 0
+  - name: NNPDF30_nnlo_as_0118
+    reps: 5
+
+observables:
+  - name: data/applgrid/atlas-incljets-eta7.root
+    order: 0
