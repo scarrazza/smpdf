@@ -19,8 +19,7 @@ static PyObject* py_loadpdf(PyObject* self, PyObject* args)
   char* setname;
   
   PyArg_ParseTuple(args, "si", &setname, &nrep);
-  LHAPDF::initPDFSetByName(setname);
-  LHAPDF::initPDF(nrep);
+  LHAPDF::initPDFSet(setname, nrep);
 
   return Py_BuildValue("");
 }
