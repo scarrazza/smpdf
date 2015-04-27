@@ -102,6 +102,7 @@ def main(config_yml):
                     print ("\tData bin %i: %e" % (i, val))
 
     print ("\n +--------+ Completed +--------+\n")
+    return results
 
 
 def splash():
@@ -126,4 +127,4 @@ if __name__ == "__main__":
         parser.error("Too few arguments: config_yml")
     mainargs = vars(args)
     splash()
-    main(**mainargs)
+    results = main(**mainargs)
