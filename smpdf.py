@@ -86,9 +86,13 @@ class Result():
         raise NotImplementedError("No error computation implemented for this"
                                   "type of set")
 
+    def sample_values(self, n):
+        raise NotImplementedError("No sampling implemented for this"
+                                  "type of set")
+
     @_check_central
-    def std_intervals(self, nsigma=1):
-        std = self.std_error()*nsigma
+    def std_interval(self, nsigma=1):
+        std = self.std_error(nsigma)
         return pd.DataFrame({'min':self._cv - std,
                              'max':self._cv + std})
 
@@ -99,13 +103,23 @@ class Result():
     def iterall(self):
         return iter(self._data)
 
+    def _violin_data(self):
+        return self.sample_values(1000)
+
 
 class SymHessianResult(Result):
 
     @_check_central
     def std_error(self, nsigma=1):
-        diffsq = ((self._all_vals.subtract(self._cv, axis=0))**2)
+        diffsq = (self._all_vals.subtract(self._cv, axis=0))**2
         return diffsq.sum(axis=1).apply(np.sqrt)*nsigma
+
+    def sample_values(self, n):
+        diffs = self._all_vals.subtract(self._cv, axis=0)
+        for _ in range(n):
+            weights = np.random.normal(size=self.nrep)
+            error = (diffs*weights).sum(axis=1)
+            yield self._cv + error
 
 
 class MCResult(Result):
@@ -125,6 +139,14 @@ class MCResult(Result):
     @_check_central
     def std_error(self, nsigma=1):
         return self._all_vals.std(axis=1)*nsigma
+
+    def sample_values(self, n):
+        for _ in range(n):
+            col = np.random.choice(self._all_vals.columns)
+            yield self._all_vals[col]
+
+    def _violin_data(self):
+        return self._all_vals
 
 
 RESULT_TYPES = defaultdict(lambda:Result,
