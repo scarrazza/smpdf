@@ -11,7 +11,11 @@ import os
 import sys
 import yaml
 import argparse
-from collections import defaultdict
+import functools
+from collections import defaultdict, OrderedDict
+
+import numpy as np
+import pandas as pd
 
 from lhaindex import parse_info
 try:
@@ -29,6 +33,8 @@ class Config(dict):
             raise ValueError("'pdfsets' not found in configuration.")
         #TODO make pdf a class
         for pdf in params['pdfsets']:
+            #TODO: Do we allow incomplete sets at all? Seems like asking for
+            #bugs.
             if not 'reps' in pdf or pdf['reps']=='all':
                 pdf['reps'] = range(parse_info(pdf['name'])['NumMembers'])
             elif isinstance(pdf['reps'], int):
@@ -42,23 +48,69 @@ class Config(dict):
     def from_yaml(cls, stream):
         return cls.from_params(**yaml.load(stream))
 
+#TODO: Decide if we really want this
+def _check_central(f):
+    @functools.wraps(f)
+    def _f(self, *args, **kwargs):
+        if not 0 in self._data:
+            raise ValueError("No results for central value (Member 0) "
+                             "provided")
+        return f(self, *args, **kwargs)
+    return _f
+
+
 class Result():
     def __init__(self, obs, pdf, data):
         self.obs = obs
         self.pdf = pdf
-        self._data = data
+        self._data = pd.DataFrame(data)
 
     @property
+    @_check_central
     def central_value(self):
-        try:
-           return self._data[0]
-        except KeyError as e: #analysis:ignore
-            #In python 3 it would be raise ValueError from e
-            raise ValueError("No results for central value (Member 0) "
-                             "provided")
+        return self._cv
 
-    def hessian_error(nsigma=1):
-        pass
+    @property
+    def _cv(self):
+        return self._data[0]
+
+    @property
+    def _all_vals(self):
+        return self._data.iloc[:,1:]
+
+    @property
+    def nrep(self):
+        return self._all_vals.shape[1]
+
+    @_check_central
+    def symhessian_error(self, nsigma=1):
+        diffsq = ((nsigma*self._all_vals.subtract(self._cv, axis=0))**2)
+        return diffsq.sum(axis=1).apply(np.sqrt)
+
+    #TODO: Is it correct to consider each bin as independant here?
+    @_check_central
+    def mc_centered_interval(self, percent=68):
+        n = percent*self.nrep//100
+        def get_lims(row):
+            s = np.argsort(np.abs(row))
+            sel = row[s][:n]
+            return pd.Series({'min':np.min(sel), 'max':np.max(sel)})
+
+        diffs = self._all_vals.subtract(self._cv, axis=0)
+        return diffs.apply(get_lims, axis=1).add(self._cv, axis=0)
+
+    @property
+    @_check_central
+    def mc_std(self):
+        return self._all_vals.std(axis=1)
+
+    @_check_central
+    def mc_std_intervals(self, nsigma=1):
+        std = self.mc_std*nsigma
+        return pd.DataFrame({'min':self._cv - std,
+                             'max':self._cv + std})
+
+
 
     def __getitem__(self, item):
         return self._data[item]
@@ -71,7 +123,7 @@ class Result():
 
 #TODO: implement in C++?
 def convolve_all(pdf, observables):
-    datas = defaultdict(lambda:{})
+    datas = defaultdict(lambda:OrderedDict())
     #TODO: load many replicas in C++
     #TODO: Could we loop over observables and then over memebers?
     for rep in pdf['reps']:
@@ -79,7 +131,7 @@ def convolve_all(pdf, observables):
             #TODO: hide this call from the api, do in convolute.
             loadpdf(pdf['name'], rep)
             res = convolute(obs['name'], obs['order'])
-            datas[obs['name']][rep] = res
+            datas[obs['name']][rep] = np.array(res)
     results = [Result(obs, pdf['name'], datas[obs]) for obs in datas]
     return results
 
