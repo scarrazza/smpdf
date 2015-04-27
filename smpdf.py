@@ -17,8 +17,12 @@ from collections import defaultdict, OrderedDict
 
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
+from matplotlib.cbook import violin_stats
+import scipy
 
 from lhaindex import parse_info
+from plotutils import ax_or_gca, violin_stats_from_dist
 try:
     sys.path.append('applwrap')
     from applwrap import loadpdf, convolute
@@ -104,7 +108,14 @@ class Result():
         return iter(self._data)
 
     def _violin_data(self):
-        return self.sample_values(1000)
+        absdata = pd.concat(self.sample_values(1000),axis=1)
+        reldata = absdata.as_matrix().T/self._cv.as_matrix()
+        return reldata
+    
+    @ax_or_gca
+    def violin_plot(self, ax=None):
+        data = self._violin_data()
+        ax.violinplot(data)
 
 
 class SymHessianResult(Result):
@@ -120,6 +131,10 @@ class SymHessianResult(Result):
             weights = np.random.normal(size=self.nrep)
             error = (diffs*weights).sum(axis=1)
             yield self._cv + error
+    
+    def _violin_data(self):
+        absdata = scipy.stats.norm(self.central_value.as_matrix(), 
+                                   self.std_error())
 
 
 class MCResult(Result):
@@ -146,7 +161,7 @@ class MCResult(Result):
             yield self._all_vals[col]
 
     def _violin_data(self):
-        return self._all_vals
+        return self._all_vals.as_matrix().T/self._cv.as_matrix()
 
 
 RESULT_TYPES = defaultdict(lambda:Result,
