@@ -154,12 +154,7 @@ def convolve_all(pdf, observables):
     return results
 
 
-def main(config_yml):
-
-    # read yml file
-    with open(config_yml,'r') as f:
-        conf = Config.from_yaml(f)
-
+def main(conf):
     # perform convolution
     results = []
     for pdf in conf['pdfsets']:
@@ -197,6 +192,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
     if not (args.config_yml):
         parser.error("Too few arguments: config_yml")
-    mainargs = vars(args)
     splash()
-    results = main(**mainargs)
+    # read yml file
+    with open(args.config_yml,'r') as f:
+        conf = Config.from_yaml(f)
+    results = main(conf)
