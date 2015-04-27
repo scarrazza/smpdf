@@ -128,7 +128,7 @@ class MCResult(Result):
 
 
 RESULT_TYPES = defaultdict(lambda:Result,
-                           symhessian = SymHessianResult,
+                           symmhessian = SymHessianResult,
                            replicas   = MCResult,
                            )
 
