@@ -161,15 +161,17 @@ def main(config_yml):
         conf = Config.from_yaml(f)
 
     # perform convolution
+    results = []
     for pdf in conf['pdfsets']:
-        results = convolve_all(pdf, conf['observables'])
-        #TODO: load many replicas in C++
-        for result in results:
-            for member in result.iterall():
-                print "\n-", pdf['name'], "replica", member
-                print "- APPLgrid convolution results:"
-                for i, val in enumerate(result[member]):
-                    print ("\tData bin %i: %e" % (i, val))
+        results += convolve_all(pdf, conf['observables'])
+
+    #TODO: load many replicas in C++
+    for result in results:
+        for member in result.iterall():
+            print "\n-", pdf['name'], "replica", member
+            print "- APPLgrid convolution results:"
+            for i, val in enumerate(result[member]):
+                print ("\tData bin %i: %e" % (i, val))
 
     print ("\n +--------+ Completed +--------+\n")
     return results
