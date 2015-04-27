@@ -14,6 +14,7 @@ import argparse
 import functools
 from collections import defaultdict, OrderedDict
 
+
 import numpy as np
 import pandas as pd
 
@@ -58,7 +59,6 @@ def _check_central(f):
         return f(self, *args, **kwargs)
     return _f
 
-
 class Result():
     def __init__(self, obs, pdf, data):
         self.obs = obs
@@ -82,14 +82,36 @@ class Result():
     def nrep(self):
         return self._all_vals.shape[1]
 
-    @_check_central
-    def symhessian_error(self, nsigma=1):
-        diffsq = ((nsigma*self._all_vals.subtract(self._cv, axis=0))**2)
-        return diffsq.sum(axis=1).apply(np.sqrt)
+    def std_error(self, nsigma=1):
+        raise NotImplementedError("No error computation implemented for this"
+                                  "type of set")
 
+    @_check_central
+    def std_intervals(self, nsigma=1):
+        std = self.std_error()*nsigma
+        return pd.DataFrame({'min':self._cv - std,
+                             'max':self._cv + std})
+
+    def __getitem__(self, item):
+        return self._data[item]
+
+    #TODO: Should this be the default iterator?
+    def iterall(self):
+        return iter(self._data)
+
+
+class SymHessianResult(Result):
+
+    @_check_central
+    def std_error(self, nsigma=1):
+        diffsq = ((self._all_vals.subtract(self._cv, axis=0))**2)
+        return diffsq.sum(axis=1).apply(np.sqrt)*nsigma
+
+
+class MCResult(Result):
     #TODO: Is it correct to consider each bin as independant here?
     @_check_central
-    def mc_centered_interval(self, percent=68):
+    def centered_interval(self, percent=68):
         n = percent*self.nrep//100
         def get_lims(row):
             s = np.argsort(np.abs(row))
@@ -101,23 +123,19 @@ class Result():
 
     @property
     @_check_central
-    def mc_std(self):
-        return self._all_vals.std(axis=1)
-
-    @_check_central
-    def mc_std_intervals(self, nsigma=1):
-        std = self.mc_std*nsigma
-        return pd.DataFrame({'min':self._cv - std,
-                             'max':self._cv + std})
+    def std_error(self, nsigma=1):
+        return self._all_vals.std(axis=1)*nsigma
 
 
+RESULT_TYPES = defaultdict(lambda:Result,
+                           symhessian = SymHessianResult,
+                           replicas   = MCResult,
+                           )
 
-    def __getitem__(self, item):
-        return self._data[item]
+def make_result(obs, pdf_name, datas):
+    error_type = parse_info(pdf_name)['ErrorType']
+    return RESULT_TYPES[error_type](obs, pdf_name, datas)
 
-    #TODO: Should this be the default iterator?
-    def iterall(self):
-        return iter(self._data)
 
 
 
@@ -132,7 +150,7 @@ def convolve_all(pdf, observables):
             loadpdf(pdf['name'], rep)
             res = convolute(obs['name'], obs['order'])
             datas[obs['name']][rep] = np.array(res)
-    results = [Result(obs, pdf['name'], datas[obs]) for obs in datas]
+    results = [make_result(obs, pdf['name'], datas[obs]) for obs in datas]
     return results
 
 
