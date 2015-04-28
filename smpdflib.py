@@ -17,6 +17,7 @@ import os
 import os.path as osp
 import sys
 import functools
+import glob
 from collections import defaultdict, OrderedDict
 
 import yaml
@@ -52,11 +53,14 @@ class Config(dict):
                 pdf['reps'] = [pdf['reps']]
             elif isinstance(pdf['reps'], dict):
                 pdf['reps'] = range(pdf['reps']['min'], pdf['reps']['max'])
-                
-        params['observables'] = [Observable(**obs) 
-                                 for obs in params['observables']]
-            
 
+
+        observables = []
+        for obs in params['observables']:
+             names = glob.glob(obs['name'])
+             for name in names:
+                 observables.append(Observable(name, obs['order']))
+        params['observables'] = observables
         return cls(**params)
 
     @classmethod
@@ -67,25 +71,25 @@ class Observable():
     def __init__(self, name, order):
         self.filename = name
         self.order = order
-    
+
     @property
     def name(self):
         return osp.splitext(osp.basename(self.filename))[0]
-    
+
     def __str__(self):
         return self.name
-    
+
     def __repr__(self):
-        return "<%s:%s>" % (self.__class__.__name__, self.__str__())    
-    
+        return "<%s:%s>" % (self.__class__.__name__, self.__str__())
+
     def get_key(self):
         return (self.name, self.order)
-    
+
     def __hash__(self):
         return hash(self.get_key())
-    
+
     def __eq__(self, other):
-        return (isinstance(other, self.__class__) 
+        return (isinstance(other, self.__class__)
                 and self.get_key() == other.get_key())
 
 
@@ -326,7 +330,6 @@ def get_dataset(pdfsets, observables, db=None):
             else:
                 res = make_convolution(pdf, observables)
                 db[key] = dict(res)
-                print(db[key])
         else:
             res = make_convolution(pdf, observables)
 
