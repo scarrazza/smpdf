@@ -29,10 +29,10 @@ from lhaindex import parse_info
 import plotutils
 try:
     sys.path.append('applwrap')
-    from applwrap import loadpdf, convolute
+    from applwrap import initpdf, initobs, pdfreplica, convolute
 except ImportError:
     os.system("make -C applwrap")
-    from applwrap import loadpdf, convolute
+    from applwrap import initpdf, initobs, pdfreplica, convolute
 
 #TODO: Do we really want a subclass of dict?
 class Config(dict):
@@ -267,12 +267,18 @@ def make_convolution(pdf, observables):
     datas = defaultdict(lambda:OrderedDict())
     #TODO: load many replicas in C++
     #TODO: Could we loop over observables and then over memebers?
-    for rep in pdf['reps']:
-        for obs in observables:
+    initpdf(pdf['name'])
+    for obs in observables:
+        initobs(obs.filename)
+        for rep in pdf['reps']:
             #TODO: hide this call from the api, do in convolute.
-            loadpdf(pdf['name'], rep)
-            res = convolute(obs.filename, obs.order)
+            sys.stdout.write('\r-> Computing replica %d of %s' % 
+                             (rep, pdf['name']))
+            sys.stdout.flush()
+            pdfreplica(rep)
+            res = convolute(obs.order)
             datas[obs][rep] = np.array(res)
+        sys.stdout.write('\n')    
     return datas
 
 def results_from_datas(dataset):
