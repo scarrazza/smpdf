@@ -8,6 +8,9 @@ import functools
 
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.cbook import violin_stats
+import matplotlib.patches
+import matplotlib.mlab as mlab
 
 import palettable
 
@@ -32,7 +35,7 @@ def ax_or_newfig(f):
         if noax:
             plt.legend(loc = 'best')
         return result
-    
+
     return _f
 
 def violin_stats_from_dist(coords, X):
@@ -100,7 +103,7 @@ def violin_stats_from_dist(coords, X):
         vpstats.append(stats)
 
     return vpstats
-    
+
 
 def center_cmap_args(data,cmap=None):
     M = np.max(np.abs(data))
@@ -110,3 +113,77 @@ def center_cmap_args(data,cmap=None):
 def get_accent_colors(num_colors):
     num_colors = 3 if num_colors < 3 else 8 if num_colors > 8 else num_colors
     return palettable.colorbrewer.get_map('Accent', 'qualitative', num_colors)
+
+@ax_or_gca
+def violin_plot(data, normvalues=None, ax=None, bw_method=None, **kwargs):
+
+    def _kde_method(X, coords):
+            kde = mlab.GaussianKDE(X, bw_method)
+            return kde.evaluate(coords)
+
+    myargs = {}
+    myargs.update(kwargs)
+    if 'color' in myargs:
+        color = myargs.pop('color')
+    else:
+        color = None
+    if 'label' in myargs:
+        label = myargs.pop('label')
+    else:
+        label = None
+
+    if 'hatches' in myargs:
+        hatches = myargs.pop('hatches')
+    else:
+        hatches = None
+
+    if isinstance(data, tuple):
+        stats = violin_stats_from_dist(data)
+    else:
+        stats = violin_stats(data, _kde_method)
+
+    N = len(stats)
+
+    if normvalues is not None:
+        if np.isscalar(normvalues):
+            normvalues = [normvalues] * N
+        elif len(normvalues) != N:
+            raise ValueError("Incorrect number of normvalues")
+
+        widths = [normval*np.max(stat['vals']) for normval, stat
+                  in zip(normvalues, stats)]
+        myargs['widths'] = widths
+
+    if 'widths' in myargs:
+        widths = myargs['widths']
+        if np.isscalar(widths):
+            widths = [widths] * N
+        elif len(widths) != N:
+            raise ValueError("Incorrect number of widths")
+        myargs['widths'] = widths
+    else:
+        myargs['widths'] = [0.5]*N
+
+
+
+    ournorms = [w/np.max(stat['vals']) for w,stat in zip(myargs['widths'],
+               stats)]
+
+    vp = ax.violin(stats, **myargs)
+
+    for pc in vp['bodies']:
+        if color:
+
+            if len(color) == 4:
+                pc.set_alpha(color[3])
+            pc.set_facecolor(color)
+        if hatches:
+            pc.set_hatches(hatches)
+    if label:
+        if not color:
+            color =  vp['bodies'][0].get_facecolor()
+        vp['bodies'][0].set_label(label)
+        handle = matplotlib.patches.Patch(color=color, label=label,
+                                          hatch=hatches)
+
+    return vp, handle, ournorms
