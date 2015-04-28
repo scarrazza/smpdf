@@ -28,6 +28,9 @@ def main(conf):
                 print ("\tData bin %i: %e" % (i, val))
 
     print ("\n +--------+ Completed +--------+\n")
+    #TODO: Specify base
+    for obs, fig in lib.compare_violins(results, base_pdf = results[0].pdf):
+        fig.savefig("%s.pdf" % obs)
     return results
 
 

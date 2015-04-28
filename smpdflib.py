@@ -137,7 +137,7 @@ class Result():
         absdata = pd.concat(self.sample_values(1000),axis=1)
         reldata = absdata.as_matrix().T
         return reldata
-    
+    #TODO: Move to plotutils 
     @ax_or_gca
     def violin_plot(self, data = None, ax=None, **kwargs):
         if data is None:
@@ -240,15 +240,19 @@ class MCResult(Result):
     def _violin_data(self):
         return self._all_vals.as_matrix().T
     
-def combine_results(results):
+def aggregate_results(results):
     combined = defaultdict(lambda: {})
     for result in results:
         combined[result.obs][result.pdf] = result
     return combined
 
-def compare_violins(combined, base_pdf = None):
+def compare_violins(results, base_pdf = None):
+    if not isinstance(results, dict):
+        combined = aggregate_results(results)
+    else:
+        combined = results
     for obs in combined:
-        plt.figure()
+        figure = plt.figure()
         handles = []
         plt.title(str(obs))
         colors = iter(get_accent_colors(len(combined[obs])).mpl_colors)
@@ -264,7 +268,7 @@ def compare_violins(combined, base_pdf = None):
             plot, handle = result.violin_plot(data, color=color)
             handles.append(handle)
         plt.legend(handles=handles, loc='best')
-            
+        yield obs, figure
         
 
 RESULT_TYPES = defaultdict(lambda:Result,
