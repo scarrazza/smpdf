@@ -21,6 +21,7 @@ __email__ = 'stefano.carrazza@mi.infn.it'
 def main(conf, db):
     # perform convolution
     pdfsets, observables = conf['pdfsets'], conf['observables']
+    #TODO: Use multicore
     results = lib.convolve_or_load(pdfsets, observables, db)
     #TODO: load many replicas in C++
     for result in results:
