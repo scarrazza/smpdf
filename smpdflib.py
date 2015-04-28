@@ -147,12 +147,12 @@ class Result():
         absdata = pd.concat(self.sample_values(1000),axis=1)
         reldata = absdata.as_matrix().T
         return reldata
-    #TODO: Move to plotutils 
+    #TODO: Move to plotutils
     @ax_or_gca
     def violin_plot(self, data = None, ax=None, **kwargs):
         if data is None:
             data = self._violin_data()
-        
+
         myargs = {'label': str(self.pdf)}
         myargs.update(kwargs)
         if 'color' in myargs:
@@ -187,12 +187,12 @@ class Result():
             if not color:
                 color =  vp['bodies'][0].get_facecolor()
             vp['bodies'][0].set_label(label)
-            handle = matplotlib.patches.Patch(color=color, label=label, 
+            handle = matplotlib.patches.Patch(color=color, label=label,
                                               hatch=hatches)
-            print(color)                      
-        
+            print(color)
+
         return vp, handle
-            
+
 
 
 class SymHessianResult(Result):
@@ -209,19 +209,19 @@ class SymHessianResult(Result):
             error = (diffs*weights).sum(axis=1)
             yield self._cv + error
 
-#TODO: Fix this    
+#TODO: Fix this
 #==============================================================================
 #     def _violin_data(self):
 #         std = self.std_error()
 #         mean = self.central_value.as_matrix()
-#         dist = scipy.stats.norm(mean, 
+#         dist = scipy.stats.norm(mean,
 #                                    std)
 #         coords = np.linspace(mean - 3*std, mean+3*std, 1000)
 #         vals = dist.pdf(coords)
 #         return coords, vals
 #==============================================================================
 
-        
+
 
 
 class MCResult(Result):
@@ -268,19 +268,22 @@ def compare_violins(results, base_pdf = None):
         colors = iter(get_accent_colors(len(combined[obs])).mpl_colors)
         alpha = 1
         base = combined[obs][base_pdf]
-        results = sorted(combined[obs].values(), key = lambda x: x!=base) 
+        results = sorted(combined[obs].values(), key = lambda x: x!=base)
         for result in results:
             data = result._violin_data()
             if base is not None:
                 data /= base.central_value.as_matrix()
             color = next(colors) + (alpha,)
             alpha /= 2
-            plot, handle = result.violin_plot(data, color=color, 
+            plot, handle = result.violin_plot(data, color=color,
                                               showextrema=False)
             handles.append(handle)
+        plt.xlabel('bins')
+        plt.ylabel('Rel to %s' % base_pdf)
+        plt.xticks(range(1,len(result.central_value) + 1))
         plt.legend(handles=handles, loc='best')
         yield obs, figure
-        
+
 
 RESULT_TYPES = defaultdict(lambda:Result,
                            symmhessian = SymHessianResult,
@@ -310,13 +313,13 @@ def results_from_datas(dataset):
         data = dataset[pdf]
         results += [make_result(obs, pdf, data[obs]) for obs in data]
     return results
-        
+
 def get_dataset(pdfsets, observables, db=None):
-    dataset = {}
+    dataset = OrderedDict()
     for pdf in pdfsets:
         #bool(db) == False if empty
         if db is not None:
-            key = str((pdf['name'], tuple(obs.get_key() 
+            key = str((pdf['name'], tuple(obs.get_key()
                        for obs in observables)))
             if key in db:
                 res = db.get(key)
@@ -326,7 +329,7 @@ def get_dataset(pdfsets, observables, db=None):
                 print(db[key])
         else:
             res = make_convolution(pdf, observables)
-       
+
         #TODO: Make key the real pdf class, instead of name
         dataset[pdf['name']] = res
     return dataset
