@@ -29,7 +29,6 @@ def main(conf, db):
             print "- APPLgrid convolution results:"
             for i, val in enumerate(result[member]):
                 print ("\tData bin %i: %e" % (i, val))
-
     print ("\n +--------+ Completed +--------+\n")
     #TODO: Specify base
     for obs, fig in lib.compare_violins(results, base_pdf = results[0].pdf):
@@ -58,11 +57,11 @@ if __name__ == "__main__":
     #TODO: Use db by default?
     parser.add_argument('--use-db', nargs='?', help="Use Python database"
     " file of results and do not recompute those already in there. "
-    "If a file is not passed 'db/db' will be used", metavar='dbfile', 
+    "If a file is not passed 'db/db' will be used", metavar='dbfile',
     const='db/db', default=None)
 
     args = parser.parse_args()
-    
+
     splash()
     # read yml file
     with open(args.config_yml,'r') as f:
@@ -70,7 +69,7 @@ if __name__ == "__main__":
     #TODO: handle this better
     filename = args.use_db
     if filename:
-        
+
         dirname = osp.dirname(filename)
         if dirname and not osp.isdir(dirname):
             os.makedirs(dirname)

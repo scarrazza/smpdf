@@ -24,12 +24,9 @@ import yaml
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from matplotlib.cbook import violin_stats
-import matplotlib.patches
-import scipy
 
 from lhaindex import parse_info
-from plotutils import ax_or_gca, violin_stats_from_dist, get_accent_colors
+import plotutils
 try:
     sys.path.append('applwrap')
     from applwrap import loadpdf, convolute
@@ -45,6 +42,7 @@ class Config(dict):
             raise ValueError("'pdfsets' not found in configuration.")
         #TODO make pdf a class
         for pdf in params['pdfsets']:
+
             #TODO: Do we allow incomplete sets at all? Seems like asking for
             #bugs.
             if not 'reps' in pdf or pdf['reps']=='all':
@@ -151,51 +149,14 @@ class Result():
         absdata = pd.concat(self.sample_values(1000),axis=1)
         reldata = absdata.as_matrix().T
         return reldata
-    #TODO: Move to plotutils
-    @ax_or_gca
-    def violin_plot(self, data = None, ax=None, **kwargs):
+
+    def violin_plot(self, data=None , **kwargs):
         if data is None:
-            data = self._violin_data()
+            data = self._violin_data
 
         myargs = {'label': str(self.pdf)}
         myargs.update(kwargs)
-        if 'color' in myargs:
-            color = myargs.pop('color')
-        else:
-            color = None
-        if 'label' in myargs:
-            label = myargs.pop('label')
-        else:
-            label = str(self.pdf)
-        
-        if 'hatches' in myargs:
-            hatches = myargs.pop('hatches')
-        else:
-            hatches = None
-            
-        if isinstance(data, tuple):
-            stats = violin_stats_from_dist(*data)
-            vp = ax.violin(stats, **myargs)
-        else:
-            vp = ax.violinplot(data, **myargs)
-        
-        for pc in vp['bodies']:
-            if color:
-                
-                if len(color) == 4:
-                    pc.set_alpha(color[3])
-                pc.set_facecolor(color)
-            if hatches:
-                pc.set_hatches(hatches)
-        if label:
-            if not color:
-                color =  vp['bodies'][0].get_facecolor()
-            vp['bodies'][0].set_label(label)
-            handle = matplotlib.patches.Patch(color=color, label=label,
-                                              hatch=hatches)
-            print(color)
-
-        return vp, handle
+        return plotutils.violin_plot(data, **myargs)
 
 
 
@@ -253,7 +214,7 @@ class MCResult(Result):
 
     def _violin_data(self):
         return self._all_vals.as_matrix().T
-    
+
 def aggregate_results(results):
     combined = defaultdict(lambda: {})
     for result in results:
@@ -267,9 +228,11 @@ def compare_violins(results, base_pdf = None):
         combined = results
     for obs in combined:
         figure = plt.figure()
+        norms = None
         handles = []
         plt.title(str(obs))
-        colors = iter(get_accent_colors(len(combined[obs])).mpl_colors)
+        ncolors = len(combined[obs])
+        colors = iter(plotutils.get_accent_colors(ncolors).mpl_colors)
         alpha = 1
         base = combined[obs][base_pdf]
         results = sorted(combined[obs].values(), key = lambda x: x!=base)
@@ -279,8 +242,9 @@ def compare_violins(results, base_pdf = None):
                 data /= base.central_value.as_matrix()
             color = next(colors) + (alpha,)
             alpha /= 2
-            plot, handle = result.violin_plot(data, color=color,
-                                              showextrema=False)
+            plot, handle, norms = result.violin_plot(data, color=color,
+                                              showextrema=False,
+                                              normvalues=norms)
             handles.append(handle)
         plt.xlabel('bins')
         plt.ylabel('Rel to %s' % base_pdf)
