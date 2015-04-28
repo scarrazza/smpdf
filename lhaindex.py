@@ -13,12 +13,11 @@ import subprocess
 import fnmatch
 
 import yaml
+import fastcache
 
 
 _indexes_to_names = None
 _names_to_indexes = None
-#TODO Use Python 3 cache when sensible
-infofiles = {}
 
 def expand_names(globstr):
     return fnmatch.filter(get_names_to_indexes().keys(), globstr)
@@ -58,14 +57,12 @@ def parse_index(index_file):
             d[index] = m.group(2)
     return d
 
+
+@fastcache.lru_cache()
 def parse_info(name):
-    global infofiles
-    if name in infofiles: 
-        return infofiles[name]
     infofilename = osp.join(get_lha_path(), name, name + '.info')
     with open(infofilename) as infofile:
         result = yaml.load(infofile)
-    infofiles[name] = result
     return result
 
 def get_lha_path():
