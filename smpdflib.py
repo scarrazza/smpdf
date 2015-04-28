@@ -290,18 +290,30 @@ def results_from_datas(dataset):
         results += [make_result(obs, pdf, data[obs]) for obs in data]
     return results
 
+#TODO: Refactor this after adding efficient convolution
 def get_dataset(pdfsets, observables, db=None):
+    def make_key(pdf, obs):
+        return str((pdf['name'], tuple(obs.get_key())))
     dataset = OrderedDict()
     for pdf in pdfsets:
         #bool(db) == False if empty
         if db is not None:
-            key = str((pdf['name'], tuple(obs.get_key()
-                       for obs in observables)))
-            if key in db:
-                res = db.get(key)
-            else:
-                res = make_convolution(pdf, observables)
-                db[key] = dict(res)
+            res = {}
+            obs_to_compute = []
+            for obs in observables:
+                key = make_key(pdf, obs)
+                if key in db:
+                    res[obs] = db[key]
+                else:
+                    obs_to_compute.append(obs)
+
+            computed_data = make_convolution(pdf, obs_to_compute)
+            for newobs in computed_data:
+                key = make_key(pdf, newobs)
+                db[key] = computed_data[newobs]
+            res.update(computed_data)
+
+
         else:
             res = make_convolution(pdf, observables)
 
