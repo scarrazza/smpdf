@@ -265,7 +265,8 @@ def compare_violins(results, base_pdf = None):
                 data /= base.central_value.as_matrix()
             color = next(colors) + (alpha,)
             alpha /= 2
-            plot, handle = result.violin_plot(data, color=color)
+            plot, handle = result.violin_plot(data, color=color, 
+                                              showextrema=False)
             handles.append(handle)
         plt.legend(handles=handles, loc='best')
         yield obs, figure
