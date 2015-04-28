@@ -76,7 +76,17 @@ class Observable():
         return self.name
     
     def __repr__(self):
-        return "<%s:%s>" % (self.__class__.__name__, self.__str__())
+        return "<%s:%s>" % (self.__class__.__name__, self.__str__())    
+    
+    def get_key(self):
+        return (self.name, self.order)
+    
+    def __hash__(self):
+        return hash(self.get_key())
+    
+    def __eq__(self, other):
+        return (isinstance(other, self.__class__) 
+                and self.get_key() == other.get_key())
 
 
 #TODO: Decide if we really want this
@@ -301,15 +311,27 @@ def results_from_datas(dataset):
         results += [make_result(obs, pdf, data[obs]) for obs in data]
     return results
         
-def get_dataset(pdfsets, observables):
+def get_dataset(pdfsets, observables, db=None):
     dataset = {}
     for pdf in pdfsets:
+        #bool(db) == False if empty
+        if db is not None:
+            key = str((pdf['name'], tuple(obs.get_key() 
+                       for obs in observables)))
+            if key in db:
+                res = db.get(key)
+            else:
+                res = make_convolution(pdf, observables)
+                db[key] = dict(res)
+                print(db[key])
+        else:
+            res = make_convolution(pdf, observables)
+       
         #TODO: Make key the real pdf class, instead of name
-        dataset[pdf['name']] = make_convolution(pdf, observables)
+        dataset[pdf['name']] = res
     return dataset
 
-#TODO: implement in C++?
-def convolve_all(pdfsets, observables):
+def convolve_or_load(pdfsets, observables, db=None):
     #results = []
-    results = results_from_datas(get_dataset(pdfsets, observables))
+    results = results_from_datas(get_dataset(pdfsets, observables, db))
     return results
