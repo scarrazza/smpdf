@@ -234,7 +234,7 @@ def compare_violins(results, base_pdf = None):
         ncolors = len(combined[obs])
         colors = iter(plotutils.get_accent_colors(ncolors).mpl_colors)
         alpha = 1
-        base = combined[obs][base_pdf]
+        base = combined[obs].get(base_pdf, None)
         results = sorted(combined[obs].values(), key = lambda x: x!=base)
         for result in results:
             data = result._violin_data()
