@@ -56,6 +56,8 @@ class Config(dict):
         observables = []
         for obs in params['observables']:
              names = glob.glob(obs['name'])
+             if not names:
+                 raise ValueError("No observables found for %s" % obs['name'])
              for name in names:
                  observables.append(Observable(name, obs['order']))
         params['observables'] = observables
