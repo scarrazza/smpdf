@@ -137,8 +137,8 @@ def violin_plot(data, normvalues=None, ax=None, bw_method=None, **kwargs):
     else:
         hatches = None
 
-    if isinstance(data, tuple):
-        stats = violin_stats_from_dist(data)
+    if isinstance(data, list):
+        stats = data
     else:
         stats = violin_stats(data, _kde_method)
 

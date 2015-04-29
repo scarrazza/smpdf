@@ -24,6 +24,7 @@ import yaml
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import scipy.stats
 
 from lhaindex import parse_info
 import plotutils
@@ -147,14 +148,16 @@ class Result():
     def iterall(self):
         return iter(self._data)
 
-    def _violin_data(self):
-        absdata = pd.concat(self.sample_values(1000),axis=1)
-        reldata = absdata.as_matrix().T
+    def _violin_data(self, rel_to=None):
+        absdata = pd.concat(self.sample_values(10000),axis=1)
+        if rel_to is None:
+            rel_to = 1
+        reldata = absdata.as_matrix().T/rel_to
         return reldata
 
     def violin_plot(self, data=None , **kwargs):
         if data is None:
-            data = self._violin_data
+            data = self._violin_data()
 
         myargs = {'label': str(self.pdf)}
         myargs.update(kwargs)
@@ -176,17 +179,35 @@ class SymHessianResult(Result):
             error = (diffs*weights).sum(axis=1)
             yield self._cv + error
 
-#TODO: Fix this
-#==============================================================================
-#     def _violin_data(self):
-#         std = self.std_error()
-#         mean = self.central_value.as_matrix()
-#         dist = scipy.stats.norm(mean,
-#                                    std)
-#         coords = np.linspace(mean - 3*std, mean+3*std, 1000)
-#         vals = dist.pdf(coords)
-#         return coords, vals
-#==============================================================================
+    def _violin_data(self, rel_to = None):
+        std = self.std_error()
+        mean = self.central_value.as_matrix()
+
+        if rel_to is None:
+            rel_to = np.ones_like(mean)
+        vpstats = []
+        for m,s,r in zip(mean,std, rel_to):
+            # Dictionary of results for this distribution
+            stats = {}
+
+            # Calculate basic stats for the distribution
+            min_val = m - 3*s
+            max_val = m + 3*s
+            coords = np.linspace(m - 3*s, m+3*s, 1000)
+            # Evaluate the kernel density estimate
+            stats['vals'] = scipy.stats.norm(m,s).pdf(coords)*r
+            stats['coords'] = coords/r
+
+            # Store additional statistics for this distribution
+            stats['mean'] = m/r
+            stats['median'] = m/r
+            stats['min'] = min_val/r
+            stats['max'] = max_val/r
+
+            # Append to output
+            vpstats.append(stats)
+
+        return vpstats
 
 
 
@@ -214,8 +235,10 @@ class MCResult(Result):
             col = np.random.choice(self._all_vals.columns)
             yield self._all_vals[col]
 
-    def _violin_data(self):
-        return self._all_vals.as_matrix().T
+    def _violin_data(self, rel_to = None):
+        if rel_to is None:
+            rel_to = 1
+        return self._all_vals.as_matrix().T/ rel_to
 
 def aggregate_results(results):
     combined = defaultdict(lambda: {})
@@ -239,9 +262,12 @@ def compare_violins(results, base_pdf = None):
         base = combined[obs].get(base_pdf, None)
         results = sorted(combined[obs].values(), key = lambda x: x!=base)
         for result in results:
-            data = result._violin_data()
+
             if base is not None:
-                data /= base.central_value.as_matrix()
+                cv = base.central_value.as_matrix()
+                data = result._violin_data(rel_to=cv)
+            else:
+                data = data = result._violin_data()
             color = next(colors) + (alpha,)
             alpha /= 2
             plot, handle, norms = result.violin_plot(data, color=color,
@@ -274,13 +300,13 @@ def make_convolution(pdf, observables):
         initobs(obs.filename)
         for rep in pdf['reps']:
             #TODO: hide this call from the api, do in convolute.
-            sys.stdout.write('\r-> Computing replica %d of %s' % 
+            sys.stdout.write('\r-> Computing replica %d of %s' %
                              (rep, pdf['name']))
             sys.stdout.flush()
             pdfreplica(rep)
             res = convolute(obs.order)
             datas[obs][rep] = np.array(res)
-        sys.stdout.write('\n')    
+        sys.stdout.write('\n')
     return datas
 
 def results_from_datas(dataset):
