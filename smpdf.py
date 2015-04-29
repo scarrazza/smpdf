@@ -33,7 +33,7 @@ def main(conf, db):
     print ("\n +--------+ Completed +--------+\n")
     #TODO: Specify base
     for obs, fig in lib.compare_violins(results, base_pdf = results[0].pdf):
-        fig.savefig("%s.pdf" % obs)
+        fig.savefig("figures/%s.pdf" % obs)
     return results
 
 
