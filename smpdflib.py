@@ -26,7 +26,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import scipy.stats
 
-from lhaindex import parse_info
+import lhaindex
 import plotutils
 try:
     sys.path.append('applwrap')
@@ -35,23 +35,22 @@ except ImportError:
     os.system("make -C applwrap")
     from applwrap import initpdf, initobs, pdfreplica, convolute
 
+ORDERS_QCD = {0: 'LO', 1: 'NLO', 2: 'NNLO'}
+
+#for N_f = 4, LHAPDF's M_Z is actually M_{charm}
+M_REF = defaultdict(lambda: 'Z', {4:'c'})
+
 #TODO: Do we really want a subclass of dict?
 class Config(dict):
     @classmethod
     def from_params(cls, **params):
         if 'pdfsets' not in params or not params['pdfsets']:
             raise ValueError("'pdfsets' not found in configuration.")
-        #TODO make pdf a class
-        for pdf in params['pdfsets']:
 
-            #TODO: Do we allow incomplete sets at all? Seems like asking for
-            #bugs.
-            if not 'reps' in pdf or pdf['reps']=='all':
-                pdf['reps'] = range(parse_info(pdf['name'])['NumMembers'])
-            elif isinstance(pdf['reps'], int):
-                pdf['reps'] = [pdf['reps']]
-            elif isinstance(pdf['reps'], dict):
-                pdf['reps'] = range(pdf['reps']['min'], pdf['reps']['max'])
+        pdfsets =  []
+        for pdf in params['pdfsets']:
+            pdfsets += [PDF(pdf['name'])]
+        params['pdfsets'] = pdfsets
 
 
         observables = []
@@ -68,7 +67,16 @@ class Config(dict):
     def from_yaml(cls, stream):
         return cls.from_params(**yaml.load(stream))
 
-class Observable():
+
+class TupleComp(object):
+    def __hash__(self):
+        return hash(self.get_key())
+
+    def __eq__(self, other):
+        return (isinstance(other, self.__class__)
+                and self.get_key() == other.get_key())
+
+class Observable(TupleComp):
     def __init__(self, name, order):
         self.filename = name
         self.order = order
@@ -78,7 +86,7 @@ class Observable():
         return osp.splitext(osp.basename(self.filename))[0]
 
     def __str__(self):
-        return self.name
+        return "%s(%s)"%(self.name, ORDERS_QCD[self.order])
 
     def __repr__(self):
         return "<%s:%s>" % (self.__class__.__name__, self.__str__())
@@ -86,12 +94,34 @@ class Observable():
     def get_key(self):
         return (self.name, self.order)
 
-    def __hash__(self):
-        return hash(self.get_key())
 
-    def __eq__(self, other):
-        return (isinstance(other, self.__class__)
-                and self.get_key() == other.get_key())
+class PDF(TupleComp):
+    def __init__(self, name):
+        self.name = name
+
+    def get_key(self):
+        return (self.name,)
+
+    def __str__(self):
+        return self.name
+
+    def __repr__(self):
+        return "<%s:%s>" % (self.__class__.__name__, self.name)
+
+    @property
+    def oqcd_str(self):
+        return ORDERS_QCD[self.OrderQCD]
+
+    @property
+    def mref(self):
+        return "M_%s" % M_REF[self.NumFlavors]
+
+    @property
+    def reps(self):
+        return range(self.NumMembers)
+
+    def __getattr__(self, name):
+        return lhaindex.parse_info(self.name)[name]
 
 
 #TODO: Decide if we really want this
@@ -286,22 +316,22 @@ RESULT_TYPES = defaultdict(lambda:Result,
                            replicas   = MCResult,
                            )
 
-def make_result(obs, pdf_name, datas):
-    error_type = parse_info(pdf_name)['ErrorType']
-    return RESULT_TYPES[error_type](obs, pdf_name, datas)
+def make_result(obs, pdf, datas):
+    error_type = pdf.ErrorType
+    return RESULT_TYPES[error_type](obs, pdf, datas)
 
 
 def make_convolution(pdf, observables):
     datas = defaultdict(lambda:OrderedDict())
     #TODO: load many replicas in C++
     #TODO: Could we loop over observables and then over memebers?
-    initpdf(pdf['name'])
+    initpdf(pdf.name)
     for obs in observables:
         initobs(obs.filename)
-        for rep in pdf['reps']:
+        for rep in pdf.reps:
             #TODO: hide this call from the api, do in convolute.
             sys.stdout.write('\r-> Computing replica %d of %s' %
-                             (rep, pdf['name']))
+                             (rep, pdf))
             sys.stdout.flush()
             pdfreplica(rep)
             res = convolute(obs.order)
@@ -319,7 +349,7 @@ def results_from_datas(dataset):
 #TODO: Refactor this after adding efficient convolution
 def get_dataset(pdfsets, observables, db=None):
     def make_key(pdf, obs):
-        return str((pdf['name'], tuple(obs.get_key())))
+        return str((pdf.get_key(), obs.get_key()))
     dataset = OrderedDict()
     for pdf in pdfsets:
         #bool(db) == False if empty
@@ -343,8 +373,7 @@ def get_dataset(pdfsets, observables, db=None):
         else:
             res = make_convolution(pdf, observables)
 
-        #TODO: Make key the real pdf class, instead of name
-        dataset[pdf['name']] = res
+        dataset[pdf] = res
     return dataset
 
 def convolve_or_load(pdfsets, observables, db=None):
