@@ -26,8 +26,8 @@ def main(conf, db):
     #TODO: load many replicas in C++
     for result in results:
         for member in result.iterall():
-            print "\n-", result.pdf, "replica", member
-            print "- APPLgrid convolution results:"
+            print ("\n- %s replica %d"% (result.pdf,member))
+            print ("- APPLgrid convolution results:")
             for i, val in enumerate(result[member]):
                 print ("\tData bin %i: %e" % (i, val))
     print ("\n +--------+ Completed +--------+\n")
@@ -38,15 +38,18 @@ def main(conf, db):
 
 
 def splash():
-    print " "
-    print "  ███████╗███╗   ███╗██████╗ ██████╗ ███████╗ "
-    print "  ██╔════╝████╗ ████║██╔══██╗██╔══██╗██╔════╝ "
-    print "  ███████╗██╔████╔██║██████╔╝██║  ██║█████╗   "
-    print "  ╚════██║██║╚██╔╝██║██╔═══╝ ██║  ██║██╔══╝ "
-    print "  ███████║██║ ╚═╝ ██║██║     ██████╔╝██║"
-    print "  ╚══════╝╚═╝     ╚═╝╚═╝     ╚═════╝ ╚═╝"
-    print "  __version__:", __version__
-    print "  __authors__: S. Carrazza, Z. Kassabov\n"
+    s =  ("""
+  ███████╗███╗   ███╗██████╗ ██████╗ ███████╗
+  ██╔════╝████╗ ████║██╔══██╗██╔══██╗██╔════╝
+  ███████╗██╔████╔██║██████╔╝██║  ██║█████╗
+  ╚════██║██║╚██╔╝██║██╔═══╝ ██║  ██║██╔══╝
+  ███████║██║ ╚═╝ ██║██║     ██████╔╝██║
+  ╚══════╝╚═╝     ╚═╝╚═╝     ╚═════╝ ╚═╝
+  __version__: %s"
+  __authors__: S. Carrazza, Z. Kassabov
+""")%__version__
+    print(s)
+
 
 
 
