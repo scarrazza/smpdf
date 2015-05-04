@@ -1,3 +1,11 @@
+/*.pdf
+/*.yaml
+/*.yml
+/*.tar.*
+data/
+output/
+db/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
