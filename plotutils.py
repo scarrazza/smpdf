@@ -110,6 +110,10 @@ def center_cmap_args(data,cmap=None):
     return dict(c =(data),
                    cmap = cmap, vmin = -M, vmax = M)
 
+def extend_range(rmin, rmax, prop=0.1):
+    diff = (rmax- rmin)*prop
+    return rmin - diff, rmax + diff
+
 def get_accent_colors(num_colors):
     num_colors = 3 if num_colors < 3 else 8 if num_colors > 8 else num_colors
     return palettable.colorbrewer.get_map('Accent', 'qualitative', num_colors)

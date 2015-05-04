@@ -35,6 +35,9 @@ except ImportError:
     os.system("make -C applwrap")
     from applwrap import initpdf, initobs, pdfreplica, convolute
 
+#http://stackoverflow.com/questions/26277757/pandas-to-html-truncates-string-contents
+pd.set_option('display.max_colwidth', -1)
+
 ORDERS_QCD = {0: 'LO', 1: 'NLO', 2: 'NNLO'}
 
 #for N_f = 4, LHAPDF's M_Z is actually M_{charm}
@@ -76,14 +79,10 @@ class TupleComp(object):
         return (isinstance(other, self.__class__)
                 and self.get_key() == other.get_key())
 
-class Observable(TupleComp):
+class BaseObservable(TupleComp):
     def __init__(self, name, order):
-        self.filename = name
+        self.name = name
         self.order = order
-
-    @property
-    def name(self):
-        return osp.splitext(osp.basename(self.filename))[0]
 
     def __str__(self):
         return "%s(%s)"%(self.name, ORDERS_QCD[self.order])
@@ -93,6 +92,15 @@ class Observable(TupleComp):
 
     def get_key(self):
         return (self.name, self.order)
+
+class Observable(BaseObservable):
+    def __init__(self, filename, order):
+        self.filename = filename
+        self.order = order
+
+    @property
+    def name(self):
+        return osp.splitext(osp.basename(self.filename))[0]
 
 
 class PDF(TupleComp):
@@ -111,6 +119,10 @@ class PDF(TupleComp):
     @property
     def oqcd_str(self):
         return ORDERS_QCD[self.OrderQCD]
+
+    @property
+    def collaboration(self):
+        return lhaindex.get_collaboration(self.name)
 
     @property
     def mref(self):
@@ -171,6 +183,7 @@ class Result():
         return pd.DataFrame({'min':self._cv - std,
                              'max':self._cv + std})
 
+
     def __getitem__(self, item):
         return self._data[item]
 
@@ -193,6 +206,11 @@ class Result():
         myargs.update(kwargs)
         return plotutils.violin_plot(data, **myargs)
 
+    def sumbins(self, bins = None):
+        sumobs = BaseObservable(self.obs.name + '[Sum]', self.obs.order)
+        data = pd.DataFrame(self._data.sum(axis=0)).T
+        return self.__class__(sumobs, self.pdf, data)
+
 
 
 class SymHessianResult(Result):
@@ -201,6 +219,9 @@ class SymHessianResult(Result):
     def std_error(self, nsigma=1):
         diffsq = (self._all_vals.subtract(self._cv, axis=0))**2
         return diffsq.sum(axis=1).apply(np.sqrt)*nsigma
+    @property
+    def error68(self):
+        return self.std_interval()
 
     def sample_values(self, n):
         diffs = self._all_vals.subtract(self._cv, axis=0)
@@ -256,6 +277,9 @@ class MCResult(Result):
         return diffs.apply(get_lims, axis=1).add(self._cv, axis=0)
 
     @property
+    def error68(self):
+        return self.centered_interval()
+
     @_check_central
     def std_error(self, nsigma=1):
         return self._all_vals.std(axis=1)*nsigma
@@ -275,6 +299,30 @@ def aggregate_results(results):
     for result in results:
         combined[result.obs][result.pdf] = result
     return combined
+
+DISPLAY_COLUMNS = ('Observavle', 'PDF', 'CV', 'Up68', 'Down68', 'Remarks')
+
+def results_table(results):
+    records = [OrderedDict([
+                ('Observable'       , result.obs),
+                ('PDF'              , result.pdf),
+                ('Collaboration'    , result.pdf.collaboration),
+                ('alpha_sMref'      , result.pdf.AlphaS_MZ),
+                ('PDF_OrderQCD'     , result.pdf.oqcd_str),
+                ('NumFlavors'       , result.pdf.NumFlavors),
+                ('CV'               , result.central_value),
+                ('Up68'             , result.error68['max']),
+                ('Down68'           , result.error68['min']),
+                ('Remarks'          , [],  )
+               ]) for result in results]
+    return pd.DataFrame(records)
+
+def summed_results_table(results):
+    numcols = {'CV', 'Up68', 'Down68'}
+    table = results_table([result.sumbins() for result in results])
+    for col in numcols:
+        table[col] = table[col].apply(float)
+    return table
 
 def compare_violins(results, base_pdf = None):
     if not isinstance(results, dict):
@@ -309,6 +357,38 @@ def compare_violins(results, base_pdf = None):
         plt.xticks(range(1,len(result.central_value) + 1))
         plt.legend(handles=handles, loc='best')
         yield obs, figure
+
+def plot_alphaS(results_table):
+    df = results_table.sort('alpha_sMref')
+    for (process, nf), process_df in df.groupby(['Observable', 'NumFlavors']):
+        fig = plt.figure(figsize = (10,7))
+
+
+        for (oqcd,col), col_df in process_df.groupby(['PDF_OrderQCD',
+                                                      'Collaboration']):
+            label = "%s (%s)" % (col, oqcd)
+
+            plt.errorbar(col_df['alpha_sMref'], col_df['CV'],
+                         yerr = np.array(col_df['Down68'],
+                                         col_df['Up68']),
+                        label = label, linestyle='-', marker = 's')
+
+
+        have_remarks = process_df[process_df['Remarks'].apply(len) > 0]
+        if len(have_remarks):
+            plt.plot(have_remarks['alpha_sMref'], have_remarks['CV'],
+                 'ro', markersize = 20, fillstyle = 'none',
+                 markeredgewidth = 5,
+                 label="Problematic points")
+        plt.xlabel(r'$\alpha_S(M_%s)$' % M_REF[nf])
+        plt.ylabel(r'$\sigma ($pb$)$')
+        xran = plotutils.extend_range(process_df['alpha_sMref'].min(),
+                            process_df['alpha_sMref'].max())
+        plt.xlim(*xran)
+        plt.legend(loc = 'best', fancybox=True, framealpha=0.5)
+        plt.title("%s $N_f=$%d" % (process, nf), y = 1.08)
+        plt.tight_layout()
+        yield (process,nf),fig
 
 
 RESULT_TYPES = defaultdict(lambda:Result,

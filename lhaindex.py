@@ -57,6 +57,13 @@ def parse_index(index_file):
             d[index] = m.group(2)
     return d
 
+def get_collaboration(name):
+    try:
+        col = name[:name.index('_')]
+    except ValueError:
+        col = name
+    return col
+
 
 @fastcache.lru_cache()
 def parse_info(name):
