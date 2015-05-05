@@ -6,17 +6,18 @@ Created on Mon May  4 18:58:08 2015
 """
 import os.path as  osp
 import re
-import inspect
 
 import pandas as pd
 
-import smpdflib as lib
 
 #TODO: Specify base
 def save_violins(results, output_dir, base_pdf=None, prefix=None):
     """Generate plots comparing the distributions obtained for the value of
     the observable using different PDF sets. If 'base_pdf' is specified, the
     values will be relative to the central value of that PDF."""
+
+    #slow to import
+    import smpdflib as lib
     for obs, fig in lib.compare_violins(results, base_pdf = base_pdf):
         filename = "%s%s.pdf" % (prefix if prefix else '', obs)
         path = osp.join(output_dir, "figures", filename)
@@ -25,6 +26,9 @@ def save_violins(results, output_dir, base_pdf=None, prefix=None):
 def save_as(results, output_dir, prefix = None):
     """Generate plots showing the value of the observables as a function
     of a_s. The value is obtained by summing each bin in the applgrid."""
+
+    #slow to import
+    import smpdflib as lib
     if not isinstance(results, pd.DataFrame):
         results = lib.summed_results_table(results)
     for (process, nf), fig in lib.plot_alphaS(results):
@@ -66,6 +70,9 @@ def build_actions(acts, flt=None):
     return parse_actions(acts) & parse_actions(flt)
 
 def do_actions(acts, **kwargs):
+    #inspect is slow to import, and noticeable in --help.
+    import inspect
+
     for action in acts:
         func = ACTION_DICT[action]
         fargs = inspect.getargspec(func).args
