@@ -40,14 +40,14 @@ ACTION_DICT = {'violinplots':save_violins, 'asplots':save_as,
 REALACTIONS = set(ACTION_DICT.keys())
 
 METAACTION_DICT = {'all': (REALACTIONS, "Implies all other actions."),
-                   'savedata': ({'exportcsv, exporthtml'}, "Export html and "
+                   'savedata': ({'exportcsv', 'exporthtml'}, "Export html and "
                                                                    "csv.")
                   }
 METAACTIONS = set(METAACTION_DICT.keys())
 
-SAVEDATA = {'exporttable', 'exportcsv'}
+SAVEDATA = {'exporthtml', 'exportcsv'}
 
-ACTIONS = REALACTIONS | {'savedata', 'all'}
+ACTIONS = REALACTIONS | METAACTIONS
 
 def parse_actions(acts):
     acts = set(acts)
@@ -63,8 +63,8 @@ def build_actions(acts, flt=None):
         return parse_actions(acts)
     return parse_actions(acts) & parse_actions(flt)
 
-def do_actions(actions, **kwargs):
-    for action in actions:
+def do_actions(acts, **kwargs):
+    for action in acts:
         func = ACTION_DICT[action]
         fargs = inspect.getargspec(func).args
         args = {k:v for k,v in kwargs.items() if k in fargs}

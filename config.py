@@ -22,7 +22,25 @@ class Config(object):
     _group_counter = iter("group_%d_" % i for i in itertools.count())
 
     @classmethod
-    def parse_action_group(cls,  group, defaults):
+    def parse_defaults(cls, group):
+        if not isinstance(group, dict):
+            raise ConfigError("Defaults not understood: %s" % group)
+        if 'observables' in group:
+            group['observables'] = cls.parse_observables(group['observables'])
+        if 'pdfsets' in group:
+            group['pdfsets'] = cls.parse_pdfsets(group['pdfsets'])
+        if 'actions' in group:
+            acts = group['actions']
+            group['actsions'] = actions.build_actions(acts)
+        return group
+
+
+    @classmethod
+    def parse_action_group(cls,  group, defaults=None):
+        if defaults is None:
+            defaults = {}
+        if not isinstance(group, dict):
+            raise ConfigError("Group not understood: %s" % group)
         d = {}
         if 'observables' in group:
             observables = cls.parse_observables(group['observables'])
@@ -48,7 +66,8 @@ class Config(object):
 
         if 'base_pdf' in group:
             name = group['base_pdf']
-            base = cls.parse_pdfsets(name)
+            #TODO: Do dedicated method
+            base = cls.parse_pdfsets([name])
             if len(base) > 1:
                 raise ConfigError("Only one base allowed: %s" % name)
             base_pdf = base[0]
@@ -103,7 +122,7 @@ class Config(object):
             defaults = {}
         else:
             actiongroups = params.pop('actiongroups')
-            defaults = params
+            defaults = cls.parse_defaults(params)
         actiongroups = [cls.parse_action_group(group, defaults)
                         for group in actiongroups]
         return cls(actiongroups)
