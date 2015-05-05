@@ -333,7 +333,7 @@ def compare_violins(results, base_pdf = None):
 def plot_alphaS(results_table):
     df = results_table.sort('alpha_sMref')
     for (process, nf), process_df in df.groupby(['Observable', 'NumFlavors']):
-        fig = plt.figure(figsize = (10,7))
+        fig = plt.figure()
 
 
         for (oqcd,col), col_df in process_df.groupby(['PDF_OrderQCD',
