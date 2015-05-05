@@ -13,21 +13,23 @@ import pandas as pd
 import smpdflib as lib
 
 #TODO: Specify base
-def save_violins(results, output_dir, base_pdf=None):
+def save_violins(results, output_dir, base_pdf=None, prefix=None):
     """Generate plots comparing the distributions obtained for the value of
     the observable using different PDF sets. If 'base_pdf' is specified, the
     values will be relative to the central value of that PDF."""
     for obs, fig in lib.compare_violins(results, base_pdf = base_pdf):
-        filename = osp.join(output_dir, "figures", '%s.pdf' % obs)
-        fig.savefig(filename)
+        filename = "%s%s.pdf" % (prefix if prefix else '', obs)
+        path = osp.join(output_dir, "figures", filename)
+        fig.savefig(path)
 
-def save_as(results, output_dir):
+def save_as(results, output_dir, prefix = None):
     """Generate plots showing the value of the observables as a function
     of a_s. The value is obtained by summing each bin in the applgrid."""
     if not isinstance(results, pd.DataFrame):
         results = lib.summed_results_table(results)
     for (process, nf), fig in lib.plot_alphaS(results):
-        name = 'alpha_plot_%s(nf_%d).pdf'%(process,nf)
+        name = '%salpha_plot_%s(nf_%d).pdf'%(prefix if prefix else '',
+                                             process,nf)
         name = re.sub(r'[^\w\.]', '_', name)
         fig.savefig(osp.join(output_dir, "figures", name))
 

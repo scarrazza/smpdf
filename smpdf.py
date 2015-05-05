@@ -23,6 +23,7 @@ __email__ = 'stefano.carrazza@mi.infn.it'
 
 
 def main(conf, output_dir, db, quiet=False):
+    prefix_group = len(conf.actiongroups) > 1
     for group in conf.actiongroups:
         pdfsets, observables = group['pdfsets'], group['observables']
         # perform convolution
@@ -32,7 +33,12 @@ def main(conf, output_dir, db, quiet=False):
             print_results(results)
         kwargs = group.copy()
         kwargs.pop('actions')
-        kwargs.update({'results':results, 'output_dir':output_dir})
+        if not prefix_group:
+            prefix = None
+        else:
+            prefix = group['prefix']
+        kwargs.update({'results':results, 'output_dir':output_dir,
+                       'prefix':prefix})
         for action, res in actions.do_actions(group['actions'], **kwargs):
             if not quiet:
                 print("Finalized action '%s'." % action)
