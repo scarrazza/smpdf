@@ -6,3 +6,5 @@ axes.titlesize          : 22
 axes.labelsize          : 18
 legend.fontsize         : small
 figure.figsize          : 16,9
+axes.formatter.limits   : -5,5 
+axes.formatter.use_mathtext : True
