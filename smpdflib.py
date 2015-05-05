@@ -52,7 +52,8 @@ class Config(dict):
 
         pdfsets =  []
         for pdf in params['pdfsets']:
-            pdfsets += [PDF(pdf['name'])]
+            pdfsets += [PDF(name) for name in 
+                        lhaindex.expand_local_names(pdf['name'])]
         params['pdfsets'] = pdfsets
 
 
@@ -108,7 +109,8 @@ class PDF(TupleComp):
         self.name = name
 
     def get_key(self):
-        return (self.name,)
+        #Convert python2 unicode to string so no u'prefix' is printed
+        return (str(self.name),)
 
     def __str__(self):
         return self.name

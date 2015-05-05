@@ -10,6 +10,7 @@ import os
 import os.path as osp
 import re
 import subprocess
+import glob
 import fnmatch
 
 import yaml
@@ -19,9 +20,22 @@ import fastcache
 _indexes_to_names = None
 _names_to_indexes = None
 
-def expand_names(globstr):
+def expand_index_names(globstr):
     return fnmatch.filter(get_names_to_indexes().keys(), globstr)
-        
+
+def expand_local_names(globstr):
+    path = get_lha_path()
+    return [name for name in glob.glob1(path, globstr)
+            if osp.isdir(osp.join(path, name))]
+
+def expand_names(globstr):
+    """Return names of installed PDFs. If none is found,
+    return names from index"""
+    names = expand_local_names(globstr)
+    if not names:
+        names = expand_index_names(globstr)
+    return names
+
 def get_indexes_to_names():
     global _indexes_to_names
     if _indexes_to_names is None:
@@ -31,7 +45,7 @@ def get_indexes_to_names():
 def get_names_to_indexes():
     global _names_to_indexes
     if _names_to_indexes is None:
-        _names_to_indexes = {name:index for index,name in 
+        _names_to_indexes = {name:index for index,name in
                             get_indexes_to_names().items()}
     return _names_to_indexes
 
@@ -40,8 +54,8 @@ def get_pdf_indexes(name):
     info = parse_info(name)
     ind = info['SetIndex']
     num_members = info['NumMembers']
-    return {'lhapdf_id' : ind, 
-            'lhapdf_min': ind + (num_members > 1), 
+    return {'lhapdf_id' : ind,
+            'lhapdf_min': ind + (num_members > 1),
             'lhapdf_max': ind + num_members - 1}
 
 def get_pdf_name(index):
