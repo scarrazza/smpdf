@@ -5,12 +5,14 @@ Created on Fri Mar 13 11:32:30 2015
 @author: zah
 """
 import functools
+import itertools
 
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.cbook import violin_stats
 import matplotlib.patches
 import matplotlib.mlab as mlab
+import matplotlib.colors as colors
 
 import palettable
 
@@ -118,6 +120,25 @@ def get_accent_colors(num_colors):
     num_colors = 3 if num_colors < 3 else 8 if num_colors > 8 else num_colors
     cmap = palettable.colorbrewer.get_map('Accent', 'qualitative', num_colors)
     return cmap
+
+def get_spectral_colors(num_colors):
+    num_colors = 3 if num_colors < 3 else 8 if num_colors > 11 else num_colors
+    cmap = palettable.colorbrewer.get_map('Spectral', 'diverging', num_colors)
+    return cmap
+
+def get_set1_colors(num_colors):
+    num_colors = 3 if num_colors < 3 else 9 if num_colors > 9 else num_colors
+    cmap = palettable.colorbrewer.get_map('Set1', 'qualitative', num_colors)
+    return cmap
+
+def color_names_to_rgb(colorlist):
+    for color in itertools.cycle(colorlist):
+        yield colors.colorConverter.to_rgb(color)
+
+@ax_or_gca
+def mpl_default_color_tuple(ax=None):
+    for color in color_names_to_rgb(ax._get_lines.color_cycle):
+        yield color
 
 @ax_or_gca
 def violin_plot(data, normvalues=None, ax=None, bw_method=None, **kwargs):

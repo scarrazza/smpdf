@@ -337,10 +337,11 @@ def compare_violins(results, base_pdf = None):
         norms = None
         handles = []
         plt.title(str(obs))
-        ncolors = len(combined[obs])
-
-        colors = itertools.cycle(plotutils.get_accent_colors(
-                                 ncolors).mpl_colors)
+        #ncolors = len(combined[obs])
+        colorlist = ['#222222','#ff0000', '#00ff00', '#0000ff',]
+        colors  = plotutils.color_names_to_rgb(colorlist)
+        #colors = itertools.cycle(plotutils.get_set1_colors(
+        #                         ncolors).mpl_colors)
         alpha = 1
         base = combined[obs].get(base_pdf, None)
         results = sorted(combined[obs].values(), key = lambda x: x!=base)
