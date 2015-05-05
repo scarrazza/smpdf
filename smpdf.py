@@ -90,7 +90,7 @@ if __name__ == "__main__":
         description = "Compare phenomenology for arrays of applgrids "
          "and pdfsets. "
          "Fill yaml configuration files with the specification of the pdfsets, "
-         "observables and actions (see examples for details).\n%s" %
+         "observables and actions (see examples for details).\n\n%s" %
          actions.gen_docs(),
        formatter_class=argparse.RawDescriptionHelpFormatter
     )
