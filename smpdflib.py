@@ -403,7 +403,8 @@ def make_convolution(pdf, observables):
     datas = defaultdict(lambda:OrderedDict())
     #TODO: load many replicas in C++
     #TODO: Could we loop over observables and then over memebers?
-    initpdf(pdf.name)
+    if observables:
+        initpdf(pdf.name)
     for obs in observables:
         initobs(obs.filename)
         for rep in pdf.reps:
