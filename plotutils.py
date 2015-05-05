@@ -116,7 +116,8 @@ def extend_range(rmin, rmax, prop=0.1):
 
 def get_accent_colors(num_colors):
     num_colors = 3 if num_colors < 3 else 8 if num_colors > 8 else num_colors
-    return palettable.colorbrewer.get_map('Accent', 'qualitative', num_colors)
+    cmap = palettable.colorbrewer.get_map('Accent', 'qualitative', num_colors)
+    return cmap
 
 @ax_or_gca
 def violin_plot(data, normvalues=None, ax=None, bw_method=None, **kwargs):

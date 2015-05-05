@@ -15,7 +15,8 @@ import smpdflib as lib
 #TODO: Specify base
 def save_violins(results, base_pdf, output_dir):
     for obs, fig in lib.compare_violins(results, base_pdf = results[0].pdf):
-        fig.savefig(osp.join(output_dir, "figures", '%s.pdf' % obs))
+        filename = osp.join(output_dir, "figures", '%s.pdf' % obs)
+        fig.savefig(filename)
 
 def save_as(results, output_dir):
     if not isinstance(results, pd.DataFrame):

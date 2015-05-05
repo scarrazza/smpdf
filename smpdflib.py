@@ -18,6 +18,7 @@ import os.path as osp
 import sys
 import functools
 import glob
+import itertools
 from collections import defaultdict, OrderedDict
 
 import yaml
@@ -337,12 +338,13 @@ def compare_violins(results, base_pdf = None):
         handles = []
         plt.title(str(obs))
         ncolors = len(combined[obs])
-        colors = iter(plotutils.get_accent_colors(ncolors).mpl_colors)
+
+        colors = itertools.cycle(plotutils.get_accent_colors(
+                                 ncolors).mpl_colors)
         alpha = 1
         base = combined[obs].get(base_pdf, None)
         results = sorted(combined[obs].values(), key = lambda x: x!=base)
         for result in results:
-
             if base is not None:
                 cv = base.central_value.as_matrix()
                 data = result._violin_data(rel_to=cv)
