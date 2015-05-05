@@ -52,7 +52,7 @@ class Config(dict):
 
         pdfsets =  []
         for pdf in params['pdfsets']:
-            pdfsets += [PDF(name) for name in 
+            pdfsets += [PDF(name) for name in
                         lhaindex.expand_local_names(pdf['name'])]
         params['pdfsets'] = pdfsets
 
