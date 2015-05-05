@@ -50,6 +50,7 @@ SAVEDATA = {'exporttable', 'exportcsv'}
 ACTIONS = REALACTIONS | {'savedata', 'all'}
 
 def parse_actions(acts):
+    acts = set(acts)
     if acts - ACTIONS:
         raise ValueError("Unknown actions: %s" %  (acts - ACTIONS))
     realacts = acts & REALACTIONS

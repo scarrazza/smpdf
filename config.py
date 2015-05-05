@@ -39,7 +39,7 @@ class Config(object):
             raise ConfigError("No pdfsets found for action group.")
 
         if 'actions' in group:
-            acts = cls.parse_actions(group['actions'])
+            acts = group['actions']
         elif 'actions' in defaults:
             acts = defaults['actions']
         else:
@@ -80,7 +80,7 @@ class Config(object):
             pdfsets += [PDF(name) for name in
                         lhaindex.expand_local_names(names)]
             if not pdfsets:
-                raise ConfigError("pdfset is empty for specification %s. "
+                raise ConfigError("pdfset is empty for specification '%s'. "
                 "Is it in the LHAPDF path?"
                                   %names)
         return pdfsets
