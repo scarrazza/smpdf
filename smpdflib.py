@@ -18,7 +18,6 @@ import os.path as osp
 import sys
 import functools
 import glob
-import itertools
 from collections import defaultdict, OrderedDict
 
 import yaml
@@ -139,16 +138,6 @@ class PDF(TupleComp):
         return lhaindex.parse_info(self.name)[name]
 
 
-#TODO: Decide if we really want this
-def _check_central(f):
-    @functools.wraps(f)
-    def _f(self, *args, **kwargs):
-        if not 0 in self._data:
-            raise ValueError("No results for central value (Member 0) "
-                             "provided")
-        return f(self, *args, **kwargs)
-    return _f
-
 class Result():
     def __init__(self, obs, pdf, data):
         self.obs = obs
@@ -156,7 +145,6 @@ class Result():
         self._data = pd.DataFrame(data)
 
     @property
-    @_check_central
     def central_value(self):
         return self._cv
 
@@ -180,7 +168,6 @@ class Result():
         raise NotImplementedError("No sampling implemented for this"
                                   "type of set")
 
-    @_check_central
     def std_interval(self, nsigma=1):
         std = self.std_error(nsigma)
         return pd.DataFrame({'min':self._cv - std,
@@ -218,7 +205,6 @@ class Result():
 
 class SymHessianResult(Result):
 
-    @_check_central
     def std_error(self, nsigma=1):
         diffsq = (self._all_vals.subtract(self._cv, axis=0))**2
         return diffsq.sum(axis=1).apply(np.sqrt)*nsigma
@@ -268,7 +254,6 @@ class SymHessianResult(Result):
 
 class MCResult(Result):
     #TODO: Is it correct to consider each bin as independant here?
-    @_check_central
     def centered_interval(self, percent=68):
         n = percent*self.nrep//100
         def get_lims(row):
@@ -283,7 +268,6 @@ class MCResult(Result):
     def error68(self):
         return self.centered_interval()
 
-    @_check_central
     def std_error(self, nsigma=1):
         return self._all_vals.std(axis=1)*nsigma
 
