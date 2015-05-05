@@ -173,6 +173,11 @@ class Result():
         return pd.DataFrame({'min':self._cv - std,
                              'max':self._cv + std})
 
+    def rel_std_interval(self, nsigma=1):
+        std = self.std_error(nsigma)
+        return pd.DataFrame({'min':-std,
+                             'max':std})
+
 
     def __getitem__(self, item):
         return self._data[item]
@@ -209,8 +214,8 @@ class SymHessianResult(Result):
         diffsq = (self._all_vals.subtract(self._cv, axis=0))**2
         return diffsq.sum(axis=1).apply(np.sqrt)*nsigma
     @property
-    def error68(self):
-        return self.std_interval()
+    def errorbar68(self):
+        return self.rel_std_interval()
 
     def sample_values(self, n):
         diffs = self._all_vals.subtract(self._cv, axis=0)
@@ -254,19 +259,23 @@ class SymHessianResult(Result):
 
 class MCResult(Result):
     #TODO: Is it correct to consider each bin as independant here?
-    def centered_interval(self, percent=68):
+    def centered_interval(self, percent=68, addcentral=True):
         n = percent*self.nrep//100
         def get_lims(row):
+            row = row.as_matrix()
             s = np.argsort(np.abs(row))
             sel = row[s][:n]
             return pd.Series({'min':np.min(sel), 'max':np.max(sel)})
 
         diffs = self._all_vals.subtract(self._cv, axis=0)
-        return diffs.apply(get_lims, axis=1).add(self._cv, axis=0)
+        limits = diffs.apply(get_lims, axis=1)
+        if addcentral:
+            limits = limits.add(self._cv, axis=0)
+        return limits
 
     @property
-    def error68(self):
-        return self.centered_interval()
+    def errorbar68(self):
+        return self.centered_interval(addcentral=False)
 
     def std_error(self, nsigma=1):
         return self._all_vals.std(axis=1)*nsigma
@@ -298,8 +307,8 @@ def results_table(results):
                 ('PDF_OrderQCD'     , result.pdf.oqcd_str),
                 ('NumFlavors'       , result.pdf.NumFlavors),
                 ('CV'               , result.central_value),
-                ('Up68'             , result.error68['max']),
-                ('Down68'           , result.error68['min']),
+                ('Up68'             , np.abs(result.errorbar68['max'])),
+                ('Down68'           , np.abs(result.errorbar68['min'])),
                 ('Remarks'          , [],  )
                ]) for result in results]
     return pd.DataFrame(records)
