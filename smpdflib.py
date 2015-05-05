@@ -379,7 +379,7 @@ def plot_alphaS(results_table):
                  markeredgewidth = 5,
                  label="Problematic points")
         plt.xlabel(r'$\alpha_S(M_%s)$' % M_REF[nf])
-        plt.ylabel(r'$\sigma ($pb$)$')
+        plt.ylabel(r'Value of observable')
         xran = plotutils.extend_range(process_df['alpha_sMref'].min(),
                             process_df['alpha_sMref'].max())
         plt.xlim(*xran)
