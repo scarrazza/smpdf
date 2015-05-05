@@ -13,6 +13,7 @@ plt.style.use('main.mplstyle')
 
 import smpdflib as lib
 import actions
+import config
 
 
 __author__ = 'Stefano Carrazza'
@@ -21,12 +22,25 @@ __version__ = '1.0.0'
 __email__ = 'stefano.carrazza@mi.infn.it'
 
 
-def main(conf, output_dir, db):
-    # perform convolution
-    pdfsets, observables = conf['pdfsets'], conf['observables']
-    #TODO: Use multicore
-    results = lib.convolve_or_load(pdfsets, observables, db)
-    #TODO: load many replicas in C++
+def main(conf, output_dir, db, quiet=False):
+    for group in conf.actiongroups:
+        pdfsets, observables = group['pdfsets'], group['observables']
+        # perform convolution
+        #TODO: Use multicore
+        results = lib.convolve_or_load(pdfsets, observables, db)
+        if not quiet:
+            print_results(results)
+        kwargs = group.copy()
+        kwargs.pop('actions')
+        kwargs.update({'results':results, 'output_dir':output_dir})
+        for action, res in actions.do_actions(group['actions'], **kwargs):
+            if not quiet:
+                print("Finalized action '%s'." % action)
+
+    #TODO: Think something better
+    return results
+
+def print_results(results):
     for result in results:
         for member in result.iterall():
             print ("\n- %s replica %d"% (result.pdf,member))
@@ -34,10 +48,6 @@ def main(conf, output_dir, db):
             for i, val in enumerate(result[member]):
                 print ("\tData bin %i: %e" % (i, val))
     print ("\n +--------+ Completed +--------+\n")
-    actions.save_violins(results, base_pdf=results[0], output_dir=output_dir)
-    actions.save_as(results, output_dir=output_dir)
-
-    return results
 
 def make_output_dir(output_dir):
     if not osp.exists(args.output):
@@ -67,26 +77,45 @@ def splash():
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        description = "Compare phenomenology for arrays of applgrids "
+         "and pdfsets. "
+         "Fill yaml configuration files with the specification of the pdfsets, "
+         "observables and actions (see examples for details).\n%s" %
+         actions.gen_docs(),
+       formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     parser.add_argument('config_yml',
-                        help = "Path to the configuration file")
+                        help = "path to the configuration file")
 
     #TODO: Use db by default?
-    parser.add_argument('--use-db', nargs='?', help="Use Python database"
-    " file of results and do not recompute those already in there. "
+    parser.add_argument('--use-db', nargs='?', help="use Python database"
+    " file of results and do not recompute those already in there"
     "If a file is not passed 'db/db' will be used", metavar='dbfile',
     const='db/db', default=None)
 
-    parser.add_argument('--output', help="Output folder where to "
-                                         "store resulting plots and tables.",
+    parser.add_argument('-o','--output', help="output folder where to "
+                                         "store resulting plots and tables",
                         default='output')
+
+    parser.add_argument('-q','--quiet', help="Do not print the results",
+                        action='store_true')
 
     args = parser.parse_args()
 
     splash()
     # read yml file
-    with open(args.config_yml,'r') as f:
-        conf = lib.Config.from_yaml(f)
+    try:
+        with open(args.config_yml,'r') as f:
+            conf = config.Config.from_yaml(f)
+    except config.ConfigError as e:
+        print("Bad configuration encountered:\n%s" % e.message,
+              file=sys.stderr)
+        sys.exit(1)
+    except IOError as e:
+        print("Cannot load configuration file:\n%s" % e.strerror,
+              file=sys.stderr)
+        sys.exit(1)
     make_output_dir(args.output)
     #TODO: handle this better
 
@@ -99,7 +128,7 @@ if __name__ == "__main__":
     else:
         db = None
     try:
-        results = main(conf, args.output ,db=db)
+        results = main(conf, args.output ,db=db, quiet=args.quiet)
     finally:
         #bool(db) == False if empty
         if db is not None:

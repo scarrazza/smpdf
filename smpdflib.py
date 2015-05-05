@@ -16,11 +16,8 @@ __email__ = 'stefano.carrazza@mi.infn.it'
 import os
 import os.path as osp
 import sys
-import functools
-import glob
 from collections import defaultdict, OrderedDict
 
-import yaml
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -43,33 +40,7 @@ ORDERS_QCD = {0: 'LO', 1: 'NLO', 2: 'NNLO'}
 #for N_f = 4, LHAPDF's M_Z is actually M_{charm}
 M_REF = defaultdict(lambda: 'Z', {4:'c'})
 
-#TODO: Do we really want a subclass of dict?
-class Config(dict):
-    @classmethod
-    def from_params(cls, **params):
-        if 'pdfsets' not in params or not params['pdfsets']:
-            raise ValueError("'pdfsets' not found in configuration.")
 
-        pdfsets =  []
-        for pdf in params['pdfsets']:
-            pdfsets += [PDF(name) for name in
-                        lhaindex.expand_local_names(pdf['name'])]
-        params['pdfsets'] = pdfsets
-
-
-        observables = []
-        for obs in params['observables']:
-             names = glob.glob(obs['name'])
-             if not names:
-                 raise ValueError("No observables found for %s" % obs['name'])
-             for name in names:
-                 observables.append(Observable(name, obs['order']))
-        params['observables'] = observables
-        return cls(**params)
-
-    @classmethod
-    def from_yaml(cls, stream):
-        return cls.from_params(**yaml.load(stream))
 
 
 class TupleComp(object):
@@ -351,7 +322,10 @@ def compare_violins(results, base_pdf = None):
                                               normvalues=norms)
             handles.append(handle)
         plt.xlabel('bins')
-        plt.ylabel('Rel to %s' % base_pdf)
+        if base_pdf:
+            plt.ylabel('Rel to %s' % base_pdf)
+        else:
+            plt.ylabel("Observable value")
         plt.xticks(range(1,len(result.central_value) + 1))
         plt.legend(handles=handles, loc='best')
         yield obs, figure
@@ -379,7 +353,7 @@ def plot_alphaS(results_table):
                  markeredgewidth = 5,
                  label="Problematic points")
         plt.xlabel(r'$\alpha_S(M_%s)$' % M_REF[nf])
-        plt.ylabel(r'$\sigma ($pb$)$')
+        plt.ylabel(r'Value of observable')
         xran = plotutils.extend_range(process_df['alpha_sMref'].min(),
                             process_df['alpha_sMref'].max())
         plt.xlim(*xran)

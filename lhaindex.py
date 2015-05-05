@@ -42,6 +42,10 @@ def get_indexes_to_names():
         _indexes_to_names = parse_index(get_index_path())
     return _indexes_to_names
 
+def isinstalled(name):
+    """Check that name exists in LHAPDF dir"""
+    return osp.isdir(osp.join(get_lha_path(), name))
+
 def get_names_to_indexes():
     global _names_to_indexes
     if _names_to_indexes is None:
@@ -86,6 +90,7 @@ def parse_info(name):
         result = yaml.load(infofile)
     return result
 
+@fastcache.lru_cache()
 def get_lha_path():
     lhapdf_folder = subprocess.check_output(['lhapdf-config', '--datadir'])
     lhapdf_folder = lhapdf_folder.decode().rstrip()
