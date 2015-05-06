@@ -6,6 +6,7 @@ Created on Mon May  4 18:58:08 2015
 """
 import os.path as  osp
 import re
+from collections import OrderedDict
 
 import pandas as pd
 
@@ -26,49 +27,46 @@ def save_violins(results, output_dir, base_pdf=None, prefix=None):
         path = osp.join(output_dir, "figures", filename)
         fig.savefig(path)
 
-def save_as(results, output_dir, prefix = None):
+def save_as(summed_table, output_dir, prefix = None):
     """Generate plots showing the value of the observables as a function
     of a_s. The value is obtained by summing each bin in the applgrid."""
 
     #slow to import
     import smpdflib as lib
-    if not isinstance(results, pd.DataFrame):
-        results = lib.summed_results_table(results)
-    for (process, nf), fig in lib.plot_alphaS(results):
+    for (process, nf), fig in lib.plot_alphaS(summed_table):
         name = '%salpha_plot_%s(nf_%d).pdf'%(prefix if prefix else '',
                                              process,nf)
         name = re.sub(r'[^\w\.]', '_', name)
         fig.savefig(osp.join(output_dir, "figures", name))
 
 #TODO: Refactor this so there is not so much back and forth with smpdflib
-def export_html(results, output_dir, prefix = None):
+def export_html(total, output_dir, prefix = None):
     """Export results as a rich HTML table."""
     import smpdflib as lib
-    if not isinstance(results, pd.DataFrame):
-        results = pd.concat((lib.results_table(results),
-                            lib.summed_results_table(results)),
-                            ignore_index = True)
     filename = "%sresults.html" % (prefix if prefix else '')
-    lib.save_html(results[lib.DISPLAY_COLUMNS], osp.join(output_dir, filename))
+    lib.save_html(total[lib.DISPLAY_COLUMNS], osp.join(output_dir, filename))
 
 #TODO: Ability to import exported csv
-def export_csv(results, output_dir, prefix = None):
+def export_csv(total, output_dir, prefix = None):
     """Export results as a CSV so they can be processed by other tools. The
     resulting file is tab-separated."""
-    import smpdflib as lib
-    if not isinstance(results, pd.DataFrame):
-        results = pd.concat((lib.results_table(results),
-                            lib.summed_results_table(results)),
-                            ignore_index = True)
     filename = "%sresults.csv" % (prefix if prefix else '')
-    results.to_csv(osp.join(output_dir, filename), sep='\t')
+    total.to_csv(osp.join(output_dir, filename), sep='\t')
+
+#TODO: Think how to make this better
+def test_as_linearity(summed_table, diff_from_line = 0.25):
+    import smpdflib as lib
+    return lib.test_as_linearity(summed_table, diff_from_line = diff_from_line)
 
 
 
-ACTION_DICT = {'violinplots':save_violins,
-               'asplots':save_as,
-               'exporthtml': export_html,
-               'exportcsv': export_csv}
+ACTION_DICT = OrderedDict((
+               ('testas',  test_as_linearity),
+               ('violinplots',save_violins),
+               ('asplots',save_as),
+               ('exporthtml', export_html),
+               ('exportcsv', export_csv),
+               ))
 
 
 REALACTIONS = set(ACTION_DICT.keys())
@@ -101,7 +99,9 @@ def do_actions(acts, **kwargs):
     #inspect is slow to import, and noticeable in --help.
     import inspect
 
-    for action in acts:
+    for action in ACTION_DICT.keys():
+        if not action in acts:
+            continue
         func = ACTION_DICT[action]
         fargs = inspect.getargspec(func).args
         args = {k:v for k,v in kwargs.items() if k in fargs}

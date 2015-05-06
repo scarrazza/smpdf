@@ -25,6 +25,12 @@ def main(conf, output_dir, db, quiet=False):
         # perform convolution
         #TODO: Use multicore
         results = lib.convolve_or_load(pdfsets, observables, db)
+        data_table = lib.results_table(results)
+        summed_table = lib.summed_results_table(results)
+        import pandas as pd
+        total = pd.concat((data_table,
+                            summed_table),
+                            ignore_index = True)
         if not quiet:
             print_results(results)
         kwargs = group.copy()
@@ -34,13 +40,14 @@ def main(conf, output_dir, db, quiet=False):
         else:
             prefix = group['prefix']
         kwargs.update({'results':results, 'output_dir':output_dir,
-                       'prefix':prefix})
+                       'prefix':prefix, 'data_table':data_table,
+                       'summed_table':summed_table, 'total':total})
         for action, res in actions.do_actions(group['actions'], **kwargs):
             if not quiet:
                 print("Finalized action '%s'." % action)
 
     #TODO: Think something better
-    return results
+    return total
 
 def print_results(results):
     for result in results:
