@@ -9,6 +9,9 @@ import re
 
 import pandas as pd
 
+#http://stackoverflow.com/questions/26277757/pandas-to-html-truncates-string-contents
+pd.set_option('display.max_colwidth', -1)
+
 
 #TODO: Specify base
 def save_violins(results, output_dir, base_pdf=None, prefix=None):
@@ -37,9 +40,21 @@ def save_as(results, output_dir, prefix = None):
         name = re.sub(r'[^\w\.]', '_', name)
         fig.savefig(osp.join(output_dir, "figures", name))
 
+def export_html(results, output_dir, prefix = None):
+    """Export results as a rich HTML table"""
+    import smpdflib as lib
+    if not isinstance(results, pd.DataFrame):
+        results = pd.concat((lib.results_table(results),
+                            lib.summed_results_table(results)),
+                            ignore_index = True)
+    filename = "%sresults.html" % (prefix if prefix else '')
+    lib.save_html(results[lib.DISPLAY_COLUMNS], osp.join(output_dir, filename))
+
+
 #TODO: Implement missing methods
-ACTION_DICT = {'violinplots':save_violins, 'asplots':save_as,
-               'exporthtml': lambda : None,
+ACTION_DICT = {'violinplots':save_violins,
+               'asplots':save_as,
+               'exporthtml': export_html,
                'exportcsv': lambda :None}
 
 

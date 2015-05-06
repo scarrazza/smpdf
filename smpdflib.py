@@ -32,9 +32,6 @@ except ImportError:
     os.system("make -C applwrap")
     from applwrap import initpdf, initobs, pdfreplica, convolute
 
-#http://stackoverflow.com/questions/26277757/pandas-to-html-truncates-string-contents
-pd.set_option('display.max_colwidth', -1)
-
 ORDERS_QCD = {0: 'LO', 1: 'NLO', 2: 'NNLO'}
 
 #for N_f = 4, LHAPDF's M_Z is actually M_{charm}
@@ -271,7 +268,8 @@ def aggregate_results(results):
         combined[result.obs][result.pdf] = result
     return combined
 
-DISPLAY_COLUMNS = ('Observavle', 'PDF', 'CV', 'Up68', 'Down68', 'Remarks')
+DISPLAY_COLUMNS = ['Observable', 'PDF', 'Bin', 'CV', 'Up68', 'Down68',
+                   'Remarks']
 
 def results_table(results):
     records = pd.concat([pd.DataFrame(OrderedDict([
@@ -441,3 +439,22 @@ def convolve_or_load(pdfsets, observables, db=None):
     #results = []
     results = results_from_datas(get_dataset(pdfsets, observables, db))
     return results
+
+#TODO: Move somewhere else
+def save_html(df, path):
+    import jinja2
+    import codecs
+    env = jinja2.Environment(loader = jinja2.FileSystemLoader('templates'))
+    template = env.get_template('results.html.template')
+    def remark_formatter(remarks):
+        if not remarks:
+            return ''
+        else:
+            return '<ul>%s</ul>' % '\n'.join('<li>%s</li>' %
+                   jinja2.escape(remark) for remark in remarks)
+    table = df.to_html(
+                             formatters={'remarks':remark_formatter},
+                             escape = False)
+    result = template.render(table=table)
+    with codecs.open(path, 'w', 'utf-8') as f:
+        f.write(result)

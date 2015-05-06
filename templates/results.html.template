@@ -1,0 +1,22 @@
+<html>
+<head>
+<meta http-equiv="Content-type" content="text/html; charset=UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+
+<title>Results</title>
+<link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.10.4/css/jquery.dataTables.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.10.4/js/jquery.dataTables.min.js"></script>
+<script type="text/javascript" class="init">
+
+
+$(document).ready(function() {
+      $('.dataframe').DataTable();
+      } );
+
+
+</script>
+</head>
+<body>
+{{table}}
+</body></html>
