@@ -42,7 +42,7 @@ def save_as(results, output_dir, prefix = None):
 
 #TODO: Refactor this so there is not so much back and forth with smpdflib
 def export_html(results, output_dir, prefix = None):
-    """Export results as a rich HTML table"""
+    """Export results as a rich HTML table."""
     import smpdflib as lib
     if not isinstance(results, pd.DataFrame):
         results = pd.concat((lib.results_table(results),
@@ -51,12 +51,25 @@ def export_html(results, output_dir, prefix = None):
     filename = "%sresults.html" % (prefix if prefix else '')
     lib.save_html(results[lib.DISPLAY_COLUMNS], osp.join(output_dir, filename))
 
+#TODO: Ability to import exported csv
+def export_csv(results, output_dir, prefix = None):
+    """Export results as a CSV so they can be processed by other tools. The
+    resulting file is tab-separated."""
+    import smpdflib as lib
+    if not isinstance(results, pd.DataFrame):
+        results = pd.concat((lib.results_table(results),
+                            lib.summed_results_table(results)),
+                            ignore_index = True)
+    filename = "%sresults.csv" % (prefix if prefix else '')
+    results.to_csv(osp.join(output_dir, filename), sep='\t')
+
+
 
 #TODO: Implement missing methods
 ACTION_DICT = {'violinplots':save_violins,
                'asplots':save_as,
                'exporthtml': export_html,
-               'exportcsv': lambda :None}
+               'exportcsv': export_csv}
 
 
 REALACTIONS = set(ACTION_DICT.keys())
