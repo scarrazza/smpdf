@@ -19,13 +19,6 @@ __email__ = 'stefano.carrazza@mi.infn.it'
 
 def main(conf, output_dir, db, quiet=False):
 
-    #these are slow to import (both because of pyplot)
-    import matplotlib.pyplot as plt
-    plt.style.use('main.mplstyle')
-
-    import smpdflib as lib
-
-
     prefix_group = len(conf.actiongroups) > 1
     for group in conf.actiongroups:
         pdfsets, observables = group['pdfsets'], group['observables']
@@ -115,6 +108,10 @@ if __name__ == "__main__":
     splash()
 
     #Slow to import
+    import matplotlib.pyplot as plt
+    plt.style.use('main.mplstyle')
+
+    import smpdflib as lib
     import config
 
     # read yml file
