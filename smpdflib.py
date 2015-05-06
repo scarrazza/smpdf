@@ -22,6 +22,8 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import scipy.stats
+from pandas.stats import ols
+
 
 import lhaindex
 import plotutils
@@ -283,10 +285,12 @@ def results_table(results):
                 ('CV'               , result.central_value),
                 ('Up68'             , np.abs(result.errorbar68['max'])),
                 ('Down68'           , np.abs(result.errorbar68['min'])),
-                ('Remarks'          , [[]]*result.nbins,  ),
+                ('Remarks'          , None),
                 ('Result'           , result),
                ])) for result in results],
                ignore_index=True)
+    #Must be an independent list for each record
+    records['Remarks'] = records.apply(lambda x: [], axis=1)
     return records
 
 def summed_results_table(results):
@@ -453,8 +457,24 @@ def save_html(df, path):
             return '<ul>%s</ul>' % '\n'.join('<li>%s</li>' %
                    jinja2.escape(remark) for remark in remarks)
     table = df.to_html(
-                             formatters={'remarks':remark_formatter},
+                             formatters={'Remarks':remark_formatter},
                              escape = False)
     result = template.render(table=table)
     with codecs.open(path, 'w', 'utf-8') as f:
         f.write(result)
+
+def test_as_linearity(summed_table, diff_from_line = 0.25):
+    group_by = ('Observable','NumFlavors', 'PDF_OrderQCD', 'Collaboration')
+    for (process, nf, oqcd, col), curve_df in summed_table.groupby(group_by):
+        if len(curve_df) <= 2:
+            continue
+        fit = ols.OLS(y=curve_df['CV'], x=curve_df['alpha_sMref'],
+                      weights=1/curve_df['CV']**2)
+
+        diff = (fit.y_predict - curve_df['CV'])/curve_df['Up68']
+        bad = diff > diff_from_line
+        print(bad)
+        for ind in curve_df[bad].index:
+                remark = (u"Point away from linear fit by %1.1fσ" %
+                                diff.ix[ind])
+                summed_table.loc[ind,'Remarks'].append(remark)
