@@ -131,6 +131,10 @@ class Result():
     def nrep(self):
         return self._all_vals.shape[1]
 
+    @property
+    def nbins(self):
+        return self._all_vals.shape[0]
+
     def std_error(self, nsigma=1):
         raise NotImplementedError("No error computation implemented for this"
                                   "type of set")
@@ -270,25 +274,29 @@ def aggregate_results(results):
 DISPLAY_COLUMNS = ('Observavle', 'PDF', 'CV', 'Up68', 'Down68', 'Remarks')
 
 def results_table(results):
-    records = [OrderedDict([
+    records = pd.concat([pd.DataFrame(OrderedDict([
                 ('Observable'       , result.obs),
                 ('PDF'              , result.pdf),
                 ('Collaboration'    , result.pdf.collaboration),
                 ('alpha_sMref'      , result.pdf.AlphaS_MZ),
                 ('PDF_OrderQCD'     , result.pdf.oqcd_str),
                 ('NumFlavors'       , result.pdf.NumFlavors),
+                ('Bin'              , np.arange(1, result.nbins + 1)),
                 ('CV'               , result.central_value),
                 ('Up68'             , np.abs(result.errorbar68['max'])),
                 ('Down68'           , np.abs(result.errorbar68['min'])),
-                ('Remarks'          , [],  )
-               ]) for result in results]
-    return pd.DataFrame(records)
+                ('Remarks'          , [[]]*result.nbins,  ),
+                ('Result'           , result),
+               ])) for result in results],
+               ignore_index=True)
+    return records
 
 def summed_results_table(results):
-    numcols = {'CV', 'Up68', 'Down68'}
+
+    if isinstance(results, pd.DataFrame):
+        results = results['Result'].unique()
     table = results_table([result.sumbins() for result in results])
-    for col in numcols:
-        table[col] = table[col].apply(float)
+    table['Bin'] = 'sum'
     return table
 
 def compare_violins(results, base_pdf = None):
