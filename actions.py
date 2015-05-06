@@ -40,6 +40,7 @@ def save_as(results, output_dir, prefix = None):
         name = re.sub(r'[^\w\.]', '_', name)
         fig.savefig(osp.join(output_dir, "figures", name))
 
+#TODO: Refactor this so there is not so much back and forth with smpdflib
 def export_html(results, output_dir, prefix = None):
     """Export results as a rich HTML table"""
     import smpdflib as lib
