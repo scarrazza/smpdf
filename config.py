@@ -62,7 +62,10 @@ class Config(object):
             acts = defaults['actions']
         else:
             acts = {'all'}
-        acts = actions.build_actions(acts)
+        try:
+            acts = actions.build_actions(acts)
+        except ValueError as e:
+            raise ConfigError(e.message)
 
         if 'base_pdf' in group:
             name = group['base_pdf']
