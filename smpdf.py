@@ -18,6 +18,7 @@ __email__ = 'stefano.carrazza@mi.infn.it'
 
 
 def main(conf, output_dir, db, quiet=False):
+    import pandas as pd
 
     prefix_group = len(conf.actiongroups) > 1
     for group in conf.actiongroups:
@@ -27,7 +28,7 @@ def main(conf, output_dir, db, quiet=False):
         results = lib.convolve_or_load(pdfsets, observables, db)
         data_table = lib.results_table(results)
         summed_table = lib.summed_results_table(results)
-        import pandas as pd
+
         total = pd.concat((data_table,
                             summed_table),
                             ignore_index = True)
@@ -115,6 +116,9 @@ if __name__ == "__main__":
     splash()
 
     #Slow to import
+    import matplotlib
+    #So it doesn't complain on server
+    matplotlib.use('Agg')
     import matplotlib.pyplot as plt
     plt.style.use('main.mplstyle')
 
