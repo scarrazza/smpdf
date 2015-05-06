@@ -473,7 +473,6 @@ def test_as_linearity(summed_table, diff_from_line = 0.25):
 
         diff = (fit.y_predict - curve_df['CV'])/curve_df['Up68']
         bad = diff > diff_from_line
-        print(bad)
         for ind in curve_df[bad].index:
                 remark = (u"Point away from linear fit by %1.1fσ" %
                                 diff.ix[ind])
