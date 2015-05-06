@@ -65,7 +65,6 @@ def export_csv(results, output_dir, prefix = None):
 
 
 
-#TODO: Implement missing methods
 ACTION_DICT = {'violinplots':save_violins,
                'asplots':save_as,
                'exporthtml': export_html,
