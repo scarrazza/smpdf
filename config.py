@@ -129,4 +129,7 @@ class Config(object):
 
     @classmethod
     def from_yaml(cls, stream):
-        return cls.from_params(yaml.load(stream))
+        try:
+            return cls.from_params(yaml.load(stream))
+        except yaml.parser.ParserError as e:
+            raise ConfigError("Failed to parse yaml file: %s" % e)
