@@ -55,6 +55,9 @@ def export_csv(total, output_dir, prefix = None):
 
 #TODO: Think how to make this better
 def test_as_linearity(summed_table, diff_from_line = 0.25):
+    """Test linearity of value of the value of the observable as a function of
+    as. If th test fails for some point, report it in the tables and in
+    subsequent plots."""
     import smpdflib as lib
     return lib.test_as_linearity(summed_table, diff_from_line = diff_from_line)
 
@@ -116,5 +119,5 @@ def helptext(action):
 def gen_docs():
     s = "Possible actions are:\n%s" % '\n'.join('\t- %s : %s\n' %
         (action, helptext(action))
-        for action in ACTION_DICT.keys())
+        for action in list(ACTION_DICT.keys()) + list(METAACTION_DICT.keys()))
     return s
