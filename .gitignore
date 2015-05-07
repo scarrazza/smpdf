@@ -2,6 +2,7 @@
 /*.yaml
 /*.yml
 /*.tar.*
+*.swp
 data/
 output/
 db/
