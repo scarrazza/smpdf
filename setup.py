@@ -40,6 +40,7 @@ setup (name = 'smpdf',
        package_data = {
             '':['*.template', '*.mplstyle']
        },
+       zip_safe = False,
        classifiers=[
             'License :: OSI Approved :: BSD License',
             'Operating System :: OS Independent',
