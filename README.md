@@ -8,7 +8,7 @@ Clone the master development repository by running the following command:
 $ git clone https://github.com/scarrazza/smpdf.git
 ```
 
-Or download compressed archive without using git
+Or download the compressed archive without using git
 [here](https://github.com/scarrazza/smpdf/archive/master.zip).
 
 ## Installation
@@ -30,7 +30,7 @@ recommended way. After setting it up, do:
 $ conda install conda-env
 ```
 
-cd into the directory of SMPDF And:
+cd into the directory of SMPDF and:
 
 ````Shell
 $ conda env update -n root -f environment.yml
@@ -49,7 +49,7 @@ paths.
 
 ## Usage
 
-The configuration is specified in YAML files (see `exampes/`). A file consists
+The configuration is specified in YAML files (see `examples/`). A file consists
 of a list of observables (file paths to applgrids and specification of the
 perturbative order, where 0 is LO and 1 NLO), a list of PDF sets (valid LHAPDF
 grids in the correct path) and a list of actions (see `--help` for a
