@@ -20,8 +20,8 @@ lhapdf_libs = call_command('lhapdf-config --libs').split()
 applgrid_includes = call_command('applgrid-config --cxxflags').split()
 applgrid_libs = call_command('applgrid-config --ldflags').split()
 module1 = Extension('applwrap',
-                    extra_compile_args = (lhapdf_includes + applgrid_includes +
-                                          applgrid_libs + lhapdf_libs),
+                    extra_compile_args = (lhapdf_includes + applgrid_includes
+                                           ),
                     extra_link_args = (lhapdf_includes + applgrid_includes  +
                                           applgrid_libs + lhapdf_libs),
                     sources = ['src/applwrap/applwrap.cc'], language="c++")
