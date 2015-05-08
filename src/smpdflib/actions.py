@@ -21,7 +21,7 @@ def save_violins(results, output_dir, base_pdf=None, prefix=None):
     values will be relative to the central value of that PDF."""
 
     #slow to import
-    import smpdflib as lib
+    import smpdflib.core as lib
     for obs, fig in lib.compare_violins(results, base_pdf = base_pdf):
         filename = "%s%s.pdf" % (prefix if prefix else '', obs)
         path = osp.join(output_dir, "figures", filename)
@@ -32,7 +32,7 @@ def save_as(summed_table, output_dir, prefix = None):
     of a_s. The value is obtained by summing each bin in the applgrid."""
 
     #slow to import
-    import smpdflib as lib
+    import smpdflib.core as lib
     for (process, nf), fig in lib.plot_alphaS(summed_table):
         name = '%salpha_plot_%s(nf_%d).pdf'%(prefix if prefix else '',
                                              process,nf)
@@ -42,7 +42,7 @@ def save_as(summed_table, output_dir, prefix = None):
 #TODO: Refactor this so there is not so much back and forth with smpdflib
 def export_html(total, output_dir, prefix = None):
     """Export results as a rich HTML table."""
-    import smpdflib as lib
+    import smpdflib.core as lib
     filename = "%sresults.html" % (prefix if prefix else '')
     lib.save_html(total[lib.DISPLAY_COLUMNS], osp.join(output_dir, filename))
 
@@ -58,7 +58,7 @@ def test_as_linearity(summed_table, diff_from_line = 0.25):
     """Test linearity of value of the value of the observable as a function of
     as. If th test fails for some point, report it in the tables and in
     subsequent plots."""
-    import smpdflib as lib
+    import smpdflib.core as lib
     return lib.test_as_linearity(summed_table, diff_from_line = diff_from_line)
 
 

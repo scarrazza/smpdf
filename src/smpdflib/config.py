@@ -11,7 +11,7 @@ import yaml
 
 import lhaindex
 import actions
-from smpdflib import PDF, Observable
+from smpdflib.core import PDF, Observable
 
 class ConfigError(ValueError): pass
 

@@ -25,8 +25,8 @@ import scipy.stats
 from pandas.stats import ols
 
 
-import lhaindex
-import plotutils
+import smpdflib.lhaindex as lhaindex
+import smpdflib.plotutils as plotutils
 try:
     sys.path.append('applwrap')
     from applwrap import initpdf, initobs, pdfreplica, convolute
