@@ -2,6 +2,7 @@
 /*.yaml
 /*.yml
 /*.tar.*
+*.swp
 data/
 output/
 db/
@@ -51,6 +52,7 @@ htmlcov/
 nosetests.xml
 coverage.xml
 *,cover
+*.ropeproject
 
 # Translations
 *.mo

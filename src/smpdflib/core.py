@@ -25,8 +25,8 @@ import scipy.stats
 from pandas.stats import ols
 
 
-import lhaindex
-import plotutils
+import smpdflib.lhaindex as lhaindex
+import smpdflib.plotutils as plotutils
 try:
     sys.path.append('applwrap')
     from applwrap import initpdf, initobs, pdfreplica, convolute
@@ -448,7 +448,8 @@ def convolve_or_load(pdfsets, observables, db=None):
 def save_html(df, path):
     import jinja2
     import codecs
-    env = jinja2.Environment(loader = jinja2.FileSystemLoader('templates'))
+    env = jinja2.Environment(loader = jinja2.PackageLoader('smpdflib',
+                                                           'templates'))
     template = env.get_template('results.html.template')
     def remark_formatter(remarks):
         if not remarks:

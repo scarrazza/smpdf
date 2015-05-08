@@ -8,7 +8,7 @@ import os.path as osp
 import argparse
 import shelve
 
-import actions
+import smpdflib.actions as actions
 
 
 __author__ = 'Stefano Carrazza'
@@ -19,6 +19,7 @@ __email__ = 'stefano.carrazza@mi.infn.it'
 
 def main(conf, output_dir, db, quiet=False):
     import pandas as pd
+
 
     prefix_group = len(conf.actiongroups) > 1
     for group in conf.actiongroups:
@@ -120,11 +121,13 @@ if __name__ == "__main__":
     #So it doesn't complain on server
     matplotlib.use('Agg')
     import matplotlib.pyplot as plt
-    plt.style.use('main.mplstyle')
 
-    import smpdflib as lib
-    import config
+    import smpdflib.core as lib
+    import smpdflib.config as config
 
+    libpath = osp.dirname(lib.__file__)
+    stylefilename = osp.join(libpath, 'main.mplstyle')
+    plt.style.use(stylefilename)
     # read yml file
     try:
         with open(args.config_yml,'r') as f:
