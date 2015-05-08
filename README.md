@@ -36,6 +36,17 @@ cd into the directory of SMPDF And:
 $ conda env update -n root -f environment.yml
 ```
 
+Once all dependencies are satisfied, run:
+
+
+````Shell
+$ python setup.py install
+```
+
+Note that the installer script does _not_ check for dependencies. This will
+install the `smpdf` program and the `smpdflib` Python library in the appropiate
+paths.
+
 ## Usage
 
 The configuration is specified in YAML files (see `exampes/`). A file consists
