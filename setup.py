@@ -11,6 +11,7 @@ def call_command(command):
         print("Could not call %s: %s.\n"
               "Please make sure the relevant command is isntalled."
               % (l[0], e.strerror), file=sys.stderr)
+        sys.exit(1)
     return result.decode().rstrip()
 
 lhapdf_includes = call_command('lhapdf-config --cflags').split()
