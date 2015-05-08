@@ -37,6 +37,9 @@ setup (name = 'smpdf',
        scripts = ['scripts/smpdf.py'],
        package_dir = {'': 'src'},
        packages = find_packages('src'),
+       package_data = {
+            '':['*.template', '*.mplstyle']
+       },
        classifiers=[
             'License :: OSI Approved :: BSD License',
             'Operating System :: OS Independent',
