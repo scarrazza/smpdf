@@ -8,11 +8,6 @@ import os.path as  osp
 import re
 from collections import OrderedDict
 
-import pandas as pd
-
-#http://stackoverflow.com/questions/26277757/pandas-to-html-truncates-string-contents
-pd.set_option('display.max_colwidth', -1)
-
 
 #TODO: Specify base
 def save_violins(results, output_dir, base_pdf=None, prefix=None):

@@ -448,6 +448,7 @@ def convolve_or_load(pdfsets, observables, db=None):
 def save_html(df, path):
     import jinja2
     import codecs
+
     env = jinja2.Environment(loader = jinja2.PackageLoader('smpdflib',
                                                            'templates'))
     template = env.get_template('results.html.template')
@@ -457,7 +458,10 @@ def save_html(df, path):
         else:
             return '<ul>%s</ul>' % '\n'.join('<li>%s</li>' %
                    jinja2.escape(remark) for remark in remarks)
-    table = df.to_html(
+
+    #http://stackoverflow.com/questions/26277757/pandas-to-html-truncates-string-contents
+    with pd.option_context('display.max_colwidth', -1):
+        table = df.to_html(
                              formatters={'Remarks':remark_formatter},
                              escape = False)
     result = template.render(table=table)
