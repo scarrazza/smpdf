@@ -10,27 +10,30 @@ from collections import OrderedDict
 
 
 #TODO: Specify base
-def save_violins(results, output_dir, base_pdf=None, prefix=None):
+def save_violins(results, output_dir, base_pdf=None, prefix=None, fmt='pdf'):
     """Generate plots comparing the distributions obtained for the value of
     the observable using different PDF sets. If 'base_pdf' is specified, the
     values will be relative to the central value of that PDF."""
 
     #slow to import
     import smpdflib.core as lib
+    prefixstr = prefix if prefix else ''
+
     for obs, fig in lib.compare_violins(results, base_pdf = base_pdf):
-        filename = "%s%s.pdf" % (prefix if prefix else '', obs)
+        filename = "{prefixstr}{obs}.{fmt}".format(**locals())
         path = osp.join(output_dir, "figures", filename)
         fig.savefig(path)
 
-def save_as(summed_table, output_dir, prefix = None):
+def save_as(summed_table, output_dir, prefix = None, fmt = 'pdf'):
     """Generate plots showing the value of the observables as a function
     of a_s. The value is obtained by summing each bin in the applgrid."""
 
     #slow to import
     import smpdflib.core as lib
+    prefixstr = prefix if prefix else ''
     for (process, nf), fig in lib.plot_alphaS(summed_table):
-        name = '%salpha_plot_%s(nf_%d).pdf'%(prefix if prefix else '',
-                                             process,nf)
+        name = '{prefixstr}alpha_plot_{process}_nf_{nf}.{fmt}'.format(
+                                                              **locals())
         name = re.sub(r'[^\w\.]', '_', name)
         fig.savefig(osp.join(output_dir, "figures", name))
 
