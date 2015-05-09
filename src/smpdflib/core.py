@@ -478,3 +478,46 @@ def test_as_linearity(summed_table, diff_from_line = 0.25):
                 remark = (u"Point away from linear fit by %1.1fσ" %
                                 diff.ix[ind])
                 summed_table.loc[ind,'Remarks'].append(remark)
+
+def corrcoeff(obs, pdf):
+    return len(pdf)/(len(pdf)-1)*\
+           (np.mean(obs*pdf) - np.mean(obs)*np.mean(pdf))/\
+           (np.std(obs,ddof=1)*np.std(pdf,ddof=1))
+
+def correlations(results):
+    """Includes from mc2hessian library"""
+    from mc2hlib.common import XGrid, Flavors, LocalPDF
+
+    fl = Flavors()
+    xgrid = XGrid()
+    threshold = 0.5
+
+    for result in results:
+        #TODO: select input Q
+        # allocate pdf set
+        pdf = LocalPDF(str(result.pdf), xgrid, fl, 1.0)
+
+        figure = plt.figure()
+
+        for bin in range(len(result[:])):
+            obs = np.zeros(pdf.n_rep)
+
+            for rep in range(1,pdf.n_rep+1):
+                obs[rep-1] = result[rep][bin]
+
+            for f in range(fl.n):
+                cc = np.zeros(xgrid.n)
+                for x in range(xgrid.n):
+                    cc[x] = corrcoeff(obs, pdf.xfxQ[:,f,x])
+
+                plt.plot(xgrid.x, cc, label=('Bin %d' % bin))
+
+            plt.axhline(threshold, c='r', ls='--')
+            plt.axhline(-threshold, c='r', ls='--')
+            plt.legend(loc=0)
+            plt.title(str(result.obs))
+            plt.xlabel("x")
+            plt.ylabel("Correlation Coefficient")
+            plt.ylim([-1,1])
+
+        yield result.obs, figure
