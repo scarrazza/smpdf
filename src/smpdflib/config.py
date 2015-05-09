@@ -37,10 +37,14 @@ class Config(object):
 
     @classmethod
     def parse_action_group(cls,  group, defaults=None):
-        if defaults is None:
-            defaults = {}
         if not isinstance(group, dict):
             raise ConfigError("Group not understood: %s" % group)
+
+        if defaults is None:
+            defaults = {}
+        else:
+            defaults = defaults.copy()
+
         d = {}
         if 'observables' in group:
             observables = cls.parse_observables(group['observables'])
@@ -85,8 +89,13 @@ class Config(object):
         d['observables'] = observables
         d['pdfsets'] = pdfsets
         d['actions'] = acts
+        #Substitute the things we just parsed
         group.update(d)
-        return group
+        #Dump group on top of defaults
+        defaults.update(group)
+        #Now it has everything
+        final = defaults
+        return final
 
 
     @classmethod
