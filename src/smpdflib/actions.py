@@ -43,9 +43,11 @@ def save_cis(results, output_dir, prefix, base_pdf=None, fmt='pdf'):
     values will be relative to the central value of that PDF."""
     #slow to import
     import smpdflib.core as lib
+    def namefunc(obs):
+        return "nfplot_%s"%obs
     return save_figures(lib.compare_cis, results, output_dir,
                         base_pdf=base_pdf,
-                        prefix=prefix, fmt=fmt)
+                        prefix=prefix, fmt=fmt, namefunc=namefunc)
 
 def save_as(summed_table, output_dir, prefix, fmt='pdf'):
     """Generate plots showing the value of the observables as a function
