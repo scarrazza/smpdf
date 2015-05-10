@@ -104,6 +104,13 @@ def test_as_linearity(summed_table, diff_from_line = 0.25):
     import smpdflib.core as lib
     return lib.test_as_linearity(summed_table, diff_from_line = diff_from_line)
 
+def save_correlations(results, output_dir, prefix=None):
+    """Compute PDF/Observable correlations"""
+    import smpdflib.core as lib
+    for obs, fig in lib.correlations(results):
+        filename = "smpdf_%s%s.pdf" % (prefix if prefix else '', obs)
+        path = osp.join(output_dir, "figures", filename)
+        fig.savefig(path)
 
 
 ACTION_DICT = OrderedDict((
@@ -115,8 +122,9 @@ ACTION_DICT = OrderedDict((
                ('nfplots',save_nf),
                ('exporthtml', export_html),
                ('exportcsv', export_csv),
+               ('smpdf', save_correlations),
                ))
-1
+
 
 REALACTIONS = set(ACTION_DICT.keys())
 

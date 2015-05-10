@@ -584,3 +584,89 @@ def test_as_linearity(summed_table, diff_from_line = 0.25):
                 remark = (u"Point away from linear fit by %1.1fσ" %
                                 diff.ix[ind])
                 summed_table.loc[ind,'Remarks'].append(remark)
+
+def corrcoeff(obs, pdf):
+    return len(pdf)/(len(pdf)-1)*\
+           (np.mean(obs*pdf) - np.mean(obs)*np.mean(pdf))/\
+           (np.std(obs,ddof=1)*np.std(pdf,ddof=1))
+
+def correlations(results):
+    """Includes from mc2hessian library"""
+    from mc2hlib.common import load_pdf, compress_X_abs
+    from mc2hlib.lh import hessian_from_lincomb
+
+    # TODO: automatization
+    threshold = 0.5
+    for result in results:
+        #TODO: select input Q
+        # allocate pdf set
+        pdf, fl, xgrid = load_pdf(str(result.pdf), 100.0)
+        nf = fl.n
+        nx = xgrid.n
+
+        # praparing
+        figure, axarr = plt.subplots(fl.n, sharex=True, sharey=True, figsize=(8, fl.n+3))
+        cc = np.zeros(shape=(fl.n, xgrid.n))
+        for bin in range(len(result[:])):
+            obs = np.zeros(pdf.n_rep)
+
+            for rep in range(1,pdf.n_rep+1):
+                obs[rep-1] = result[rep][bin]
+
+            for f in range(fl.n):
+                for x in range(xgrid.n):
+                    cc[f,x] = corrcoeff(obs, pdf.xfxQ[:,f,x])
+
+                axarr[f].plot(xgrid.x, cc[f])
+                axarr[f].axhline(threshold, c='r', ls='--')
+                axarr[f].axhline(-threshold, c='r', ls='--')
+                axarr[f].set_ylim([-1,1])
+                axarr[f].set_xscale('log')
+                axarr[f].set_ylabel("pdg: " + str(fl.id[f]))
+
+            axarr[0].set_title(str(result.obs) + "\n")
+            plt.xlabel("x")
+            figure.subplots_adjust(hspace=0)
+            plt.setp([a.get_xticklabels() for a in figure.axes[:-1]], visible=False)
+
+        yield result.obs, figure
+
+        # Step 1: create pdf covmat
+        print "\n- Building PDF covariance matrix:"
+        X = (pdf.xfxQ.reshape(pdf.n_rep, nx*nf) - pdf.f0.reshape(nx*nf)).T
+        print " [Done] "
+
+        mask = (np.abs(cc.reshape(fl.n*xgrid.n)) >= threshold)
+        print (" [Info] Keeping %d nf*nx with threshold = %f" % (np.count_nonzero(mask), threshold))
+
+        X = X[mask,:]
+        # Step 2: solve the system
+        print "\n- Quick test:"
+        for neig in range(1, pdf.n_rep):
+            vec, cov = compress_X_abs(X, neig)
+
+            stdh = iter(np.sqrt(np.diag(cov)))
+
+            # Step 3: quick test
+            rmask = mask.reshape(fl.n, xgrid.n)
+            est = Norm = 0
+            for f in range(fl.n):
+                for x in range(xgrid.n):
+                    if rmask[f,x]:
+                        t0 = pdf.std[f,x]
+                        t1 = next(stdh)
+
+                        #print "1-sigma MonteCarlo (fl,x,sigma):", fl.id[f], xgrid.x[x], t0
+                        #print "1-sigma Hessian    (fl,x,sigma):", fl.id[f], xgrid.x[x], t1
+                        #print "Ratio:", t1/t0
+                        est += abs(pdf.f0[f,x] * (1-t1/t0))
+                        Norm += abs(pdf.f0[f,x])
+
+            est /= Norm
+            # TODO: is this the best estimator? and cut criteria?
+            print ("Neig %3d, estimator: %e" % (neig, est))
+            if est <= 1e-3: break;
+
+        # Step 4: exporting to LHAPDF
+        print "\n- Exporting new grid..."
+        hessian_from_lincomb(pdf, vec, set_name="smpdf_" + str(result.pdf))
