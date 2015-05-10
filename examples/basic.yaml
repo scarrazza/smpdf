@@ -20,4 +20,5 @@ actiongroups:
      base_pdf : NNPDF30_nlo_as_0118
      actions:
       - violinplots
+      - ciplots
       - savedata
