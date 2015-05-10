@@ -7,6 +7,7 @@ import os
 import os.path as osp
 import argparse
 import shelve
+import shutil
 
 import smpdflib.actions as actions
 
@@ -145,6 +146,8 @@ if __name__ == "__main__":
               file=sys.stderr)
         sys.exit(1)
     make_output_dir(args.output)
+    shutil.copy(args.config_yml, args.output)
+
     #TODO: handle this better
 
     dbfolder = args.use_db
