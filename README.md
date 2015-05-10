@@ -1,4 +1,6 @@
-# SMPDF
+![alt text](https://github.com/scarrazza/smpdf/raw/master/extra/logo.png "Logo")
+
+Specialized Minimal PDFs tools.
 
 ## Download
 
