@@ -44,7 +44,7 @@ def save_cis(results, output_dir, prefix, base_pdf=None, fmt='pdf'):
     #slow to import
     import smpdflib.core as lib
     def namefunc(obs):
-        return "nfplot_%s"%obs
+        return "ciplot_%s"%obs
     return save_figures(lib.compare_cis, results, output_dir,
                         base_pdf=base_pdf,
                         prefix=prefix, fmt=fmt, namefunc=namefunc)
