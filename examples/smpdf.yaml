@@ -1,0 +1,9 @@
+observables:
+   - {name: data/applgrid/atlas-incljets-r06-arxiv-1112.6297-eta7.root, order: 1 }
+
+actiongroups:
+   - pdfsets :
+      - NNPDF30_nlo_as_0118
+     actions:
+      - smpdf
+
