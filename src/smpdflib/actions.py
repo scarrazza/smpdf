@@ -135,7 +135,12 @@ def helptext(action):
     if action in METAACTION_DICT:
         return METAACTION_DICT[action][1]
     func = ACTION_DICT[action]
-    doc =  textwrap.fill(textwrap.dedent(func.__doc__), subsequent_indent='\t')
+    doc = func.__doc__
+    if doc:
+        doc =  textwrap.fill(textwrap.dedent(func.__doc__),
+                             subsequent_indent='\t')
+    else:
+        doc = ''
     spec = inspect.getargspec(func)
     if spec.defaults:
         params = spec.args[-len(spec.defaults):]
