@@ -114,6 +114,8 @@ def center_cmap_args(data,cmap=None):
 
 def extend_range(rmin, rmax, prop=0.1):
     diff = (rmax- rmin)*prop
+    if diff <= 0:
+        return (None, None)
     return rmin - diff, rmax + diff
 
 def get_accent_colors(num_colors):
