@@ -97,6 +97,10 @@ class PDF(TupleComp):
         return lhaindex.get_collaboration(self.name)
 
     @property
+    def as_from_name(self):
+        return lhaindex.as_from_name(self.name)
+
+    @property
     def mref(self):
         return "M_%s" % M_REF[self.NumFlavors]
 
@@ -278,6 +282,7 @@ def results_table(results):
                 ('Observable'       , result.obs),
                 ('PDF'              , result.pdf),
                 ('Collaboration'    , result.pdf.collaboration),
+                ('as_from_name'     , result.pdf.as_from_name),
                 ('alpha_sMref'      , result.pdf.AlphaS_MZ),
                 ('PDF_OrderQCD'     , result.pdf.oqcd_str),
                 ('NumFlavors'       , result.pdf.NumFlavors),
@@ -338,11 +343,69 @@ def compare_violins(results, base_pdf = None):
             plt.ylabel("Observable value")
         plt.xticks(range(1,len(result.central_value) + 1))
         plt.legend(handles=handles, loc='best')
-        yield obs, figure
+        yield (obs,), figure
 
+def compare_cis(results, base_pdf = None):
+    if not isinstance(results, dict):
+        combined = aggregate_results(results)
+    else:
+        combined = results
+    for obs in combined:
+        figure = plt.figure()
+        plt.title(str(obs))
+        base = combined[obs].get(base_pdf, None)
+        results = sorted(combined[obs].values(), key = lambda x: x!=base)
+        l = len(results)
+        if l < 20:
+            delta = iter(np.linspace(-0.0125*l, 0.0125*l, l))
+        else:
+            delta = iter(np.linspace(0.25, 0.25, l))
+        #x = iter(np.arange(1, len(results) + 1))
+        for result in results:
+            x = np.arange(1, result.nbins+1) + next(delta)
+            data_cv = result.central_value.as_matrix().copy()
+            data_ci = result.errorbar68.as_matrix().copy()
+            if base is not None:
+                base_cv = base.central_value.as_matrix()
+                data_cv /= base_cv
+                data_ci /= base_cv[:,np.newaxis]
+            data_ci = np.abs(data_ci)
+            plt.errorbar(x, data_cv, yerr=data_ci.T,
+                                     linestyle='none',
+                                     label=result.pdf, elinewidth = 2,
+                                     capsize=5)
+        plt.xlabel('bins')
+        if base_pdf:
+            plt.ylabel('Rel to %s' % base_pdf)
+        else:
+            plt.ylabel("Observable value")
+        plt.xticks(range(1,len(result.central_value) + 1))
+        plt.legend(loc='best')
+        plt.xlim(0.5, results[0].nbins + 0.5)
+        plt.grid(axis='x')
+        yield (obs,), figure
+
+@plotutils.ax_or_gca
+def plot_remarks(df, ax=None):
+    have_remarks = df[df['Remarks'].apply(len) > 0]
+
+    if len(have_remarks):
+            ax.plot(have_remarks['alpha_sMref'], have_remarks['CV'],
+                 'ro', markersize = 20, fillstyle = 'none',
+                 markeredgewidth = 5,
+                 label="Problematic points")
+
+def process_label(process, bin_):
+    if bin_ == 'sum':
+        return str(process)
+    else:
+        return "%s[bin:%d]"% (process, bin_)
+
+#TODO: Abstract groupbyplots away? Tried, but seems too hard...
 def plot_alphaS(results_table):
     df = results_table.sort('alpha_sMref')
-    for (process, nf), process_df in df.groupby(['Observable', 'NumFlavors']):
+    for (process, nf, bin_), process_df in df.groupby(['Observable',
+                                                    'NumFlavors', 'Bin']):
         fig = plt.figure()
 
 
@@ -356,21 +419,59 @@ def plot_alphaS(results_table):
                         label = label, linestyle='-', marker = 's')
 
 
-        have_remarks = process_df[process_df['Remarks'].apply(len) > 0]
-        if len(have_remarks):
-            plt.plot(have_remarks['alpha_sMref'], have_remarks['CV'],
-                 'ro', markersize = 20, fillstyle = 'none',
-                 markeredgewidth = 5,
-                 label="Problematic points")
+        plot_remarks(process_df)
         plt.xlabel(r'$\alpha_S(M_%s)$' % M_REF[nf])
         plt.ylabel(r'Value of observable')
         xran = plotutils.extend_range(process_df['alpha_sMref'].min(),
                             process_df['alpha_sMref'].max())
         plt.xlim(*xran)
         plt.legend(loc = 'best', fancybox=True, framealpha=0.5)
-        plt.title("%s $N_f=$%d" % (process, nf), y = 1.08)
+        plt.title("%s $N_f=$%d" % (process_label(process, bin_), nf), y = 1.08)
         plt.tight_layout()
-        yield (process,nf),fig
+        yield (process, nf, bin_),fig
+
+def plot_nf(results_table):
+    df = results_table.sort('NumFlavors')
+    for (process, bin_, oqcd), process_df in df.groupby(['Observable',
+                                                    'Bin', 'PDF_OrderQCD']):
+        fig = plt.figure()
+
+
+        for (col, asn), pdf_df in process_df.groupby(['Collaboration',
+                                                      'as_from_name']):
+            label = "%s(as: %s)"%(col, asn)
+
+            plt.errorbar(pdf_df['NumFlavors'], pdf_df['CV'],
+                         yerr = np.array(pdf_df['Down68'],
+                                         pdf_df['Up68']),
+                        label = label, linestyle='-', marker = 's')
+
+
+        plot_remarks(process_df)
+        plt.xlabel(r'$N_f$')
+        plt.ylabel(r'Value of observable')
+        xran = plotutils.extend_range(process_df['NumFlavors'].min(),
+                            process_df['NumFlavors'].max())
+        plt.xlim(*xran)
+        plt.xticks(process_df['NumFlavors'].unique())
+        plt.legend(loc = 'best', fancybox=True, framealpha=0.5)
+        plt.title("%s PDFs, %s" % (oqcd, process_label(process, bin_)), y=1.08)
+        plt.tight_layout()
+        yield  (process, bin_, oqcd),fig
+
+def plot_asQ(pdfsets):
+    df = pd.DataFrame([{'NumFlavors':pdf.NumFlavors, 'PDF':pdf} for
+                        pdf in pdfsets])
+    for nf, gdf in df.groupby(['NumFlavors']):
+        fig = plt.figure()
+        for pdf in gdf.PDF:
+            plt.plot(pdf.AlphaS_Qs, pdf.AlphaS_Vals, label=pdf.name)
+            plt.ylabel(r'$\alpha_S$')
+            plt.xlabel(r'Q(GeV)')
+            plt.xscale('log')
+            plt.title('$N_f=%d$' % nf)
+            plt.legend(loc = 'best', fancybox=True, framealpha=0.9)
+        yield (nf,), fig
 
 
 RESULT_TYPES = defaultdict(lambda:Result,
@@ -402,6 +503,7 @@ def make_convolution(pdf, observables):
         sys.stdout.write('\n')
     return datas
 
+#TODO: Merge this with results_table
 def results_from_datas(dataset):
     results = []
     for pdf in dataset:
@@ -448,6 +550,7 @@ def convolve_or_load(pdfsets, observables, db=None):
 def save_html(df, path):
     import jinja2
     import codecs
+
     env = jinja2.Environment(loader = jinja2.PackageLoader('smpdflib',
                                                            'templates'))
     template = env.get_template('results.html.template')
@@ -457,7 +560,10 @@ def save_html(df, path):
         else:
             return '<ul>%s</ul>' % '\n'.join('<li>%s</li>' %
                    jinja2.escape(remark) for remark in remarks)
-    table = df.to_html(
+
+    #http://stackoverflow.com/questions/26277757/pandas-to-html-truncates-string-contents
+    with pd.option_context('display.max_colwidth', -1):
+        table = df.to_html(
                              formatters={'Remarks':remark_formatter},
                              escape = False)
     result = template.render(table=table)

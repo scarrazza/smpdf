@@ -5,58 +5,100 @@ Created on Mon May  4 18:58:08 2015
 @author: zah
 """
 import os.path as  osp
-import re
+import inspect
 from collections import OrderedDict
-from gevent.ares import result
-
-import pandas as pd
-
-#http://stackoverflow.com/questions/26277757/pandas-to-html-truncates-string-contents
-pd.set_option('display.max_colwidth', -1)
+import textwrap
 
 
-#TODO: Specify base
-def save_violins(results, output_dir, base_pdf=None, prefix=None):
-    """Generate plots comparing the distributions obtained for the value of
+def save_figures(generator, table, output_dir, namefunc=None,
+                 prefix=None, fmt ='pdf', **kwargs):
+
+        import matplotlib.pyplot as plt
+
+        prefixstr = prefix if prefix else ''
+        if namefunc is None:
+            namefunc = lambda *spec: ''.join(str(x) for x in spec)
+        for namespec, fig in generator(table, **kwargs):
+            nameresult = namefunc(*namespec)
+            filename = "{prefixstr}{nameresult}.{fmt}".format(**locals())
+            path = osp.join(output_dir, "figures", filename)
+            fig.savefig(path)
+            plt.close(fig)
+
+
+def save_violins(results, output_dir, prefix, base_pdf=None, fmt='pdf'):
+    """
+    Generate plots comparing the distributions obtained for the value of
     the observable using different PDF sets. If 'base_pdf' is specified, the
     values will be relative to the central value of that PDF."""
-
     #slow to import
     import smpdflib.core as lib
-    for obs, fig in lib.compare_violins(results, base_pdf = base_pdf):
-        filename = "%s%s.pdf" % (prefix if prefix else '', obs)
-        path = osp.join(output_dir, "figures", filename)
-        fig.savefig(path)
+    return save_figures(lib.compare_violins, results, output_dir,
+                        base_pdf=base_pdf,
+                        prefix=prefix, fmt=fmt)
+def save_cis(results, output_dir, prefix, base_pdf=None, fmt='pdf'):
+    """
+    Generate plots comparing the confidence intervals for the value of
+    the observable using different PDF sets. If 'base_pdf' is specified, the
+    values will be relative to the central value of that PDF."""
+    #slow to import
+    import smpdflib.core as lib
+    return save_figures(lib.compare_cis, results, output_dir,
+                        base_pdf=base_pdf,
+                        prefix=prefix, fmt=fmt)
 
-def save_as(summed_table, output_dir, prefix = None):
+def save_as(summed_table, output_dir, prefix, fmt='pdf'):
     """Generate plots showing the value of the observables as a function
     of a_s. The value is obtained by summing each bin in the applgrid."""
 
     #slow to import
     import smpdflib.core as lib
-    for (process, nf), fig in lib.plot_alphaS(summed_table):
-        name = '%salpha_plot_%s(nf_%d).pdf'%(prefix if prefix else '',
-                                             process,nf)
-        name = re.sub(r'[^\w\.]', '_', name)
-        fig.savefig(osp.join(output_dir, "figures", name))
+    def namefunc(process, nf, bin_):
+        return 'alpha_plot_{process}_nf_{nf}'.format(**locals())
+    return save_figures(lib.plot_alphaS, summed_table, output_dir,
+                        prefix=prefix, fmt=fmt, namefunc=namefunc)
+
+def save_asq(pdfsets, output_dir, prefix, fmt='pdf'):
+    import smpdflib.core as lib
+    def namefunc(nf):
+        return 'alphaSQ_nf_{nf}'.format(**locals())
+    return save_figures(lib.plot_asQ, pdfsets, output_dir,
+                        prefix=prefix, fmt=fmt, namefunc=namefunc)
+
+def save_nf(summed_table, output_dir, prefix, fmt='pdf'):
+    """
+    Generate plots showing the value of the observables as a function
+    of N_f. The value is obtained by summing each bin in the applgrid."""
+
+    #slow to import
+    import smpdflib.core as lib
+    def namefunc(process, bin_, oqcd):
+        return 'nf_plot_{process}_{oqcd}'.format(**locals())
+    return save_figures(lib.plot_nf, summed_table, output_dir,
+                        prefix=prefix, fmt=fmt, namefunc=namefunc)
+
+
 
 #TODO: Refactor this so there is not so much back and forth with smpdflib
-def export_html(total, output_dir, prefix = None):
-    """Export results as a rich HTML table."""
+def export_html(total, output_dir, prefix):
+    """
+    Export results as a rich HTML table."""
     import smpdflib.core as lib
     filename = "%sresults.html" % (prefix if prefix else '')
     lib.save_html(total[lib.DISPLAY_COLUMNS], osp.join(output_dir, filename))
 
 #TODO: Ability to import exported csv
-def export_csv(total, output_dir, prefix = None):
-    """Export results as a CSV so they can be processed by other tools. The
+def export_csv(total, output_dir, prefix):
+    """
+    Export results as a CSV so they can be processed by other tools. The
     resulting file is tab-separated."""
     filename = "%sresults.csv" % (prefix if prefix else '')
     total.to_csv(osp.join(output_dir, filename), sep='\t')
 
 #TODO: Think how to make this better
 def test_as_linearity(summed_table, diff_from_line = 0.25):
-    """Test linearity of value of the value of the observable as a function of
+    """
+    Test linearity of value of the value of the observable as a function of
     as. If th test fails for some point, report it in the tables and in
     subsequent plots."""
     import smpdflib.core as lib
@@ -74,7 +116,10 @@ def save_correlations(results, output_dir, prefix=None):
 ACTION_DICT = OrderedDict((
                ('testas',  test_as_linearity),
                ('violinplots',save_violins),
+               ('ciplots',save_cis),
                ('asplots',save_as),
+               ('asQplots',save_asq),
+               ('nfplots',save_nf),
                ('exporthtml', export_html),
                ('exportcsv', export_csv),
                ('smpdf', save_correlations),
@@ -93,6 +138,13 @@ SAVEDATA = {'exporthtml', 'exportcsv'}
 
 ACTIONS = REALACTIONS | METAACTIONS
 
+
+#TODO: Do this better
+def requires_result(action):
+    args = inspect.getargspec(ACTION_DICT[action]).args
+    return ('results' in args) or ('summed_table' in args) or ('table' in args)
+
+
 def parse_actions(acts):
     acts = set(acts)
     if acts - ACTIONS:
@@ -108,9 +160,6 @@ def build_actions(acts, flt=None):
     return parse_actions(acts) & parse_actions(flt)
 
 def do_actions(acts, **kwargs):
-    #inspect is slow to import, and noticeable in --help.
-    import inspect
-
     for action in ACTION_DICT.keys():
         if not action in acts:
             continue
@@ -120,10 +169,27 @@ def do_actions(acts, **kwargs):
         yield action, func(**args)
 
 def helptext(action):
-    if action in ACTION_DICT:
-        return ACTION_DICT[action].__doc__
-    else:
+    if action in METAACTION_DICT:
         return METAACTION_DICT[action][1]
+    func = ACTION_DICT[action]
+    doc = func.__doc__
+    if doc:
+        #textwrap is worse than useles...
+        doc =  textwrap.fill(textwrap.dedent(func.__doc__).replace('\n', ' '),
+                             subsequent_indent='\t')
+    else:
+        doc = ''
+    spec = inspect.getargspec(func)
+    if spec.defaults:
+        params = spec.args[-len(spec.defaults):]
+        param_doc = ' The optional parameters fot this action are:\n\t\t'
+        param_doc += '\n\t\t'.join("* %s (default: %s)" % (param, default) for
+                     param, default in zip(params, spec.defaults))
+    else:
+        param_doc = ''
+    return doc + param_doc
+
+
 
 def gen_docs():
     s = "Possible actions are:\n%s" % '\n'.join('\t- %s : %s\n' %

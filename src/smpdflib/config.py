@@ -31,23 +31,39 @@ class Config(object):
             group['pdfsets'] = cls.parse_pdfsets(group['pdfsets'])
         if 'actions' in group:
             acts = group['actions']
-            group['actsions'] = actions.build_actions(acts)
+            group['actsions'] = cls.parse_actions(acts)
         return group
 
 
     @classmethod
     def parse_action_group(cls,  group, defaults=None):
-        if defaults is None:
-            defaults = {}
         if not isinstance(group, dict):
             raise ConfigError("Group not understood: %s" % group)
+
+        if defaults is None:
+            defaults = {}
+        else:
+            defaults = defaults.copy()
+
         d = {}
+        if 'actions' in group:
+            acts = group['actions']
+        elif 'actions' in defaults:
+            acts = defaults['actions']
+        else:
+            acts = {'all'}
+
+        acts = cls.parse_actions(acts)
+
         if 'observables' in group:
             observables = cls.parse_observables(group['observables'])
         elif 'observables' in defaults:
             observables = defaults['observables']
         else:
-            raise ConfigError("No observables found for action group.")
+            if any(actions.requires_result(act) for act in acts):
+                #plot_asq does not need observables.
+                raise ConfigError("No observables found for action group.")
+            observables = []
 
         if 'pdfsets' in group:
             pdfsets = cls.parse_pdfsets(group['pdfsets'])
@@ -56,16 +72,6 @@ class Config(object):
         else:
             raise ConfigError("No pdfsets found for action group.")
 
-        if 'actions' in group:
-            acts = group['actions']
-        elif 'actions' in defaults:
-            acts = defaults['actions']
-        else:
-            acts = {'all'}
-        try:
-            acts = actions.build_actions(acts)
-        except ValueError as e:
-            raise ConfigError(e.message)
 
         if 'base_pdf' in group:
             name = group['base_pdf']
@@ -85,8 +91,13 @@ class Config(object):
         d['observables'] = observables
         d['pdfsets'] = pdfsets
         d['actions'] = acts
+        #Substitute the things we just parsed
         group.update(d)
-        return group
+        #Dump group on top of defaults
+        defaults.update(group)
+        #Now it has everything
+        final = defaults
+        return final
 
 
     @classmethod
@@ -106,6 +117,15 @@ class Config(object):
                 "Is it in the LHAPDF path?"
                                   %names)
         return pdfsets
+
+    @classmethod
+    def parse_actions(cls, acts):
+        try:
+            result = actions.build_actions(acts)
+        except ValueError as e:
+            raise ConfigError("Could not parse actions '%s': %s" % (acts,
+                                                                    e.message))
+        return result
 
     @classmethod
     def parse_observables(cls, obslitst):

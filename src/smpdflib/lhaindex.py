@@ -82,6 +82,16 @@ def get_collaboration(name):
         col = name
     return col
 
+def as_from_name(name):
+    """Annoying function needed because this is not in the info files. as(M_z)
+    there is actually as(M_ref)."""
+    match = re.search(r'as[_]?([^_\W]+)\_?', name)
+    if match:
+        return match.group(1)
+    else:
+        return name
+
+
 
 @fastcache.lru_cache()
 def parse_info(name):

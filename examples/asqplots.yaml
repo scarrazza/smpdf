@@ -1,0 +1,6 @@
+pdfsets :
+ - NNPDF30*_as_????
+ - NNPDF30*_as_????_nf_?
+actions:
+ - asQplots
+

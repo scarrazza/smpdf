@@ -3,17 +3,22 @@ observables:
    - {name: data/applgrid/ttbar-xsectot-8tev.root, order: 1}
 
 actiongroups:
-   - pdfsets :
+   - prefix: testNNPDF
+     pdfsets :
       - NNPDF30*_as_????
       - NNPDF30*_as_????_nf_?
      actions:
       - asplots
+      - nfplots
+      - asQplots 
       - savedata
 
-   - pdfsets :
+   - prefix: vsMMHT
+     pdfsets :
       - NNPDF30_nlo_as_0118
       - {name: MMHT2014nlo68cl_1000MC}
      base_pdf : NNPDF30_nlo_as_0118
      actions:
       - violinplots
+      - ciplots
       - savedata
