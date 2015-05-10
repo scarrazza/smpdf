@@ -174,7 +174,8 @@ def helptext(action):
     func = ACTION_DICT[action]
     doc = func.__doc__
     if doc:
-        doc =  textwrap.fill(textwrap.dedent(func.__doc__),
+        #textwrap is worse than useles...
+        doc =  textwrap.fill(textwrap.dedent(func.__doc__).replace('\n', ' '),
                              subsequent_indent='\t')
     else:
         doc = ''
