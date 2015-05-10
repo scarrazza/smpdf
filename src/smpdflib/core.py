@@ -449,6 +449,7 @@ def make_convolution(pdf, observables):
         sys.stdout.write('\n')
     return datas
 
+#TODO: Merge this with results_table
 def results_from_datas(dataset):
     results = []
     for pdf in dataset:
