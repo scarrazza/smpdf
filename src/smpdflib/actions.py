@@ -13,6 +13,8 @@ import textwrap
 def save_figures(generator, table, output_dir, namefunc=None,
                  prefix=None, fmt ='pdf', **kwargs):
 
+        import matplotlib.pyplot as plt
+
         prefixstr = prefix if prefix else ''
         if namefunc is None:
             namefunc = lambda *spec: ''.join(str(x) for x in spec)
@@ -21,6 +23,7 @@ def save_figures(generator, table, output_dir, namefunc=None,
             filename = "{prefixstr}{nameresult}.{fmt}".format(**locals())
             path = osp.join(output_dir, "figures", filename)
             fig.savefig(path)
+            plt.close(fig)
 
 
 def save_violins(results, output_dir, prefix, base_pdf=None, fmt='pdf'):
