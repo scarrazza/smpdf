@@ -385,6 +385,32 @@ def plot_alphaS(results_table):
         plt.tight_layout()
         yield (process, nf, bin_),fig
 
+def plot_nf(results_table):
+    df = results_table.sort('NumFlavors')
+    for (process, bin_), process_df in df.groupby(['Observable',
+                                                    'Bin']):
+        fig = plt.figure()
+
+
+        for (oqcd,col), col_df in process_df.groupby(['PDF_OrderQCD',
+                                                      'Collaboration',
+                                                      ]):
+            label = "%s (%s)" % (col, oqcd)
+
+            plt.errorbar(col_df['NumFlavors'], col_df['CV'],
+                         yerr = np.array(col_df['Down68'],
+                                         col_df['Up68']),
+                        label = label, linestyle='-', marker = 's')
+
+
+        plot_remarks(process_df)
+        plt.xlabel(r'$N_f$')
+        plt.ylabel(r'Value of observable')
+        #xran = plotutils.extend_range(process_df['NumFlavors'].min(),
+        #                    process_df['NumFlavors'].max())
+        #plt.xlim(*xran)
+        plt.legend(loc = 'best', fancybox=True, framealpha=0.5)
+        plt.title("%s" % (process_label(process, bin_)), y = 1.08)
         plt.tight_layout()
         yield  (process, bin_),fig
 

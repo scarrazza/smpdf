@@ -44,6 +44,18 @@ def save_as(summed_table, output_dir, prefix=None, fmt='pdf'):
     return save_figures(lib.plot_alphaS, summed_table, output_dir,
                         prefix=prefix, fmt=fmt, namefunc=namefunc)
 
+def save_nf(summed_table, output_dir, prefix=None, fmt='pdf'):
+    """Generate plots showing the value of the observables as a function
+    of N_f. The value is obtained by summing each bin in the applgrid."""
+
+    #slow to import
+    import smpdflib.core as lib
+    def namefunc(process, bin_):
+        return 'nf_plot_{process}'.format(**locals())
+    return save_figures(lib.plot_nf, summed_table, output_dir,
+                        prefix=prefix, fmt=fmt, namefunc=namefunc)
+
+
 
 #TODO: Refactor this so there is not so much back and forth with smpdflib
 def export_html(total, output_dir, prefix = None):
@@ -73,10 +85,11 @@ ACTION_DICT = OrderedDict((
                ('testas',  test_as_linearity),
                ('violinplots',save_violins),
                ('asplots',save_as),
+               ('nfplots',save_nf),
                ('exporthtml', export_html),
                ('exportcsv', export_csv),
                ))
-
+1
 
 REALACTIONS = set(ACTION_DICT.keys())
 
