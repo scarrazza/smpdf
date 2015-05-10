@@ -45,6 +45,13 @@ def save_as(summed_table, output_dir, prefix, fmt='pdf'):
     return save_figures(lib.plot_alphaS, summed_table, output_dir,
                         prefix=prefix, fmt=fmt, namefunc=namefunc)
 
+def save_asq(pdfsets, output_dir, prefix, fmt='pdf'):
+    import smpdflib.core as lib
+    def namefunc(nf):
+        return 'alphaSQ_nf_{nf}'.format(**locals())
+    return save_figures(lib.plot_asQ, pdfsets, output_dir,
+                        prefix=prefix, fmt=fmt, namefunc=namefunc)
+
 def save_nf(summed_table, output_dir, prefix, fmt='pdf'):
     """
     Generate plots showing the value of the observables as a function
@@ -90,6 +97,7 @@ ACTION_DICT = OrderedDict((
                ('testas',  test_as_linearity),
                ('violinplots',save_violins),
                ('asplots',save_as),
+               ('asQplots',save_asq),
                ('nfplots',save_nf),
                ('exporthtml', export_html),
                ('exportcsv', export_csv),
@@ -107,6 +115,13 @@ METAACTIONS = set(METAACTION_DICT.keys())
 SAVEDATA = {'exporthtml', 'exportcsv'}
 
 ACTIONS = REALACTIONS | METAACTIONS
+
+
+#TODO: Do this better
+def requires_result(action):
+    args = inspect.getargspec(ACTION_DICT[action]).args
+    return ('results' in args) or ('summed_table' in args) or ('table' in args)
+
 
 def parse_actions(acts):
     acts = set(acts)

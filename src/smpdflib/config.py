@@ -60,7 +60,10 @@ class Config(object):
         elif 'observables' in defaults:
             observables = defaults['observables']
         else:
-            raise ConfigError("No observables found for action group.")
+            if any(actions.requires_result(act) for act in acts):
+                #plot_asq does not need observables.
+                raise ConfigError("No observables found for action group.")
+            observables = []
 
         if 'pdfsets' in group:
             pdfsets = cls.parse_pdfsets(group['pdfsets'])

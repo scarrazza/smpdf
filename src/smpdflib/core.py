@@ -419,6 +419,20 @@ def plot_nf(results_table):
         plt.tight_layout()
         yield  (process, bin_, oqcd),fig
 
+def plot_asQ(pdfsets):
+    df = pd.DataFrame([{'NumFlavors':pdf.NumFlavors, 'PDF':pdf} for
+                        pdf in pdfsets])
+    for nf, gdf in df.groupby(['NumFlavors']):
+        fig = plt.figure()
+        for pdf in gdf.PDF:
+            plt.plot(pdf.AlphaS_Qs, pdf.AlphaS_Vals, label=pdf.name)
+            plt.ylabel(r'$\alpha_S$')
+            plt.xlabel(r'Q(GeV)')
+            plt.xscale('log')
+            plt.title('$N_f=%d$' % nf)
+            plt.legend(loc = 'best', fancybox=True, framealpha=0.9)
+        yield (nf,), fig
+
 
 RESULT_TYPES = defaultdict(lambda:Result,
                            symmhessian = SymHessianResult,
