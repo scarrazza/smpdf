@@ -31,7 +31,7 @@ class Config(object):
             group['pdfsets'] = cls.parse_pdfsets(group['pdfsets'])
         if 'actions' in group:
             acts = group['actions']
-            group['actsions'] = actions.build_actions(acts)
+            group['actsions'] = cls.parse_actions(acts)
         return group
 
 
@@ -46,6 +46,15 @@ class Config(object):
             defaults = defaults.copy()
 
         d = {}
+        if 'actions' in group:
+            acts = group['actions']
+        elif 'actions' in defaults:
+            acts = defaults['actions']
+        else:
+            acts = {'all'}
+
+        acts = cls.parse_actions(acts)
+
         if 'observables' in group:
             observables = cls.parse_observables(group['observables'])
         elif 'observables' in defaults:
@@ -60,16 +69,6 @@ class Config(object):
         else:
             raise ConfigError("No pdfsets found for action group.")
 
-        if 'actions' in group:
-            acts = group['actions']
-        elif 'actions' in defaults:
-            acts = defaults['actions']
-        else:
-            acts = {'all'}
-        try:
-            acts = actions.build_actions(acts)
-        except ValueError as e:
-            raise ConfigError(e.message)
 
         if 'base_pdf' in group:
             name = group['base_pdf']
@@ -115,6 +114,15 @@ class Config(object):
                 "Is it in the LHAPDF path?"
                                   %names)
         return pdfsets
+
+    @classmethod
+    def parse_actions(cls, acts):
+        try:
+            result = actions.build_actions(acts)
+        except ValueError as e:
+            raise ConfigError("Could not parse actions '%s': %s" % (acts,
+                                                                    e.message))
+        return result
 
     @classmethod
     def parse_observables(cls, obslitst):
