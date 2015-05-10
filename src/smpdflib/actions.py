@@ -9,7 +9,19 @@ import re
 from collections import OrderedDict
 
 
-#TODO: Specify base
+def save_figures(generator, table, output_dir, namefunc=None,
+                 prefix=None, fmt ='pdf', **kwargs):
+
+        prefixstr = prefix if prefix else ''
+        if namefunc is None:
+            namefunc = lambda *spec: ''.join(str(x) for x in spec)
+        for namespec, fig in generator(table, **kwargs):
+            nameresult = namefunc(*namespec)
+            filename = "{prefixstr}{nameresult}.{fmt}".format(**locals())
+            path = osp.join(output_dir, "figures", filename)
+            fig.savefig(path)
+
+
 def save_violins(results, output_dir, base_pdf=None, prefix=None, fmt='pdf'):
     """Generate plots comparing the distributions obtained for the value of
     the observable using different PDF sets. If 'base_pdf' is specified, the
@@ -17,25 +29,21 @@ def save_violins(results, output_dir, base_pdf=None, prefix=None, fmt='pdf'):
 
     #slow to import
     import smpdflib.core as lib
-    prefixstr = prefix if prefix else ''
+    return save_figures(lib.compare_violins, results, output_dir,
+                        base_pdf=base_pdf,
+                        prefix=prefix, fmt=fmt)
 
-    for obs, fig in lib.compare_violins(results, base_pdf = base_pdf):
-        filename = "{prefixstr}{obs}.{fmt}".format(**locals())
-        path = osp.join(output_dir, "figures", filename)
-        fig.savefig(path)
-
-def save_as(summed_table, output_dir, prefix = None, fmt = 'pdf'):
+def save_as(summed_table, output_dir, prefix=None, fmt='pdf'):
     """Generate plots showing the value of the observables as a function
     of a_s. The value is obtained by summing each bin in the applgrid."""
 
     #slow to import
     import smpdflib.core as lib
-    prefixstr = prefix if prefix else ''
-    for (process, nf), fig in lib.plot_alphaS(summed_table):
-        name = '{prefixstr}alpha_plot_{process}_nf_{nf}.{fmt}'.format(
-                                                              **locals())
-        name = re.sub(r'[^\w\.]', '_', name)
-        fig.savefig(osp.join(output_dir, "figures", name))
+    def namefunc(process, nf, bin_):
+        return 'alpha_plot_{process}_nf_{nf}'.format(**locals())
+    return save_figures(lib.plot_alphaS, summed_table, output_dir,
+                        prefix=prefix, fmt=fmt, namefunc=namefunc)
+
 
 #TODO: Refactor this so there is not so much back and forth with smpdflib
 def export_html(total, output_dir, prefix = None):
