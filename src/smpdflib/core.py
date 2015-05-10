@@ -97,6 +97,10 @@ class PDF(TupleComp):
         return lhaindex.get_collaboration(self.name)
 
     @property
+    def as_from_name(self):
+        return lhaindex.as_from_name(self.name)
+
+    @property
     def mref(self):
         return "M_%s" % M_REF[self.NumFlavors]
 
@@ -278,6 +282,7 @@ def results_table(results):
                 ('Observable'       , result.obs),
                 ('PDF'              , result.pdf),
                 ('Collaboration'    , result.pdf.collaboration),
+                ('as_from_name'     , result.pdf.as_from_name),
                 ('alpha_sMref'      , result.pdf.AlphaS_MZ),
                 ('PDF_OrderQCD'     , result.pdf.oqcd_str),
                 ('NumFlavors'       , result.pdf.NumFlavors),
@@ -387,32 +392,32 @@ def plot_alphaS(results_table):
 
 def plot_nf(results_table):
     df = results_table.sort('NumFlavors')
-    for (process, bin_), process_df in df.groupby(['Observable',
-                                                    'Bin']):
+    for (process, bin_, oqcd), process_df in df.groupby(['Observable',
+                                                    'Bin', 'PDF_OrderQCD']):
         fig = plt.figure()
 
 
-        for (oqcd,col), col_df in process_df.groupby(['PDF_OrderQCD',
-                                                      'Collaboration',
-                                                      ]):
-            label = "%s (%s)" % (col, oqcd)
+        for (col, asn), pdf_df in process_df.groupby(['Collaboration',
+                                                      'as_from_name']):
+            label = "%s(as: %s)"%(col, asn)
 
-            plt.errorbar(col_df['NumFlavors'], col_df['CV'],
-                         yerr = np.array(col_df['Down68'],
-                                         col_df['Up68']),
+            plt.errorbar(pdf_df['NumFlavors'], pdf_df['CV'],
+                         yerr = np.array(pdf_df['Down68'],
+                                         pdf_df['Up68']),
                         label = label, linestyle='-', marker = 's')
 
 
         plot_remarks(process_df)
         plt.xlabel(r'$N_f$')
         plt.ylabel(r'Value of observable')
-        #xran = plotutils.extend_range(process_df['NumFlavors'].min(),
-        #                    process_df['NumFlavors'].max())
-        #plt.xlim(*xran)
+        xran = plotutils.extend_range(process_df['NumFlavors'].min(),
+                            process_df['NumFlavors'].max())
+        plt.xlim(*xran)
+        plt.xticks(process_df['NumFlavors'].unique())
         plt.legend(loc = 'best', fancybox=True, framealpha=0.5)
-        plt.title("%s" % (process_label(process, bin_)), y = 1.08)
+        plt.title("%s PDFs, %s" % (oqcd, process_label(process, bin_)), y=1.08)
         plt.tight_layout()
-        yield  (process, bin_),fig
+        yield  (process, bin_, oqcd),fig
 
 
 RESULT_TYPES = defaultdict(lambda:Result,

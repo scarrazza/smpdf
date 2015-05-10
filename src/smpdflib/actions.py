@@ -50,8 +50,8 @@ def save_nf(summed_table, output_dir, prefix=None, fmt='pdf'):
 
     #slow to import
     import smpdflib.core as lib
-    def namefunc(process, bin_):
-        return 'nf_plot_{process}'.format(**locals())
+    def namefunc(process, bin_, oqcd):
+        return 'nf_plot_{process}_{oqcd}'.format(**locals())
     return save_figures(lib.plot_nf, summed_table, output_dir,
                         prefix=prefix, fmt=fmt, namefunc=namefunc)
 
