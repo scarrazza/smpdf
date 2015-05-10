@@ -342,7 +342,7 @@ def compare_violins(results, base_pdf = None):
         else:
             plt.ylabel("Observable value")
         plt.xticks(range(1,len(result.central_value) + 1))
-        plt.legend(handles=handles, loc='best')
+        plt.legend(handles=handles)
         yield (obs,), figure
 
 def compare_cis(results, base_pdf = None):
@@ -380,7 +380,7 @@ def compare_cis(results, base_pdf = None):
         else:
             plt.ylabel("Observable value")
         plt.xticks(range(1,len(result.central_value) + 1))
-        plt.legend(loc='best')
+        plt.legend()
         plt.xlim(0.5, results[0].nbins + 0.5)
         plt.grid(axis='x')
         yield (obs,), figure
@@ -425,7 +425,7 @@ def plot_alphaS(results_table):
         xran = plotutils.extend_range(process_df['alpha_sMref'].min(),
                             process_df['alpha_sMref'].max())
         plt.xlim(*xran)
-        plt.legend(loc = 'best', fancybox=True, framealpha=0.5)
+        plt.legend()
         plt.title("%s $N_f=$%d" % (process_label(process, bin_), nf), y = 1.08)
         plt.tight_layout()
         yield (process, nf, bin_),fig
@@ -454,9 +454,10 @@ def plot_nf(results_table):
                             process_df['NumFlavors'].max())
         plt.xlim(*xran)
         plt.xticks(process_df['NumFlavors'].unique())
-        plt.legend(loc = 'best', fancybox=True, framealpha=0.5)
+        plt.legend()
         plt.title("%s PDFs, %s" % (oqcd, process_label(process, bin_)), y=1.08)
         plt.tight_layout()
+        plt.grid(axis='x')
         yield  (process, bin_, oqcd),fig
 
 def plot_asQ(pdfsets):
@@ -470,7 +471,7 @@ def plot_asQ(pdfsets):
             plt.xlabel(r'Q(GeV)')
             plt.xscale('log')
             plt.title('$N_f=%d$' % nf)
-            plt.legend(loc = 'best', fancybox=True, framealpha=0.9)
+            plt.legend()
         yield (nf,), fig
 
 

@@ -8,3 +8,6 @@ legend.fontsize         : small
 figure.figsize          : 16,9
 axes.formatter.limits   : -5,5 
 axes.formatter.use_mathtext : True
+legend.loc              : best
+legend.fancybox         : True
+legend.framealpha       : 0.8
