@@ -345,6 +345,46 @@ def compare_violins(results, base_pdf = None):
         plt.legend(handles=handles, loc='best')
         yield (obs,), figure
 
+def compare_cis(results, base_pdf = None):
+    if not isinstance(results, dict):
+        combined = aggregate_results(results)
+    else:
+        combined = results
+    for obs in combined:
+        figure = plt.figure()
+        plt.title(str(obs))
+        base = combined[obs].get(base_pdf, None)
+        results = sorted(combined[obs].values(), key = lambda x: x!=base)
+        l = len(results)
+        if l < 20:
+            delta = iter(np.linspace(-0.0125*l, 0.0125*l, l))
+        else:
+            delta = iter(np.linspace(0.25, 0.25, l))
+        #x = iter(np.arange(1, len(results) + 1))
+        for result in results:
+            x = np.arange(1, result.nbins+1) + next(delta)
+            data_cv = result.central_value.as_matrix().copy()
+            data_ci = result.errorbar68.as_matrix().copy()
+            if base is not None:
+                base_cv = base.central_value.as_matrix()
+                data_cv /= base_cv
+                data_ci /= base_cv[:,np.newaxis]
+            data_ci = np.abs(data_ci)
+            plt.errorbar(x, data_cv, yerr=data_ci.T,
+                                     linestyle='none',
+                                     label=result.pdf, elinewidth = 2,
+                                     capsize=5)
+        plt.xlabel('bins')
+        if base_pdf:
+            plt.ylabel('Rel to %s' % base_pdf)
+        else:
+            plt.ylabel("Observable value")
+        plt.xticks(range(1,len(result.central_value) + 1))
+        plt.legend(loc='best')
+        plt.xlim(0.5, results[0].nbins + 0.5)
+        plt.grid(axis='x')
+        yield (obs,), figure
+
 @plotutils.ax_or_gca
 def plot_remarks(df, ax=None):
     have_remarks = df[df['Remarks'].apply(len) > 0]

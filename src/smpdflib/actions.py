@@ -36,6 +36,16 @@ def save_violins(results, output_dir, prefix, base_pdf=None, fmt='pdf'):
     return save_figures(lib.compare_violins, results, output_dir,
                         base_pdf=base_pdf,
                         prefix=prefix, fmt=fmt)
+def save_cis(results, output_dir, prefix, base_pdf=None, fmt='pdf'):
+    """
+    Generate plots comparing the confidence intervals for the value of
+    the observable using different PDF sets. If 'base_pdf' is specified, the
+    values will be relative to the central value of that PDF."""
+    #slow to import
+    import smpdflib.core as lib
+    return save_figures(lib.compare_cis, results, output_dir,
+                        base_pdf=base_pdf,
+                        prefix=prefix, fmt=fmt)
 
 def save_as(summed_table, output_dir, prefix, fmt='pdf'):
     """Generate plots showing the value of the observables as a function
@@ -99,6 +109,7 @@ def test_as_linearity(summed_table, diff_from_line = 0.25):
 ACTION_DICT = OrderedDict((
                ('testas',  test_as_linearity),
                ('violinplots',save_violins),
+               ('ciplots',save_cis),
                ('asplots',save_as),
                ('asQplots',save_asq),
                ('nfplots',save_nf),
