@@ -6,7 +6,9 @@ Created on Mon May  4 18:58:08 2015
 """
 import os.path as  osp
 import re
+import inspect
 from collections import OrderedDict
+import textwrap
 
 
 def save_figures(generator, table, output_dir, namefunc=None,
@@ -22,18 +24,18 @@ def save_figures(generator, table, output_dir, namefunc=None,
             fig.savefig(path)
 
 
-def save_violins(results, output_dir, base_pdf=None, prefix=None, fmt='pdf'):
-    """Generate plots comparing the distributions obtained for the value of
+def save_violins(results, output_dir, prefix, base_pdf=None, fmt='pdf'):
+    """
+    Generate plots comparing the distributions obtained for the value of
     the observable using different PDF sets. If 'base_pdf' is specified, the
     values will be relative to the central value of that PDF."""
-
     #slow to import
     import smpdflib.core as lib
     return save_figures(lib.compare_violins, results, output_dir,
                         base_pdf=base_pdf,
                         prefix=prefix, fmt=fmt)
 
-def save_as(summed_table, output_dir, prefix=None, fmt='pdf'):
+def save_as(summed_table, output_dir, prefix, fmt='pdf'):
     """Generate plots showing the value of the observables as a function
     of a_s. The value is obtained by summing each bin in the applgrid."""
 
@@ -44,8 +46,9 @@ def save_as(summed_table, output_dir, prefix=None, fmt='pdf'):
     return save_figures(lib.plot_alphaS, summed_table, output_dir,
                         prefix=prefix, fmt=fmt, namefunc=namefunc)
 
-def save_nf(summed_table, output_dir, prefix=None, fmt='pdf'):
-    """Generate plots showing the value of the observables as a function
+def save_nf(summed_table, output_dir, prefix, fmt='pdf'):
+    """
+    Generate plots showing the value of the observables as a function
     of N_f. The value is obtained by summing each bin in the applgrid."""
 
     #slow to import
@@ -58,22 +61,25 @@ def save_nf(summed_table, output_dir, prefix=None, fmt='pdf'):
 
 
 #TODO: Refactor this so there is not so much back and forth with smpdflib
-def export_html(total, output_dir, prefix = None):
-    """Export results as a rich HTML table."""
+def export_html(total, output_dir, prefix):
+    """
+    Export results as a rich HTML table."""
     import smpdflib.core as lib
     filename = "%sresults.html" % (prefix if prefix else '')
     lib.save_html(total[lib.DISPLAY_COLUMNS], osp.join(output_dir, filename))
 
 #TODO: Ability to import exported csv
-def export_csv(total, output_dir, prefix = None):
-    """Export results as a CSV so they can be processed by other tools. The
+def export_csv(total, output_dir, prefix):
+    """
+    Export results as a CSV so they can be processed by other tools. The
     resulting file is tab-separated."""
     filename = "%sresults.csv" % (prefix if prefix else '')
     total.to_csv(osp.join(output_dir, filename), sep='\t')
 
 #TODO: Think how to make this better
 def test_as_linearity(summed_table, diff_from_line = 0.25):
-    """Test linearity of value of the value of the observable as a function of
+    """
+    Test linearity of value of the value of the observable as a function of
     as. If th test fails for some point, report it in the tables and in
     subsequent plots."""
     import smpdflib.core as lib
@@ -118,9 +124,6 @@ def build_actions(acts, flt=None):
     return parse_actions(acts) & parse_actions(flt)
 
 def do_actions(acts, **kwargs):
-    #inspect is slow to import, and noticeable in --help.
-    import inspect
-
     for action in ACTION_DICT.keys():
         if not action in acts:
             continue
@@ -130,10 +133,21 @@ def do_actions(acts, **kwargs):
         yield action, func(**args)
 
 def helptext(action):
-    if action in ACTION_DICT:
-        return ACTION_DICT[action].__doc__
-    else:
+    if action in METAACTION_DICT:
         return METAACTION_DICT[action][1]
+    func = ACTION_DICT[action]
+    doc =  textwrap.fill(textwrap.dedent(func.__doc__), subsequent_indent='\t')
+    spec = inspect.getargspec(func)
+    if spec.defaults:
+        params = spec.args[-len(spec.defaults):]
+        param_doc = ' The optional parameters fot this action are:\n\t\t'
+        param_doc += '\n\t\t'.join("* %s (default: %s)" % (param, default) for
+                     param, default in zip(params, spec.defaults))
+    else:
+        param_doc = ''
+    return doc + param_doc
+
+
 
 def gen_docs():
     s = "Possible actions are:\n%s" % '\n'.join('\t- %s : %s\n' %
