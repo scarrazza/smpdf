@@ -338,11 +338,29 @@ def compare_violins(results, base_pdf = None):
             plt.ylabel("Observable value")
         plt.xticks(range(1,len(result.central_value) + 1))
         plt.legend(handles=handles, loc='best')
-        yield obs, figure
+        yield (obs,), figure
 
+@plotutils.ax_or_gca
+def plot_remarks(df, ax=None):
+    have_remarks = df[df['Remarks'].apply(len) > 0]
+
+    if len(have_remarks):
+            ax.plot(have_remarks['alpha_sMref'], have_remarks['CV'],
+                 'ro', markersize = 20, fillstyle = 'none',
+                 markeredgewidth = 5,
+                 label="Problematic points")
+
+def process_label(process, bin_):
+    if bin_ == 'sum':
+        return str(process)
+    else:
+        return "%s[bin:%d]"% (process, bin_)
+
+#TODO: Abstract groupbyplots away? Tried, but seems too hard...
 def plot_alphaS(results_table):
     df = results_table.sort('alpha_sMref')
-    for (process, nf), process_df in df.groupby(['Observable', 'NumFlavors']):
+    for (process, nf, bin_), process_df in df.groupby(['Observable',
+                                                    'NumFlavors', 'Bin']):
         fig = plt.figure()
 
 
@@ -356,21 +374,19 @@ def plot_alphaS(results_table):
                         label = label, linestyle='-', marker = 's')
 
 
-        have_remarks = process_df[process_df['Remarks'].apply(len) > 0]
-        if len(have_remarks):
-            plt.plot(have_remarks['alpha_sMref'], have_remarks['CV'],
-                 'ro', markersize = 20, fillstyle = 'none',
-                 markeredgewidth = 5,
-                 label="Problematic points")
+        plot_remarks(process_df)
         plt.xlabel(r'$\alpha_S(M_%s)$' % M_REF[nf])
         plt.ylabel(r'Value of observable')
         xran = plotutils.extend_range(process_df['alpha_sMref'].min(),
                             process_df['alpha_sMref'].max())
         plt.xlim(*xran)
         plt.legend(loc = 'best', fancybox=True, framealpha=0.5)
-        plt.title("%s $N_f=$%d" % (process, nf), y = 1.08)
+        plt.title("%s $N_f=$%d" % (process_label(process, bin_), nf), y = 1.08)
         plt.tight_layout()
-        yield (process,nf),fig
+        yield (process, nf, bin_),fig
+
+        plt.tight_layout()
+        yield  (process, bin_),fig
 
 
 RESULT_TYPES = defaultdict(lambda:Result,
