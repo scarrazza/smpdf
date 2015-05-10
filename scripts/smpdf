@@ -20,7 +20,7 @@ __email__ = 'stefano.carrazza@mi.infn.it'
 def main(conf, output_dir, db, quiet=False):
     import pandas as pd
 
-
+    resultset = []
     prefix_group = len(conf.actiongroups) > 1
     for group in conf.actiongroups:
         pdfsets, observables = group['pdfsets'], group['observables']
@@ -31,6 +31,7 @@ def main(conf, output_dir, db, quiet=False):
         if any(actions.requires_result(act) for act in group['actions']):
             #TODO: Use multicore
             results = lib.convolve_or_load(pdfsets, observables, db)
+            resultset.append(results)
             data_table = lib.results_table(results)
             summed_table = lib.summed_results_table(results)
 
@@ -52,6 +53,7 @@ def main(conf, output_dir, db, quiet=False):
         for action, res in actions.do_actions(group['actions'], **kwargs):
             if not quiet:
                 print("Finalized action '%s'." % action)
+    return resultset
 
 def print_results(results):
     for result in results:
