@@ -5,7 +5,6 @@ Created on Mon May  4 18:58:08 2015
 @author: zah
 """
 import os.path as  osp
-import re
 import inspect
 from collections import OrderedDict
 import textwrap
