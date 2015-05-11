@@ -386,11 +386,11 @@ def compare_cis(results, base_pdf = None):
         yield (obs,), figure
 
 @plotutils.ax_or_gca
-def plot_remarks(df, ax=None):
+def plot_remarks(df, x, ax=None):
     have_remarks = df[df['Remarks'].apply(len) > 0]
 
     if len(have_remarks):
-            ax.plot(have_remarks['alpha_sMref'], have_remarks['CV'],
+            ax.plot(have_remarks[x], have_remarks['CV'],
                  'ro', markersize = 20, fillstyle = 'none',
                  markeredgewidth = 5,
                  label="Problematic points")
@@ -403,7 +403,8 @@ def process_label(process, bin_):
 
 #TODO: Abstract groupbyplots away? Tried, but seems too hard...
 def plot_alphaS(results_table):
-    df = results_table.sort('alpha_sMref')
+    x = 'alpha_sMref'
+    df = results_table.sort(x)
     for (process, nf, bin_), process_df in df.groupby(['Observable',
                                                     'NumFlavors', 'Bin']):
         fig = plt.figure()
@@ -413,17 +414,17 @@ def plot_alphaS(results_table):
                                                       'Collaboration']):
             label = "%s (%s)" % (col, oqcd)
 
-            plt.errorbar(col_df['alpha_sMref'], col_df['CV'],
+            plt.errorbar(col_df[x], col_df['CV'],
                          yerr = np.array(col_df['Down68'],
                                          col_df['Up68']),
                         label = label, linestyle='-', marker = 's')
 
 
-        plot_remarks(process_df)
+        plot_remarks(process_df, x)
         plt.xlabel(r'$\alpha_S(M_%s)$' % M_REF[nf])
         plt.ylabel(r'Value of observable')
-        xran = plotutils.extend_range(process_df['alpha_sMref'].min(),
-                            process_df['alpha_sMref'].max())
+        xran = plotutils.extend_range(process_df[x].min(),
+                            process_df[x].max())
         plt.xlim(*xran)
         plt.legend()
         plt.title("%s $N_f=$%d" % (process_label(process, bin_), nf), y = 1.08)
@@ -431,7 +432,8 @@ def plot_alphaS(results_table):
         yield (process, nf, bin_),fig
 
 def plot_nf(results_table):
-    df = results_table.sort('NumFlavors')
+    x = 'NumFlavors'
+    df = results_table.sort(x)
     for (process, bin_, oqcd), process_df in df.groupby(['Observable',
                                                     'Bin', 'PDF_OrderQCD']):
         fig = plt.figure()
@@ -441,19 +443,19 @@ def plot_nf(results_table):
                                                       'as_from_name']):
             label = "%s(as: %s)"%(col, asn)
 
-            plt.errorbar(pdf_df['NumFlavors'], pdf_df['CV'],
+            plt.errorbar(pdf_df[x], pdf_df['CV'],
                          yerr = np.array(pdf_df['Down68'],
                                          pdf_df['Up68']),
                         label = label, linestyle='-', marker = 's')
 
 
-        plot_remarks(process_df)
+        plot_remarks(process_df, x)
         plt.xlabel(r'$N_f$')
         plt.ylabel(r'Value of observable')
-        xran = plotutils.extend_range(process_df['NumFlavors'].min(),
-                            process_df['NumFlavors'].max())
+        xran = plotutils.extend_range(process_df[x].min(),
+                            process_df[x].max())
         plt.xlim(*xran)
-        plt.xticks(process_df['NumFlavors'].unique())
+        plt.xticks(process_df[x].unique())
         plt.legend()
         plt.title("%s PDFs, %s" % (oqcd, process_label(process, bin_)), y=1.08)
         plt.tight_layout()
