@@ -9,8 +9,8 @@ import glob
 
 import yaml
 
-import lhaindex
-import actions
+import smpdflib.lhaindex as lhaindex
+import smpdflib.actions as actions
 from smpdflib.core import PDF, Observable
 
 class ConfigError(ValueError): pass
@@ -110,12 +110,14 @@ class Config(object):
                 names = pdf
             else:
                 raise ConfigError("Unrecognized format for pdfsets: %s" % pdfs)
-            pdfsets += [PDF(name) for name in
+
+            newsets = [PDF(name) for name in
                         lhaindex.expand_local_names(names)]
-            if not pdfsets:
+            if not newsets:
                 raise ConfigError("pdfset is empty for specification '%s'. "
                 "Is it in the LHAPDF path?"
                                   %names)
+            pdfsets += newsets
         return pdfsets
 
     @classmethod
