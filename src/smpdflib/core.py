@@ -632,7 +632,7 @@ def correlations(results):
             figure.subplots_adjust(hspace=0)
             plt.setp([a.get_xticklabels() for a in figure.axes[:-1]], visible=False)
 
-        yield result.obs, figure
+        yield (result.obs,), figure
 
         # Step 1: create pdf covmat
         print "\n- Building PDF covariance matrix:"

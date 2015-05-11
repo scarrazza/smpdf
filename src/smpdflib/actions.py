@@ -33,9 +33,11 @@ def save_violins(results, output_dir, prefix, base_pdf=None, fmt='pdf'):
     values will be relative to the central value of that PDF."""
     #slow to import
     import smpdflib.core as lib
+    def namefunc(obs):
+        return "violinplot_%s"%obs
     return save_figures(lib.compare_violins, results, output_dir,
                         base_pdf=base_pdf,
-                        prefix=prefix, fmt=fmt)
+                        prefix=prefix, fmt=fmt, namefunc=namefunc)
 def save_cis(results, output_dir, prefix, base_pdf=None, fmt='pdf'):
     """
     Generate plots comparing the confidence intervals for the value of
@@ -56,7 +58,7 @@ def save_as(summed_table, output_dir, prefix, fmt='pdf'):
     #slow to import
     import smpdflib.core as lib
     def namefunc(process, nf, bin_):
-        return 'alpha_plot_{process}_nf_{nf}'.format(**locals())
+        return 'alphaplot_{process}_nf_{nf}'.format(**locals())
     return save_figures(lib.plot_alphaS, summed_table, output_dir,
                         prefix=prefix, fmt=fmt, namefunc=namefunc)
 
@@ -75,7 +77,7 @@ def save_nf(summed_table, output_dir, prefix, fmt='pdf'):
     #slow to import
     import smpdflib.core as lib
     def namefunc(process, bin_, oqcd):
-        return 'nf_plot_{process}_{oqcd}'.format(**locals())
+        return 'nfplot_{process}_{oqcd}'.format(**locals())
     return save_figures(lib.plot_nf, summed_table, output_dir,
                         prefix=prefix, fmt=fmt, namefunc=namefunc)
 
@@ -106,13 +108,13 @@ def test_as_linearity(summed_table, diff_from_line = 0.25):
     import smpdflib.core as lib
     return lib.test_as_linearity(summed_table, diff_from_line = diff_from_line)
 
-def save_correlations(results, output_dir, prefix=None):
+def save_correlations(results, output_dir, prefix, fmt='pdf'):
     """Compute PDF/Observable correlations"""
     import smpdflib.core as lib
-    for obs, fig in lib.correlations(results):
-        filename = "smpdf_%s%s.pdf" % (prefix if prefix else '', obs)
-        path = osp.join(output_dir, "figures", filename)
-        fig.savefig(path)
+    def namefunc(obs):
+        return "smpdfplot_%s"%obs
+    return save_figures(lib.correlations, results, output_dir, prefix=prefix,
+                        fmt=fmt, namefunc=namefunc)
 
 
 ACTION_DICT = OrderedDict((
