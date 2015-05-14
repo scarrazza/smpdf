@@ -6,6 +6,7 @@
 #include <Python.h>
 #include <LHAPDF/LHAPDF.h>
 #include <appl_grid/appl_grid.h>
+#include <appl_grid/appl_igrid.h>
 using std::vector;
 using std::cout;
 using std::endl;
@@ -79,11 +80,38 @@ static PyObject* py_convolute(PyObject* self, PyObject* args)
   return out;
 }
 
+static PyObject* py_getobsq(PyObject* self, PyObject* args)
+{  
+  int pto, bin;
+  PyArg_ParseTuple(args,"ii", &pto, &bin);
+
+  vector<double> Q;
+  appl::igrid const *igrid = _g->weightgrid(pto,bin);  
+  for (int ix1 = 0; ix1 < igrid->Ny1(); ix1++)
+    for (int ix2 = 0; ix2 < igrid->Ny2(); ix2++)
+      for (int t = 0; t < igrid->Ntau(); t++)
+	for (int ip = 0; ip < _g->subProcesses(0); ip++)
+	  {
+
+	    const bool zero_weight = (*(const SparseMatrix3d*) const_cast<appl::igrid*>(igrid)->weightgrid(ip))(t,ix1,ix2) == 0;
+	    
+	    if (!zero_weight) 
+	      Q.push_back(sqrt(igrid->fQ2(igrid->gettau(t))));
+	  }
+  
+  double sum = 0;
+  for (int i = 0; i < (int) Q.size(); i++) sum += Q[i];
+  sum /= Q.size();
+  
+  return Py_BuildValue("d", sum);
+}
+
 static PyMethodDef applwrap_methods[] = {
   {"initpdf", py_initpdf, METH_VARARGS},
   {"pdfreplica", py_pdfreplica, METH_VARARGS},
   {"initobs", py_initobs, METH_VARARGS},
   {"convolute", py_convolute, METH_VARARGS},
+  {"getobsq", py_getobsq, METH_VARARGS},
   {NULL, NULL}
 };
 
