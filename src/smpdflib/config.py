@@ -4,6 +4,8 @@ Created on Tue May  5 15:03:41 2015
 
 @author: zah
 """
+from __future__ import print_function
+import sys
 import itertools
 import glob
 
@@ -117,6 +119,16 @@ class Config(object):
                 raise ConfigError("pdfset is empty for specification '%s'. "
                 "Is it in the LHAPDF path?"
                                   %names)
+            remote_sets = {PDF(name) for
+                           name in lhaindex.expand_index_names(names)}
+            diff = remote_sets - set(newsets)
+            if diff:
+                #TODO: Use logging.
+                print("WARNING: The specification '%s' matches "
+                      "some official PDF sets that are not locally installed. "
+                      "They are:\n%s" % (names, '\n'.join(str(d) for
+                                                          d in diff)),
+                      file=sys.stderr)
             pdfsets += newsets
         return pdfsets
 
