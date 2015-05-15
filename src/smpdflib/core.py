@@ -13,7 +13,6 @@ __license__ = 'GPL'
 __version__ = '1.0.0'
 __email__ = 'stefano.carrazza@mi.infn.it'
 
-import os
 import os.path as osp
 import sys
 from collections import defaultdict, OrderedDict
@@ -27,12 +26,8 @@ from pandas.stats import ols
 
 import smpdflib.lhaindex as lhaindex
 import smpdflib.plotutils as plotutils
-try:
-    sys.path.append('applwrap')
-    from applwrap import initpdf, initobs, pdfreplica, convolute
-except ImportError:
-    os.system("make -C applwrap")
-    from applwrap import initpdf, initobs, pdfreplica, convolute
+
+from applwrap import initpdf, initobs, pdfreplica, convolute
 
 ORDERS_QCD = {0: 'LO', 1: 'NLO', 2: 'NNLO'}
 
