@@ -60,6 +60,7 @@ class BaseObservable(TupleComp):
         return (self.name, self.order)
 
 class Observable(BaseObservable):
+    _meanq = None
     def __init__(self, filename, order):
         self.filename = filename
         self.order = order
@@ -70,6 +71,10 @@ class Observable(BaseObservable):
     #TODO: Unload Observable here
     def __exit__(self, exc_type, exc_value, traceback):
         pass
+
+    @property
+    def meanQ(self):
+        return self._meanq
 
     @property
     def name(self):
@@ -146,6 +151,17 @@ class Result():
     @property
     def nbins(self):
         return self._all_vals.shape[0]
+
+    #TODO: This should really be done in Observable. Can we access nbins?
+    @property
+    def meanQ(self):
+        if self.obs.meanQ is not None:
+            return self.obs.meanQ
+        with self.obs:
+            meanQ = [applwrap.getobsq(self.obs.order, i) for
+                     i in range(self.nbins)]
+        self.obs._meanQ = meanQ
+        return meanQ
 
     def std_error(self, nsigma=1):
         raise NotImplementedError("No error computation implemented for this"
