@@ -27,7 +27,7 @@ from pandas.stats import ols
 import smpdflib.lhaindex as lhaindex
 import smpdflib.plotutils as plotutils
 
-from applwrap import initpdf, initobs, pdfreplica, convolute
+import applwrap
 
 ORDERS_QCD = {0: 'LO', 1: 'NLO', 2: 'NNLO'}
 
@@ -65,7 +65,7 @@ class Observable(BaseObservable):
         self.order = order
 
     def __enter__(self):
-        initobs(self.filename)
+        applwrap.initobs(self.filename)
 
     #TODO: Unload Observable here
     def __exit__(self, exc_type, exc_value, traceback):
@@ -85,7 +85,7 @@ class PDF(TupleComp):
         return (str(self.name),)
 
     def __enter__(self):
-        initpdf(self.name)
+        applwrap.initpdf(self.name)
 
     #TODO: Unload PDF here
     def __exit__(self, exc_type, exc_value, traceback):
@@ -510,8 +510,8 @@ def make_convolution(pdf, observables):
                     sys.stdout.write('\r-> Computing replica %d of %s' %
                                      (rep, pdf))
                     sys.stdout.flush()
-                    pdfreplica(rep)
-                    res = convolute(obs.order)
+                    applwrap.pdfreplica(rep)
+                    res = applwrap.convolute(obs.order)
                     datas[obs][rep] = np.array(res)
         sys.stdout.write('\n')
     return datas
