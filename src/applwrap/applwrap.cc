@@ -5,11 +5,13 @@
 
 #include <Python.h>
 #include <LHAPDF/LHAPDF.h>
+#include <LHAPDF/Exceptions.h>
 #include <appl_grid/appl_grid.h>
 #include <appl_grid/appl_igrid.h>
 using std::vector;
 using std::cout;
 using std::endl;
+using std::exception;
 
 // I hate singletons - sc
 appl::grid *_g = nullptr;
@@ -39,7 +41,15 @@ static PyObject* py_initpdf(PyObject* self, PyObject* args)
     if (_pdfs[i]) delete _pdfs[i];
   _pdfs.clear();
 
-  _pdfs = LHAPDF::mkPDFs(setname);
+  try
+  {
+    _pdfs = LHAPDF::mkPDFs(setname);
+  }
+  catch (LHAPDF::Exception e)
+  {
+    PyErr_SetString(PyExc_ValueError, e.what());
+    return NULL;
+  }
   _imem = 0;
 
   return Py_BuildValue("");
@@ -60,7 +70,15 @@ static PyObject* py_initobs(PyObject* self, PyObject* args)
   PyArg_ParseTuple(args,"s", &file);
     
   if (_g) delete _g;
-  _g = new appl::grid(file);  
+  try
+  {
+    _g = new appl::grid(file);
+  }
+  catch(appl::grid::exception e)
+  {
+    PyErr_SetString(PyExc_ValueError, e.what());
+    return NULL;
+  }
 
   return Py_BuildValue("");
 }
