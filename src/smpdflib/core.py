@@ -69,6 +69,13 @@ class Observable(BaseObservable):
         self.filename = filename
         self.order = order
 
+    def __enter__(self):
+        initobs(self.filename)
+
+    #TODO: Unload Observable here
+    def __exit__(self, exc_type, exc_value, traceback):
+        pass
+
     @property
     def name(self):
         return osp.splitext(osp.basename(self.filename))[0]
@@ -81,6 +88,13 @@ class PDF(TupleComp):
     def get_key(self):
         #Convert python2 unicode to string so no u'prefix' is printed
         return (str(self.name),)
+
+    def __enter__(self):
+        initpdf(self.name)
+
+    #TODO: Unload PDF here
+    def __exit__(self, exc_type, exc_value, traceback):
+        pass
 
     def __str__(self):
         return self.name
@@ -491,18 +505,19 @@ def make_convolution(pdf, observables):
     datas = defaultdict(lambda:OrderedDict())
     #TODO: load many replicas in C++
     #TODO: Could we loop over observables and then over memebers?
-    if observables:
-        initpdf(pdf.name)
-    for obs in observables:
-        initobs(obs.filename)
-        for rep in pdf.reps:
-            #TODO: hide this call from the api, do in convolute.
-            sys.stdout.write('\r-> Computing replica %d of %s' %
-                             (rep, pdf))
-            sys.stdout.flush()
-            pdfreplica(rep)
-            res = convolute(obs.order)
-            datas[obs][rep] = np.array(res)
+    if not observables:
+        return {}
+
+    with(pdf):
+        for obs in observables:
+            with obs:
+                for rep in pdf.reps:
+                    sys.stdout.write('\r-> Computing replica %d of %s' %
+                                     (rep, pdf))
+                    sys.stdout.flush()
+                    pdfreplica(rep)
+                    res = convolute(obs.order)
+                    datas[obs][rep] = np.array(res)
         sys.stdout.write('\n')
     return datas
 
