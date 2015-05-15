@@ -626,19 +626,25 @@ def correlations(results):
     from mc2hlib.common import load_pdf, compress_X_abs
     from mc2hlib.lh import hessian_from_lincomb
 
-    # TODO: automatization
-    threshold = 0.5
-    for result in results:
-        #TODO: select input Q
-        # allocate pdf set
-        pdf, fl, xgrid = load_pdf(str(result.pdf), 100.0)
-        nf = fl.n
-        nx = xgrid.n
+    pdf, fl, xgrid = load_pdf(str(results[0].pdf), 1.0)
+    ccmax = np.zeros(shape=(fl.n, xgrid.n))
+    qavg = 0
 
-        # praparing
+    for result in results:
+        # allocate pdf set
+        Qs = result.meanQ
+        qavg = np.mean(Qs)
+        if str(result.pdf) != pdf.pdf_name:
+            print "- Error, multiple PDFs not allowed for smpdf action", result.pdf, pdf.pdf_name
+            exit(-1)
+
+        # preparing
         figure, axarr = plt.subplots(fl.n, sharex=True, sharey=True, figsize=(8, fl.n+3))
-        cc = np.zeros(shape=(fl.n, xgrid.n))
-        for bin in range(len(result[:])):
+        cc = np.zeros(shape=(result.nbins, fl.n, xgrid.n))
+        for bin in range(result.nbins):
+
+            # load PDF at bin energy
+            pdf.setQ(Qs[bin])
             obs = np.zeros(pdf.n_rep)
 
             for rep in range(1,pdf.n_rep+1):
@@ -646,11 +652,9 @@ def correlations(results):
 
             for f in range(fl.n):
                 for x in range(xgrid.n):
-                    cc[f,x] = corrcoeff(obs, pdf.xfxQ[:,f,x])
+                    cc[bin,f,x] = corrcoeff(obs, pdf.xfxQ[:,f,x])
 
-                axarr[f].plot(xgrid.x, cc[f])
-                axarr[f].axhline(threshold, c='r', ls='--')
-                axarr[f].axhline(-threshold, c='r', ls='--')
+                axarr[f].plot(xgrid.x, cc[bin,f])
                 axarr[f].set_ylim([-1,1])
                 axarr[f].set_xscale('log')
                 axarr[f].set_ylabel("pdg: " + str(fl.id[f]))
@@ -660,44 +664,56 @@ def correlations(results):
             figure.subplots_adjust(hspace=0)
             plt.setp([a.get_xticklabels() for a in figure.axes[:-1]], visible=False)
 
+        threshold = max(cc.min(), cc.max(), key=abs)*0.5
+
+        print ("- Using threshold value for correlation: %f" % threshold)
+        for ax in axarr:
+            ax.axhline(threshold, c='r', ls='--')
+            ax.axhline(-threshold, c='r', ls='--')
+
+        for f in range(fl.n):
+            for x in range(xgrid.n):
+                for bin in range(result.nbins):
+                    if abs(cc[bin,f,x]) >= threshold:
+                        ccmax[f,x] = True
+
         yield (result.obs,), figure
 
-        # Step 1: create pdf covmat
-        print "\n- Building PDF covariance matrix:"
-        X = (pdf.xfxQ.reshape(pdf.n_rep, nx*nf) - pdf.f0.reshape(nx*nf)).T
-        print " [Done] "
+    q2min = pdf.pdf[0].q2Min
+    pdf.setQ(q2min)
+    # Step 1: create pdf covmat
+    print ("\n- Building PDF covariance matrix at %f GeV:" % q2min)
+    X = (pdf.xfxQ.reshape(pdf.n_rep, xgrid.n*fl.n) - pdf.f0.reshape(xgrid.n*fl.n)).T
+    print " [Done] "
 
-        mask = (np.abs(cc.reshape(fl.n*xgrid.n)) >= threshold)
-        print (" [Info] Keeping %d nf*nx with threshold = %f" % (np.count_nonzero(mask), threshold))
+    mask = (ccmax.reshape(fl.n*xgrid.n) == True)
+    print (" [Info] Keeping %d nf*nx of %d with threshold = %f" %
+           (np.count_nonzero(mask), xgrid.n*fl.n, threshold))
 
-        X = X[mask,:]
-        # Step 2: solve the system
-        print "\n- Quick test:"
-        for neig in range(1, pdf.n_rep):
-            vec, cov = compress_X_abs(X, neig)
+    X = X[mask,:]
+    # Step 2: solve the system
+    print "\n- Quick test:"
+    for neig in range(1, pdf.n_rep):
+        vec, cov = compress_X_abs(X, neig)
 
-            stdh = iter(np.sqrt(np.diag(cov)))
+        stdh = iter(np.sqrt(np.diag(cov)))
 
-            # Step 3: quick test
-            rmask = mask.reshape(fl.n, xgrid.n)
-            est = Norm = 0
-            for f in range(fl.n):
-                for x in range(xgrid.n):
-                    if rmask[f,x]:
-                        t0 = pdf.std[f,x]
-                        t1 = next(stdh)
+        # Step 3: quick test
+        rmask = mask.reshape(fl.n, xgrid.n)
+        est = Norm = 0
+        for f in range(fl.n):
+            for x in range(xgrid.n):
+                if rmask[f,x]:
+                    t0 = pdf.std[f,x]
+                    t1 = next(stdh)
+                    est += abs(pdf.f0[f,x] * (1-t1/t0))
+                    Norm += abs(pdf.f0[f,x])
 
-                        #print "1-sigma MonteCarlo (fl,x,sigma):", fl.id[f], xgrid.x[x], t0
-                        #print "1-sigma Hessian    (fl,x,sigma):", fl.id[f], xgrid.x[x], t1
-                        #print "Ratio:", t1/t0
-                        est += abs(pdf.f0[f,x] * (1-t1/t0))
-                        Norm += abs(pdf.f0[f,x])
+        est /= Norm
+        # TODO: is this the best estimator? and cut criteria?
+        print ("Neig %3d, estimator: %e" % (neig, est))
+        if est <= 1e-6: break;
 
-            est /= Norm
-            # TODO: is this the best estimator? and cut criteria?
-            print ("Neig %3d, estimator: %e" % (neig, est))
-            if est <= 1e-3: break;
-
-        # Step 4: exporting to LHAPDF
-        print "\n- Exporting new grid..."
-        hessian_from_lincomb(pdf, vec, set_name="smpdf_" + str(result.pdf))
+    # Step 4: exporting to LHAPDF
+    print "\n- Exporting new grid..."
+    hessian_from_lincomb(pdf, vec, set_name="smpdf_" + str(pdf.pdf_name))
