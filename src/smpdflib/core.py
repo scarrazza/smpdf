@@ -66,6 +66,7 @@ class Observable(BaseObservable):
         self.order = order
 
     def __enter__(self):
+        """Load observable file in memory"""
         applwrap.initobs(self.filename)
 
     #TODO: Unload Observable here
@@ -90,6 +91,7 @@ class PDF(TupleComp):
         return (str(self.name),)
 
     def __enter__(self):
+        """Load PDF file in memory"""
         applwrap.initpdf(self.name)
 
     #TODO: Unload PDF here
