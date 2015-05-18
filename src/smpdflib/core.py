@@ -617,67 +617,78 @@ def test_as_linearity(summed_table, diff_from_line = 0.25):
                 summed_table.loc[ind,'Remarks'].append(remark)
 
 def corrcoeff(obs, pdf):
-    return len(pdf)/(len(pdf)-1)*\
-           (np.mean(obs*pdf) - np.mean(obs)*np.mean(pdf))/\
-           (np.std(obs,ddof=1)*np.std(pdf,ddof=1))
+    return len(pdf)/(len(pdf)-1)*(np.mean(obs*pdf) - np.mean(obs)*np.mean(pdf))/(np.std(obs,ddof=1)*np.std(pdf,ddof=1))
 
-def correlations(results):
-    """Includes from mc2hessian library"""
-    from mc2hlib.common import load_pdf, compress_X_abs
-    from mc2hlib.lh import hessian_from_lincomb
+def compute_correlations(result, pdf, fl, xgrid):
+    """Compute correlations"""
 
-    pdf, fl, xgrid = load_pdf(str(results[0].pdf), 1.0)
-    ccmax = np.zeros(shape=(fl.n, xgrid.n))
-    qavg = 0
+    cc = np.zeros(shape=(result.nbins, fl.n, xgrid.n))
+    for bin in range(result.nbins):
 
-    for result in results:
-        # allocate pdf set
-        Qs = result.meanQ
-        qavg = np.mean(Qs)
-        if str(result.pdf) != pdf.pdf_name:
-            print "- Error, multiple PDFs not allowed for smpdf action", result.pdf, pdf.pdf_name
-            exit(-1)
+        pdf.setQ(result.meanQ[bin])
+        obs = np.zeros(pdf.n_rep)
+        for rep in range(1,pdf.n_rep+1): obs[rep-1] = result[rep][bin]
 
-        # preparing
-        figure, axarr = plt.subplots(fl.n, sharex=True, sharey=True, figsize=(8, fl.n+3))
-        cc = np.zeros(shape=(result.nbins, fl.n, xgrid.n))
-        for bin in range(result.nbins):
+        for f in range(fl.n):
+            for x in range(xgrid.n):
+                cc[bin,f,x] = corrcoeff(obs, pdf.xfxQ[:,f,x])
 
-            # load PDF at bin energy
-            pdf.setQ(Qs[bin])
-            obs = np.zeros(pdf.n_rep)
+    threshold = max(cc.min(), cc.max(), key=abs)*0.5
 
-            for rep in range(1,pdf.n_rep+1):
-                obs[rep-1] = result[rep][bin]
+    return cc, threshold, result.obs, xgrid, fl
 
-            for f in range(fl.n):
-                for x in range(xgrid.n):
-                    cc[bin,f,x] = corrcoeff(obs, pdf.xfxQ[:,f,x])
+def plot_correlations(pdfcorrlist):
 
-                axarr[f].plot(xgrid.x, cc[bin,f])
-                axarr[f].set_ylim([-1,1])
-                axarr[f].set_xscale('log')
-                axarr[f].set_ylabel("pdg: " + str(fl.id[f]))
+    for pdf, corrlist in pdfcorrlist:
 
-            axarr[0].set_title(str(result.obs) + "\n")
+        for corr, threshold, obs, xgrid, fl in corrlist:
+            figure, axarr = plt.subplots(corr.shape[1], sharex=True, sharey=True, figsize=(8, corr.shape[1]+3))
+
+            for bin in range(corr.shape[0]):
+                for f in range(corr.shape[1]):
+                    axarr[f].plot(xgrid.x, corr[bin,f])
+                    axarr[f].set_ylim([-1,1])
+                    axarr[f].set_xscale('log')
+                    axarr[f].set_ylabel("pdg: " + str(fl.id[f]))
+
+            axarr[0].set_title(str(obs) + "\n")
             plt.xlabel("x")
             figure.subplots_adjust(hspace=0)
             plt.setp([a.get_xticklabels() for a in figure.axes[:-1]], visible=False)
 
-        threshold = max(cc.min(), cc.max(), key=abs)*0.5
+            for ax in axarr:
+                ax.axhline(threshold, c='r', ls='--')
+                ax.axhline(-threshold, c='r', ls='--')
 
-        print ("- Using threshold value for correlation: %f" % threshold)
-        for ax in axarr:
-            ax.axhline(threshold, c='r', ls='--')
-            ax.axhline(-threshold, c='r', ls='--')
+            yield (obs,pdf), figure
 
-        for f in range(fl.n):
-            for x in range(xgrid.n):
-                for bin in range(result.nbins):
-                    if abs(cc[bin,f,x]) >= threshold:
-                        ccmax[f,x] = True
+def correlations(data_table):
 
-        yield (result.obs,), figure
+    """Includes from mc2hessian library"""
+    from mc2hlib.common import load_pdf
+    pdfcorrlist = []
+    for ipdf, pdf_table in data_table.groupby('PDF'):
+        results = pdf_table.Result.unique()
+
+        pdf, fl, xgrid = load_pdf(str(ipdf.name), 1.0)
+
+        corrlist = []
+        for result in results:
+            corrlist.append(compute_correlations(result, pdf, fl, xgrid))
+        pdfcorrlist += [(pdf, corrlist)]
+    return  pdfcorrlist
+
+def create_smpdf(pdf, corrlist, output_dir, prefix):
+    from mc2hlib.common import compress_X_rel
+    from mc2hlib.lh import hessian_from_lincomb
+    xgrid = corrlist[0][3]
+    fl = corrlist[0][4]
+    ccmax = np.zeros(shape=(corrlist[0][0].shape[1], corrlist[0][0].shape[2]), dtype=bool)
+
+    for c in corrlist:
+        cc = c[0]
+        threshold = c[1]
+        ccmax |= np.any(np.abs(cc)>=threshold, axis=0)
 
     q2min = pdf.pdf[0].q2Min
     pdf.setQ(q2min)
@@ -686,15 +697,14 @@ def correlations(results):
     X = (pdf.xfxQ.reshape(pdf.n_rep, xgrid.n*fl.n) - pdf.f0.reshape(xgrid.n*fl.n)).T
     print " [Done] "
 
-    mask = (ccmax.reshape(fl.n*xgrid.n) == True)
-    print (" [Info] Keeping %d nf*nx of %d with threshold = %f" %
-           (np.count_nonzero(mask), xgrid.n*fl.n, threshold))
+    mask = (ccmax.reshape(fl.n*xgrid.n))
+    print (" [Info] Keeping %d nf*nx of %d with threshold = %f" % (np.count_nonzero(mask), xgrid.n*fl.n, threshold))
 
     X = X[mask,:]
     # Step 2: solve the system
     print "\n- Quick test:"
     for neig in range(1, pdf.n_rep):
-        vec, cov = compress_X_abs(X, neig)
+        vec, cov = compress_X_rel(X, neig)
 
         stdh = iter(np.sqrt(np.diag(cov)))
 
@@ -716,4 +726,7 @@ def correlations(results):
 
     # Step 4: exporting to LHAPDF
     print "\n- Exporting new grid..."
-    hessian_from_lincomb(pdf, vec, set_name="smpdf_" + str(pdf.pdf_name))
+    if prefix is None:
+        prefix = ''
+    hessian_from_lincomb(pdf, vec, folder=output_dir,
+                         set_name= prefix+ "smpdf_" + str(pdf.pdf_name))

@@ -108,13 +108,19 @@ def test_as_linearity(summed_table, diff_from_line = 0.25):
     import smpdflib.core as lib
     return lib.test_as_linearity(summed_table, diff_from_line = diff_from_line)
 
-def save_correlations(results, output_dir, prefix, fmt='pdf'):
+def save_correlations(pdfcorrlist, output_dir, prefix, fmt='pdf'):
     """Compute PDF/Observable correlations"""
     import smpdflib.core as lib
-    def namefunc(obs):
-        return "smpdfplot_%s"%obs
-    return save_figures(lib.correlations, results, output_dir, prefix=prefix,
+    def namefunc(obs,pdf):
+        return "smpdfplot_%s:%s"%(pdf.pdf_name, obs)
+    return save_figures(lib.plot_correlations, pdfcorrlist, output_dir, prefix=prefix,
                         fmt=fmt, namefunc=namefunc)
+
+def create_smpdf(pdfcorrlist, output_dir, prefix):
+    import smpdflib.core as lib
+    for pdf, corrlist in pdfcorrlist:
+        lib.create_smpdf(pdf, corrlist, output_dir, prefix)
+    return
 
 
 ACTION_DICT = OrderedDict((
@@ -126,7 +132,8 @@ ACTION_DICT = OrderedDict((
                ('nfplots',save_nf),
                ('exporthtml', export_html),
                ('exportcsv', export_csv),
-               ('smpdf', save_correlations),
+               ('plotcorrs', save_correlations),
+               ('smpdf', create_smpdf),
                ))
 
 
@@ -146,8 +153,12 @@ ACTIONS = REALACTIONS | METAACTIONS
 #TODO: Do this better
 def requires_result(action):
     args = inspect.getargspec(ACTION_DICT[action]).args
-    return ('results' in args) or ('summed_table' in args) or ('table' in args)
+    return ('results' in args) or ('summed_table' in args) or ('data_table' in args) or ('pdfcorrlist' in args)
 
+#TODO: Do this better
+def requires_correlations(action):
+    args = inspect.getargspec(ACTION_DICT[action]).args
+    return ('pdfcorrlist' in args)
 
 def parse_actions(acts):
     acts = set(acts)

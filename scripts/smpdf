@@ -44,6 +44,10 @@ def main(conf, output_dir, db, quiet=False):
             kwargs.update({'results':results, 'data_table':data_table,
                            'total':total, 'summed_table':summed_table})
 
+        if any(actions.requires_correlations(act) for act in group['actions']):
+            pdfcorrlist = lib.correlations(data_table)
+            kwargs.update({'pdfcorrlist':pdfcorrlist})
+
         if not prefix_group:
             prefix = None
         else:

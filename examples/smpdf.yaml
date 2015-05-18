@@ -5,5 +5,5 @@ actiongroups:
    - pdfsets :
       - NNPDF30_nlo_as_0118
      actions:
-      - smpdf
-
+      - plotcorrs
+      - smpdf      
