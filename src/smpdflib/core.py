@@ -60,7 +60,7 @@ class BaseObservable(TupleComp):
         return (self.name, self.order)
 
 class Observable(BaseObservable):
-    _meanq = None
+    _meanQ = None
     def __init__(self, filename, order):
         self.filename = filename
         self.order = order
@@ -75,7 +75,7 @@ class Observable(BaseObservable):
 
     @property
     def meanQ(self):
-        return self._meanq
+        return self._meanQ
 
     @property
     def name(self):
