@@ -27,15 +27,7 @@ class Config(object):
     def parse_defaults(cls, group):
         if not isinstance(group, dict):
             raise ConfigError("Defaults not understood: %s" % group)
-        if 'observables' in group:
-            group['observables'] = cls.parse_observables(group['observables'])
-        if 'pdfsets' in group:
-            group['pdfsets'] = cls.parse_pdfsets(group['pdfsets'])
-        if 'actions' in group:
-            acts = group['actions']
-            group['actsions'] = cls.parse_actions(acts)
         return group
-
 
     @classmethod
     def parse_action_group(cls,  group, defaults=None):
@@ -60,7 +52,7 @@ class Config(object):
         if 'observables' in group:
             observables = cls.parse_observables(group['observables'])
         elif 'observables' in defaults:
-            observables = defaults['observables']
+            observables = cls.parse_observables(defaults['observables'])
         else:
             if any(actions.requires_result(act) for act in acts):
                 #plot_asq does not need observables.
@@ -70,18 +62,15 @@ class Config(object):
         if 'pdfsets' in group:
             pdfsets = cls.parse_pdfsets(group['pdfsets'])
         elif 'pdfsets' in defaults:
-            pdfsets = defaults['pdfsets']
+            pdfsets = cls.parse_pdfsets(defaults['pdfsets'])
         else:
             raise ConfigError("No pdfsets found for action group.")
 
-
-        if 'base_pdf' in group:
-            name = group['base_pdf']
-            #TODO: Do dedicated method
-            base = cls.parse_pdfsets([name])
-            if len(base) > 1:
-                raise ConfigError("Only one base allowed: %s" % name)
-            base_pdf = base[0]
+        if 'base_pdf' in group or 'base_pdf' in defaults:
+            if 'base_pdf' in group:
+                base_pdf = cls.parse_base_pdf(group['base_pdf'])
+            elif 'base_pdf' in defaults:
+                base_pdf =  cls.parse_base_pdf(defaults['base_pdf'])
             if base_pdf not in pdfsets:
                 raise ConfigError("Base pdf must be included in pdfsets: %s"
                                   % base_pdf)
@@ -107,7 +96,11 @@ class Config(object):
         pdfsets =  []
         for pdf in pdfs:
             if isinstance(pdf, dict):
-                names = pdf['name']
+                try:
+                    names = pdf['name']
+                except KeyError:
+                    raise ConfigError("Unrecognized "
+                                      "format for pdfsets: %s" % pdfs)
             elif isinstance(pdf, str):
                 names = pdf
             else:
@@ -131,6 +124,27 @@ class Config(object):
                       file=sys.stderr)
             pdfsets += newsets
         return pdfsets
+
+    @classmethod
+    def parse_base_pdf(cls, base):
+        if isinstance(base, dict):
+            try:
+                name = base['name']
+            except KeyError:
+                raise ConfigError("Unrecognized format for pdfsets: %s" % base)
+        elif isinstance(base, str):
+            name = base
+        else:
+            raise ConfigError("Unrecognized format for pdfsets: %s" % base)
+        existing = lhaindex.expand_local_names(name)
+        if not existing:
+            raise ConfigError("No PDF set %s. Is it in the LHAPDF path?"%name)
+        if len(existing) > 1:
+            raise ConfigError("Only one base_pdf allowed. Matches were %s"
+                              % existing)
+        return PDF(name)
+
+
 
     @classmethod
     def parse_actions(cls, acts):

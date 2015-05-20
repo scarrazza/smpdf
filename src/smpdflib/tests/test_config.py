@@ -6,7 +6,7 @@ Created on Sun May 10 01:03:24 2015
 """
 import unittest
 
-
+from smpdflib.core import PDF
 from smpdflib import config
 
 
@@ -32,6 +32,7 @@ actions:
    - {name: data/applgrid/atlas-incljets-r06-arxiv-1112.6297-eta7.root, order: 1 }
    - {name: data/applgrid/ttbar-xsectot-8tev.root, order: 1}
 fmt: svg
+base_pdf: MMHT2014nlo68cl_1000MC
 actions:
    - savedata
 
@@ -40,6 +41,7 @@ actiongroups:
       - NNPDF30*_as_????
       - NNPDF30*_as_????_nf_?
       - NNPDF30_nlo_as_0119_atlas
+      - MMHT2014nlo68cl_1000MC
      actions:
       - testas
       - asplots
@@ -56,11 +58,14 @@ actiongroups:
    - prefix: empty_action
      pdfsets :
       - NNPDF30*_as_????
-      - NNPDF30*_as_????_nf_?"""
+      - NNPDF30*_as_????_nf_?
+      - MMHT2014nlo68cl_1000MC"""
         )
         conf = config.Config.from_yaml(s)
         self.assertEqual(conf.actiongroups[2]['actions'], set(['exporthtml',
                                                                'exportcsv']))
+        self.assertEqual(conf.actiongroups[0]['base_pdf'],
+                         PDF('MMHT2014nlo68cl_1000MC'))
 
     def test_bad_name(self):
         s=  (
