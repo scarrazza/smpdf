@@ -168,5 +168,5 @@ class Config(object):
     def from_yaml(cls, stream):
         try:
             return cls.from_params(yaml.load(stream))
-        except yaml.parser.ParserError as e:
+        except yaml.error.MarkedYAMLError as e:
             raise ConfigError("Failed to parse yaml file: %s" % e)

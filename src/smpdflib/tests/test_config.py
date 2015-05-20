@@ -157,6 +157,16 @@ actiongroups:
       - NNPDF30*_as_????_nf_?"""
         )
         self._test_bad_config(s)
+        s=  (
+"""observables:
+   - {name: data/applgrid/atlas-incljets-r06-arxiv-1112.6297-eta7.root, order: 1 }
+   - {name: data/applgrid/ttbar-xsectot-8tev.root, order: 1}
+fmt: svg
+actions:
+\t- savedata
+"""
+        )
+        self._test_bad_config(s)
 
 
 if __name__ == '__main__':
