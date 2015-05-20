@@ -124,12 +124,29 @@ static PyObject* py_getobsq(PyObject* self, PyObject* args)
   return Py_BuildValue("d", sum);
 }
 
+static PyObject* py_getnbins(PyObject* self, PyObject* args)
+{  
+  int nbins;
+  try
+  {
+    nbins = _g->Nobs();
+  }
+  catch(appl::grid::exception e)
+  {
+    PyErr_SetString(PyExc_ValueError, e.what());
+    return NULL;
+  }
+
+  return Py_BuildValue("i", nbins);
+}
+
 static PyMethodDef applwrap_methods[] = {
   {"initpdf", py_initpdf, METH_VARARGS},
   {"pdfreplica", py_pdfreplica, METH_VARARGS},
   {"initobs", py_initobs, METH_VARARGS},
   {"convolute", py_convolute, METH_VARARGS},
   {"getobsq", py_getobsq, METH_VARARGS},
+  {"getnbins",py_getnbins, METH_VARARGS},
   {NULL, NULL}
 };
 
