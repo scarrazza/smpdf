@@ -65,14 +65,6 @@ class Observable(BaseObservable):
         self.filename = filename
         self.order = order
 
-    def __enter__(self):
-        """Load observable file in memory"""
-        applwrap.initobs(self.filename)
-
-    #TODO: Unload Observable here
-    def __exit__(self, exc_type, exc_value, traceback):
-        pass
-
     @property
     def meanQ(self):
         return self._meanQ
@@ -80,6 +72,17 @@ class Observable(BaseObservable):
     @property
     def name(self):
         return osp.splitext(osp.basename(self.filename))[0]
+
+class APPLGridObservable(Observable):
+    def __enter__(self):
+        """Load observable file in memory"""
+        applwrap.initobs(self.filename)
+    #TODO: Unload Observable here
+    def __exit__(self, exc_type, exc_value, traceback):
+        pass
+
+class PredictionObservable(Observable):
+    pass
 
 
 class PDF(TupleComp):
@@ -512,6 +515,19 @@ RESULT_TYPES = defaultdict(lambda:Result,
 def make_result(obs, pdf, datas):
     error_type = pdf.ErrorType
     return RESULT_TYPES[error_type](obs, pdf, datas)
+
+def make_observable(name, *args, **kwargs):
+    extension = osp.splitext(name)[-1]
+    prediction_extensions = ('.yaml', '.yml', '.info', '.txt')
+    applgrid_extensions = ('.root',)
+    if extension in prediction_extensions:
+        return PredictionObservable(name, *args, **kwargs)
+    elif extension in applgrid_extensions:
+        return APPLGridObservable(name, *args, **kwargs)
+    else:
+        raise ValueError("Only files with extensions: %s "
+                         "are valid observables" % str(prediction_extensions
+                                                   + applgrid_extensions))
 
 
 def make_convolution(pdf, observables):

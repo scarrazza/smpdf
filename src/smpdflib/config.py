@@ -13,7 +13,7 @@ import yaml
 
 import smpdflib.lhaindex as lhaindex
 import smpdflib.actions as actions
-from smpdflib.core import PDF, Observable
+from smpdflib.core import PDF, Observable, make_observable
 
 class ConfigError(ValueError): pass
 
@@ -159,11 +159,26 @@ class Config(object):
     def parse_observables(cls, obslitst):
         observables = []
         for obs in obslitst:
-             names = glob.glob(obs['name'])
-             if not names:
-                 raise ConfigError("No observables found for %s" % obs['name'])
-             for name in names:
-                 observables.append(Observable(name, obs['order']))
+            if isinstance(obs, str):
+                obsdict = {'name':obs}
+            elif isinstance(obs, dict):
+                obsdict = obs.copy()
+            else:
+                raise ConfigError("Observable format not understood: %s" % obs)
+            names = glob.glob(obsdict.pop('name'))
+            if not names:
+                raise ConfigError("No observables found for %s" %
+                                  obsdict['name'])
+        for name in names:
+            try:
+                obsobj = make_observable(name, **obsdict)
+            except ValueError as e:
+                raise ConfigError("Could not parse the observable %s: %s"
+                                       % (name, e.message))
+            except TypeError as e:
+                    raise ConfigError("Incorrect arguments passed to process "
+                                      "observable %s: %s" % (name, e.message))
+            observables.append(obsobj)
         return observables
 
     @classmethod
