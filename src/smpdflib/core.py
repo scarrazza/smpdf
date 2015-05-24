@@ -60,6 +60,7 @@ class BaseObservable(TupleComp):
 
 class Observable(BaseObservable):
     _meanQ = None
+    _nbins = None
     def __init__(self, filename, order):
         self.filename = filename
         self.order = order
@@ -73,6 +74,27 @@ class Observable(BaseObservable):
         return osp.splitext(osp.basename(self.filename))[0]
 
 class APPLGridObservable(Observable):
+
+
+    @property
+    def nbins(self):
+        if self._nbins is not None:
+            return self.nbins
+        with self:
+            nbins = applwrap.getnbins()
+        self._nbins = nbins
+        return nbins
+
+    @property
+    def meanQ(self):
+        if self._meanQ is not None:
+            return self._meanQ
+        with self:
+            meanQ = [applwrap.getobsq(self.order, i) for
+                 i in range(self.nbins)]
+        self._meanQ = meanQ
+        return meanQ
+
     def __enter__(self):
         """Load observable file in memory"""
         applwrap.initobs(self.filename)
@@ -159,13 +181,7 @@ class Result():
     #TODO: This should really be done in Observable. Can we access nbins?
     @property
     def meanQ(self):
-        if self.obs.meanQ is not None:
-            return self.obs.meanQ
-        with self.obs:
-            meanQ = [applwrap.getobsq(self.obs.order, i) for
-                     i in range(self.nbins)]
-        self.obs._meanQ = meanQ
-        return meanQ
+        return self.obs.meanQ
 
     def std_error(self, nsigma=1):
         raise NotImplementedError("No error computation implemented for this"
