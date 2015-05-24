@@ -32,22 +32,23 @@ def save_violins(results, output_dir, prefix, base_pdf=None, fmt='pdf'):
     the observable using different PDF sets. If 'base_pdf' is specified, the
     values will be relative to the central value of that PDF."""
     #slow to import
-    import smpdflib.core as lib
+    import smpdflib.plots as plots
     def namefunc(obs):
         return "violinplot_%s"%obs
-    return save_figures(lib.compare_violins, results, output_dir,
+    return save_figures(plots.compare_violins, results, output_dir,
                         base_pdf=base_pdf,
                         prefix=prefix, fmt=fmt, namefunc=namefunc)
+
 def save_cis(results, output_dir, prefix, base_pdf=None, fmt='pdf'):
     """
     Generate plots comparing the confidence intervals for the value of
     the observable using different PDF sets. If 'base_pdf' is specified, the
     values will be relative to the central value of that PDF."""
     #slow to import
-    import smpdflib.core as lib
+    import smpdflib.plots as plots
     def namefunc(obs):
         return "ciplot_%s"%obs
-    return save_figures(lib.compare_cis, results, output_dir,
+    return save_figures(plots.compare_cis, results, output_dir,
                         base_pdf=base_pdf,
                         prefix=prefix, fmt=fmt, namefunc=namefunc)
 
@@ -56,17 +57,17 @@ def save_as(summed_table, output_dir, prefix, fmt='pdf'):
     of a_s. The value is obtained by summing each bin in the applgrid."""
 
     #slow to import
-    import smpdflib.core as lib
+    import smpdflib.plots as plots
     def namefunc(process, nf, bin_):
         return 'alphaplot_{process}_nf_{nf}'.format(**locals())
-    return save_figures(lib.plot_alphaS, summed_table, output_dir,
+    return save_figures(plots.plot_alphaS, summed_table, output_dir,
                         prefix=prefix, fmt=fmt, namefunc=namefunc)
 
 def save_asq(pdfsets, output_dir, prefix, fmt='pdf'):
-    import smpdflib.core as lib
+    import smpdflib.plots as plots
     def namefunc(nf):
         return 'alphaSQ_nf_{nf}'.format(**locals())
-    return save_figures(lib.plot_asQ, pdfsets, output_dir,
+    return save_figures(plots.plot_asQ, pdfsets, output_dir,
                         prefix=prefix, fmt=fmt, namefunc=namefunc)
 
 def save_nf(summed_table, output_dir, prefix, fmt='pdf'):
@@ -75,10 +76,10 @@ def save_nf(summed_table, output_dir, prefix, fmt='pdf'):
     of N_f. The value is obtained by summing each bin in the applgrid."""
 
     #slow to import
-    import smpdflib.core as lib
+    import smpdflib.plots as plots
     def namefunc(process, bin_, oqcd):
         return 'nfplot_{process}_{oqcd}'.format(**locals())
-    return save_figures(lib.plot_nf, summed_table, output_dir,
+    return save_figures(plots.plot_nf, summed_table, output_dir,
                         prefix=prefix, fmt=fmt, namefunc=namefunc)
 
 
@@ -110,10 +111,11 @@ def test_as_linearity(summed_table, diff_from_line = 0.25):
 
 def save_correlations(pdfcorrlist, output_dir, prefix, fmt='pdf'):
     """Compute PDF/Observable correlations"""
-    import smpdflib.core as lib
+    import smpdflib.plots as plots
     def namefunc(obs,pdf):
         return "smpdfplot_%s:%s"%(pdf.pdf_name, obs)
-    return save_figures(lib.plot_correlations, pdfcorrlist, output_dir, prefix=prefix,
+    return save_figures(plots.plot_correlations, pdfcorrlist, output_dir,
+                        prefix=prefix,
                         fmt=fmt, namefunc=namefunc)
 
 def create_smpdf(pdfcorrlist, output_dir, prefix):
