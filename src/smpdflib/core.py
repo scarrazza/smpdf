@@ -73,6 +73,8 @@ class Observable(BaseObservable):
     def name(self):
         return osp.splitext(osp.basename(self.filename))[0]
 
+_selected_grid = None
+
 class APPLGridObservable(Observable):
 
 
@@ -97,10 +99,19 @@ class APPLGridObservable(Observable):
 
     def __enter__(self):
         """Load observable file in memory"""
+        global _selected_grid
+        if _selected_grid == self.filename:
+            return
+        if _selected_grid is not None and _selected_grid != self.filename:
+            raise RuntimeError("Contrdicting observable scope. "
+                               "Was %s and trying to enter %s" %
+                               (_selected_grid, self.filename))
         applwrap.initobs(self.filename)
+        _selected_grid = self.filename
     #TODO: Unload Observable here
     def __exit__(self, exc_type, exc_value, traceback):
-        pass
+        global _selected_grid
+        _selected_grid = None
 
 class PredictionObservable(Observable):
     pass
