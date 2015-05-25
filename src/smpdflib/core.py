@@ -102,7 +102,7 @@ class APPLGridObservable(Observable):
         global _selected_grid
         if _selected_grid == self.filename:
             return
-        if _selected_grid is not None and _selected_grid != self.filename:
+        if _selected_grid is not None:
             raise RuntimeError("Contrdicting observable scope. "
                                "Was %s and trying to enter %s" %
                                (_selected_grid, self.filename))
