@@ -204,7 +204,7 @@ def violin_plot(data, normvalues=None, ax=None, bw_method=None, **kwargs):
 
             if len(color) == 4:
                 pc.set_alpha(color[3])
-            pc.set_facecolor(color)
+            pc.set_color(color)
         if hatches:
             pc.set_hatch(hatches)
     if label:
