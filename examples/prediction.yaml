@@ -1,0 +1,15 @@
+observables:
+   - {name: data/applgrid/atlas-incljets-r06-arxiv-1112.6297-eta7.root, order: 1 }
+   - {name: data/applgrid/ttbar-xsectot-8tev.root, order: 1}
+   - {name: data/top++.yaml}
+
+actiongroups:
+   - prefix: test1000rep
+     pdfsets :
+      - 1000rep
+     actions:
+      - testas
+      - asplots
+      - nfplots
+      - asQplots 
+      - savedata
