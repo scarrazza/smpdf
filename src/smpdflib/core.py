@@ -16,9 +16,11 @@ __email__ = 'stefano.carrazza@mi.infn.it'
 import os.path as osp
 import sys
 from collections import defaultdict, OrderedDict
+import numbers
 
 import numpy as np
 import pandas as pd
+import yaml
 import scipy.stats
 from pandas.stats import ols
 
@@ -114,7 +116,33 @@ class APPLGridObservable(Observable):
         _selected_grid = None
 
 class PredictionObservable(Observable):
-    pass
+    def __init__(self, filename):
+        self.filename = filename
+        with open(filename) as f:
+            d = yaml.load(f)
+        #TODO: All checking
+        self._params = d
+
+    def to_result(self, pdfset):
+        if str(pdfset) not in self.pdf_predictions:
+            raise ValueError("No predictions found for pdf %s" % pdfset)
+        path = self.pdf_predictions[str(pdfset)]
+        if not osp.isabs(path):
+            path = osp.join(osp.dirname(self.filename), path)
+        #TODO: Transpose all result dataframes
+        datas = pd.DataFrame.from_csv(path, sep='\t', index_col=0).T
+        return make_result(self, pdfset, datas)
+
+    @property
+    def meanQ(self):
+        if isinstance(self.energy_scale, numbers.Number):
+            return [self.energy_scale]*self.nbins
+        else:
+            return self.energy_scale
+
+    def __getattr__(self, attr):
+        return self._params[attr]
+
 
 
 class PDF(TupleComp):
@@ -446,6 +474,19 @@ def get_dataset(pdfsets, observables, db=None):
 def convolve_or_load(pdfsets, observables, db=None):
     #results = []
     results = results_from_datas(get_dataset(pdfsets, observables, db))
+    return results
+
+def produce_results(pdfsets, observables, db=None):
+    predictions = [obs for obs in observables if
+                   isinstance(obs, PredictionObservable)]
+
+    applgrids = [obs for obs in observables if
+                   isinstance(obs, APPLGridObservable)]
+
+
+    results = (convolve_or_load(pdfsets, applgrids, db) +
+               [pred.to_result(pdfset)
+                for pdfset in pdfsets for pred in predictions])
     return results
 
 #TODO: Move somewhere else

@@ -31,7 +31,8 @@ def main(conf, output_dir, db, quiet=False):
         #TODO Do this better
         if any(actions.requires_result(act) for act in group['actions']):
             #TODO: Use multicore
-            results = lib.convolve_or_load(pdfsets, observables, db)
+            results = lib.produce_results(pdfsets, observables, db)
+            #results = lib.convolve_or_load(pdfsets, observables, db)
             resultset.append(results)
             data_table = lib.results_table(results)
             summed_table = lib.summed_results_table(results)
