@@ -206,12 +206,14 @@ def violin_plot(data, normvalues=None, ax=None, bw_method=None, **kwargs):
                 pc.set_alpha(color[3])
             pc.set_facecolor(color)
         if hatches:
-            pc.set_hatches(hatches)
+            pc.set_hatch(hatches)
     if label:
         if not color:
             color =  vp['bodies'][0].get_facecolor()[0]
         vp['bodies'][0].set_label(label)
         handle = matplotlib.patches.Patch(color=color, label=label,
                                           hatch=hatches)
+    else:
+        handle = None
 
     return vp, handle, ournorms
