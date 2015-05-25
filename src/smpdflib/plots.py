@@ -197,14 +197,13 @@ def plot_correlations(pdfcorrlist):
                     axarr[f].set_ylim([-1,1])
                     axarr[f].set_xscale('log')
                     axarr[f].set_ylabel("pdg: " + str(fl.id[f]))
+                    
+                    axarr[f].axhline(threshold[bin], c='r', ls='--')
+                    axarr[f].axhline(-threshold[bin], c='r', ls='--')
 
             axarr[0].set_title(str(obs) + "\n")
             plt.xlabel("x")
             figure.subplots_adjust(hspace=0)
             plt.setp([a.get_xticklabels() for a in figure.axes[:-1]], visible=False)
-
-            for ax in axarr:
-                ax.axhline(threshold, c='r', ls='--')
-                ax.axhline(-threshold, c='r', ls='--')
 
             yield (obs,pdf), figure

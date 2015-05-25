@@ -535,6 +535,7 @@ def compute_correlations(result, pdf, fl, xgrid):
     """Compute correlations"""
 
     cc = np.zeros(shape=(result.nbins, fl.n, xgrid.n))
+    threshold = []
     for bin in range(result.nbins):
 
         pdf.setQ(result.meanQ[bin])
@@ -545,7 +546,7 @@ def compute_correlations(result, pdf, fl, xgrid):
             for x in range(xgrid.n):
                 cc[bin,f,x] = corrcoeff(obs, pdf.xfxQ[:,f,x])
 
-    threshold = max(cc.min(), cc.max(), key=abs)*0.5
+        threshold.append( max(cc[bin].min(), cc[bin].max(), key=abs)*0.5 )
 
     return cc, threshold, result.obs, xgrid, fl
 
@@ -576,7 +577,8 @@ def create_smpdf(pdf, corrlist, output_dir, prefix):
     for c in corrlist:
         cc = c[0]
         threshold = c[1]
-        ccmax |= np.any(np.abs(cc)>=threshold, axis=0)
+        for bin in range(len(threshold)):
+            ccmax |= (np.abs(cc[bin])>=threshold[bin])
 
     q2min = pdf.pdf[0].q2Min
     pdf.setQ(q2min)
@@ -586,7 +588,8 @@ def create_smpdf(pdf, corrlist, output_dir, prefix):
     print " [Done] "
 
     mask = (ccmax.reshape(fl.n*xgrid.n))
-    print (" [Info] Keeping %d nf*nx of %d with threshold = %f" % (np.count_nonzero(mask), xgrid.n*fl.n, threshold))
+    for th in threshold:
+        print (" [Info] Keeping %d nf*nx of %d with threshold = %f" % (np.count_nonzero(mask), xgrid.n*fl.n, th))
 
     X = X[mask,:]
     # Step 2: solve the system
@@ -610,7 +613,7 @@ def create_smpdf(pdf, corrlist, output_dir, prefix):
         est /= Norm
         # TODO: is this the best estimator? and cut criteria?
         print ("Neig %3d, estimator: %e" % (neig, est))
-        if est <= 1e-6: break;
+        if est <= 1e-6*np.count_nonzero(mask): break;
 
     # Step 4: exporting to LHAPDF
     print "\n- Exporting new grid..."
