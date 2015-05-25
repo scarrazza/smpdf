@@ -1,0 +1,10 @@
+process_name    : tt~
+order           : 2
+nbins           : 1
+#All energies, in GeV
+collider_energy : 13000
+energy_scale    : 173.3
+
+pdf_predictions:
+   #Path absolute or relative to this file
+   1000rep : top++.dat
