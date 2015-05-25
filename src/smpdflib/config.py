@@ -168,7 +168,7 @@ class Config(object):
             names = glob.glob(obsdict.pop('name'))
             if not names:
                 raise ConfigError("No observables found for %s" %
-                                  obsdict['name'])
+                                  names)
         for name in names:
             try:
                 obsobj = make_observable(name, **obsdict)
