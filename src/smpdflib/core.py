@@ -316,7 +316,22 @@ class SymHessianResult(Result):
 
         return vpstats
 
+class HessianResult(SymHessianResult):
 
+    def std_error(self, nsigma=1):
+        m = self._all_vals.as_matrix()        
+        diffsq = (m[:, ::2] - m[:, 1::2])**2
+        return np.sqrt(diffsq.sum(axis=1))/2.0*nsigma
+
+    def sample_values(self, n):
+        m = self._all_vals.as_matrix()
+        plus = m[:, ::2]
+        minus = m[:, 1::2]
+                
+        for _ in range(n):
+            r = np.random.normal(size=len(plus))
+            error = (r >=0)*r*plus - (r < 0)*r*minus
+            yield self._cv + error
 
 
 class MCResult(Result):
@@ -392,6 +407,7 @@ def summed_results_table(results):
 
 RESULT_TYPES = defaultdict(lambda:Result,
                            symmhessian = SymHessianResult,
+                           hessian = HessianResult,
                            replicas   = MCResult,
                            )
 
