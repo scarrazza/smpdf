@@ -545,7 +545,11 @@ def test_as_linearity(summed_table, diff_from_line = 0.25):
                 summed_table.loc[ind,'Remarks'].append(remark)
 
 def corrcoeff(obs, pdf):
-    return len(pdf)/(len(pdf)-1)*(np.mean(obs*pdf) - np.mean(obs)*np.mean(pdf))/(np.std(obs,ddof=1)*np.std(pdf,ddof=1))
+    return (
+            len(pdf)/(len(pdf)-1)*
+            (np.mean(obs*pdf) - np.mean(obs)*np.mean(pdf))/
+            (np.std(obs,ddof=1)*np.std(pdf,ddof=1))
+            )
 
 def compute_correlations(result, pdf, fl, xgrid):
     """Compute correlations"""
