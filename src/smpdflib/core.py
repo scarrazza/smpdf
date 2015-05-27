@@ -15,7 +15,7 @@ __email__ = 'stefano.carrazza@mi.infn.it'
 
 import os.path as osp
 import sys
-from collections import defaultdict, OrderedDict
+from collections import defaultdict, OrderedDict, namedtuple
 import numbers
 
 import numpy as np
@@ -551,6 +551,8 @@ def corrcoeff(obs, pdf):
             (np.std(obs,ddof=1)*np.std(pdf,ddof=1))
             )
 
+Corrlist = namedtuple('Corrlist', ('cc', 'threshold', 'obs', 'xgrid', 'fl'))
+
 def compute_correlations(result, pdf, fl, xgrid):
     """Compute correlations"""
 
@@ -568,7 +570,7 @@ def compute_correlations(result, pdf, fl, xgrid):
 
         threshold.append( max(cc[bin].min(), cc[bin].max(), key=abs)*0.5 )
 
-    return cc, threshold, result.obs, xgrid, fl
+    return Corrlist(cc, threshold, result.obs, xgrid, fl)
 
 
 def correlations(data_table):
@@ -587,16 +589,20 @@ def correlations(data_table):
         pdfcorrlist += [(pdf, corrlist)]
     return  pdfcorrlist
 
-def create_smpdf(pdf, corrlist, output_dir, prefix):
+def create_smpdf(pdf, corrlist, output_dir, prefix, full_grid=False):
     from mc2hlib.common import compress_X_rel
     from mc2hlib.lh import hessian_from_lincomb
-    xgrid = corrlist[0][3]
-    fl = corrlist[0][4]
-    ccmax = np.zeros(shape=(corrlist[0][0].shape[1], corrlist[0][0].shape[2]), dtype=bool)
+    if prefix is None:
+        prefix = ''
+    first = corrlist[0]
+    xgrid = first.xgrid
+    fl = first.fl
+    ccmax = np.zeros(shape=(first.cc.shape[1],
+                            first.cc.shape[2]), dtype=bool)
 
     for c in corrlist:
-        cc = c[0]
-        threshold = c[1]
+        cc = c.cc
+        threshold = c.threshold
         for bin in range(len(threshold)):
             ccmax |= (np.abs(cc[bin])>=threshold[bin])
 
@@ -608,8 +614,11 @@ def create_smpdf(pdf, corrlist, output_dir, prefix):
     print " [Done] "
 
     mask = (ccmax.reshape(fl.n*xgrid.n))
+    print("[Info] Keeping %d nf*nx of %d" %
+          (np.count_nonzero(mask), xgrid.n*fl.n, ))
+    print("Thresholds:")
     for th in threshold:
-        print (" [Info] Keeping %d nf*nx of %d with threshold = %f" % (np.count_nonzero(mask), xgrid.n*fl.n, th))
+        print ("%f"%th)
 
     X = X[mask,:]
     # Step 2: solve the system
@@ -637,7 +646,5 @@ def create_smpdf(pdf, corrlist, output_dir, prefix):
 
     # Step 4: exporting to LHAPDF
     print "\n- Exporting new grid..."
-    if prefix is None:
-        prefix = ''
-    hessian_from_lincomb(pdf, vec, folder=output_dir,
+    return hessian_from_lincomb(pdf, vec, folder=output_dir,
                          set_name= prefix+ "smpdf_" + str(pdf.pdf_name))

@@ -118,11 +118,11 @@ def save_correlations(pdfcorrlist, output_dir, prefix, fmt='pdf'):
                         prefix=prefix,
                         fmt=fmt, namefunc=namefunc)
 
-def create_smpdf(pdfcorrlist, output_dir, prefix):
+def create_smpdf(pdfcorrlist, output_dir, prefix, full_grid=False):
     import smpdflib.core as lib
     for pdf, corrlist in pdfcorrlist:
-        lib.create_smpdf(pdf, corrlist, output_dir, prefix)
-    return
+        lib.create_smpdf(pdf, corrlist, output_dir, prefix,
+                         full_grid=full_grid)
 
 
 ACTION_DICT = OrderedDict((
