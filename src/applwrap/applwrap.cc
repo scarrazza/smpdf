@@ -104,7 +104,15 @@ static PyObject* py_getobsq(PyObject* self, PyObject* args)
   PyArg_ParseTuple(args,"ii", &pto, &bin);
 
   vector<double> Q;
-  appl::igrid const *igrid = _g->weightgrid(pto,bin);  
+
+  int iorder = pto; 
+  if (_g->calculation() == 1) // if aMCfast change iorder
+    {
+      if (pto == 0) iorder = 3;
+      if (pto == 1) iorder = 0;
+    }
+
+  appl::igrid const *igrid = _g->weightgrid(iorder,bin);  
   for (int ix1 = 0; ix1 < igrid->Ny1(); ix1++)
     for (int ix2 = 0; ix2 < igrid->Ny2(); ix2++)
       for (int t = 0; t < igrid->Ntau(); t++)
@@ -113,8 +121,8 @@ static PyObject* py_getobsq(PyObject* self, PyObject* args)
 
 	    const bool zero_weight = (*(const SparseMatrix3d*) const_cast<appl::igrid*>(igrid)->weightgrid(ip))(t,ix1,ix2) == 0;
 	    
-	    if (!zero_weight) 
-	      Q.push_back(sqrt(igrid->fQ2(igrid->gettau(t))));
+	    if (!zero_weight)
+	      Q.push_back(sqrt(igrid->fQ2(igrid->gettau(t))));	    
 	  }
   
   double sum = 0;
