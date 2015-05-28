@@ -319,7 +319,7 @@ class SymHessianResult(Result):
 class HessianResult(SymHessianResult):
 
     def std_error(self, nsigma=1):
-        m = self._all_vals.as_matrix()        
+        m = self._all_vals.as_matrix()
         diffsq = (m[:, ::2] - m[:, 1::2])**2
         return np.sqrt(diffsq.sum(axis=1))/2.0*nsigma
 
@@ -327,7 +327,7 @@ class HessianResult(SymHessianResult):
         m = self._all_vals.as_matrix()
         plus = m[:, ::2]
         minus = m[:, 1::2]
-                
+
         for _ in range(n):
             r = np.random.normal(size=len(plus))
             error = (r >=0)*r*plus - (r < 0)*r*minus
@@ -589,8 +589,44 @@ def correlations(data_table):
         pdfcorrlist += [(pdf, corrlist)]
     return  pdfcorrlist
 
+#==============================================================================
+# def compute_estimator():
+#     rmask = mask.reshape(fl.n, xgrid.n)
+#     est = Norm = 0
+#     for f in range(fl.n):
+#         for x in range(xgrid.n):
+#             if rmask[f,x]:
+#                 t0 = pdf.std[f,x]
+#                 t1 = next(stdh)
+#                 est += abs(pdf.f0[f,x] * (1-t1/t0))
+#                 Norm += abs(pdf.f0[f,x])
+#
+#     est /= Norm
+#==============================================================================
+#    return est
+
+#TODO: Integrate in mc2hessian
+def optimize_hessian(X):
+    from mc2hlib.common import compress_X_abs as compress_X
+    std = np.std(X, axis=1)
+    for neig in range(1, min(X.shape)):
+        vec, cov = compress_X(X, neig)
+
+        stdh = np.sqrt(np.diag(cov))
+        # TODO: is this the best estimator? and cut criteria?
+        # Step 3: quick test
+        est = np.sum(np.abs(std - stdh)/std)/len(std)
+        print ("Neig %3d, estimator: %e" % (neig, est))
+
+
+        #est = compute_estimator()
+
+        if est <= 1e-2:
+            break
+    return vec, cov
+
 def create_smpdf(pdf, corrlist, output_dir, prefix, full_grid=False):
-    from mc2hlib.common import compress_X_rel
+    from mc2hlib.common import compress_X_abs as compress_X
     from mc2hlib.lh import hessian_from_lincomb
     if prefix is None:
         prefix = ''
@@ -620,29 +656,20 @@ def create_smpdf(pdf, corrlist, output_dir, prefix, full_grid=False):
     for th in threshold:
         print ("%f"%th)
 
-    X = X[mask,:]
+    Xm = X[mask,:]
+    #TODO: Make this more efficient: compute only once the SVD.
     # Step 2: solve the system
     print "\n- Quick test:"
-    for neig in range(1, pdf.n_rep):
-        vec, cov = compress_X_rel(X, neig)
+    vec, cov = optimize_hessian(Xm)
 
-        stdh = iter(np.sqrt(np.diag(cov)))
+    if full_grid:
+        diff = min(X.shape[0], X.shape[1]) - vec.shape[1]
+        dot_vec = np.pad(vec,((0,0), (0, vec.shape[0] - vec.shape[1])),
+                         mode = 'constant')
+        X_comp = np.dot(X, np.eye(len(dot_vec)) - dot_vec)
+        other_vec, other_cov = compress_X(X_comp, diff)
+        vec = np.concatenate((vec, other_vec), axis=1)
 
-        # Step 3: quick test
-        rmask = mask.reshape(fl.n, xgrid.n)
-        est = Norm = 0
-        for f in range(fl.n):
-            for x in range(xgrid.n):
-                if rmask[f,x]:
-                    t0 = pdf.std[f,x]
-                    t1 = next(stdh)
-                    est += abs(pdf.f0[f,x] * (1-t1/t0))
-                    Norm += abs(pdf.f0[f,x])
-
-        est /= Norm
-        # TODO: is this the best estimator? and cut criteria?
-        print ("Neig %3d, estimator: %e" % (neig, est))
-        if est <= 1e-6*np.count_nonzero(mask): break;
 
     # Step 4: exporting to LHAPDF
     print "\n- Exporting new grid..."
