@@ -22,7 +22,6 @@ def main(conf, output_dir, db, quiet=False):
     import pandas as pd
 
     resultset = []
-    prefix_group = len(conf.actiongroups) > 1
     for group in conf.actiongroups:
         pdfsets, observables = group['pdfsets'], group['observables']
         kwargs = group.copy()
@@ -49,10 +48,8 @@ def main(conf, output_dir, db, quiet=False):
             pdfcorrlist = lib.correlations(data_table)
             kwargs.update({'pdfcorrlist':pdfcorrlist})
 
-        if not prefix_group:
-            prefix = None
-        else:
-            prefix = group['prefix']
+
+        prefix = group['prefix']
         kwargs.update({ 'output_dir':output_dir,
                        'prefix':prefix,
                        'pdfsets': pdfsets})

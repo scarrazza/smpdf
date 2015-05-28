@@ -22,11 +22,14 @@ class Config(object):
         self.actiongroups = actiongroups
 
     _group_counter = iter("group_%d_" % i for i in itertools.count())
+    _group_len = None
 
     @classmethod
     def parse_defaults(cls, group):
         if not isinstance(group, dict):
             raise ConfigError("Defaults not understood: %s" % group)
+        if 'prefix' in group:
+            raise ConfigError("'prefix' not allowed in defaults")
         return group
 
     @classmethod
@@ -78,7 +81,10 @@ class Config(object):
 
         groupcount = next(cls._group_counter)
         if not 'prefix' in group:
-            group['prefix'] = groupcount
+            if cls._group_len > 1:
+                group['prefix'] = groupcount
+            else:
+                group['prefix'] = ''
         d['observables'] = observables
         d['pdfsets'] = pdfsets
         d['actions'] = acts
@@ -188,6 +194,7 @@ class Config(object):
             defaults = {}
         else:
             actiongroups = params.pop('actiongroups')
+            cls._group_len = len(actiongroups)
             defaults = cls.parse_defaults(params)
         actiongroups = [cls.parse_action_group(group, defaults)
                         for group in actiongroups]
