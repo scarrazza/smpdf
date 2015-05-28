@@ -106,11 +106,8 @@ static PyObject* py_getobsq(PyObject* self, PyObject* args)
   vector<double> Q;
 
   int iorder = pto; 
-  if (_g->calculation() == 1) // if aMCfast change iorder
-    {
-      if (pto == 0) iorder = 3;
-      if (pto == 1) iorder = 0;
-    }
+  if (_g->calculation() == appl::grid::AMCATNLO) // if aMCfast change iorder
+    iorder = (pto == 0) ? 3:0;
 
   appl::igrid const *igrid = _g->weightgrid(iorder,bin);  
   for (int ix1 = 0; ix1 < igrid->Ny1(); ix1++)
