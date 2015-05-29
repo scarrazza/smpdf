@@ -164,6 +164,7 @@ class Config(object):
     @classmethod
     def parse_observables(cls, obslitst):
         observables = []
+        allnames = []
         for obs in obslitst:
             if isinstance(obs, str):
                 obsdict = {'name':obs}
@@ -175,7 +176,8 @@ class Config(object):
             if not names:
                 raise ConfigError("No observables found for %s" %
                                   names)
-        for name in names:
+            allnames += names
+        for name in allnames:
             try:
                 obsobj = make_observable(name, **obsdict)
             except ValueError as e:
