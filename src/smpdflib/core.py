@@ -17,6 +17,7 @@ import os.path as osp
 import sys
 from collections import defaultdict, OrderedDict, namedtuple
 import numbers
+import multiprocessing
 
 import numpy as np
 import pandas as pd
@@ -188,6 +189,8 @@ class PDF(TupleComp):
         return range(self.NumMembers)
 
     def __getattr__(self, name):
+        if name.startswith('__'):
+            raise AttributeError()
         return lhaindex.parse_info(self.name)[name]
 
 
@@ -429,6 +432,22 @@ def make_observable(name, *args, **kwargs):
                                                    + applgrid_extensions))
 
 
+def convolve_one(pdf, observable):
+    import applwrap
+    from smpdflib.core import PDF, APPLGridObservable
+    print(pdf)
+    print(observable)
+    res = {}
+    with pdf, observable:
+        for rep in pdf.reps:
+            applwrap.pdfreplica(rep)
+            res[rep] = np.array(applwrap.convolute(observable.order))
+    return res
+
+def _convolve_one_args(args):
+    return convolve_one(*args)
+
+
 def make_convolution(pdf, observables):
     datas = defaultdict(lambda:OrderedDict())
     #TODO: load many replicas in C++
@@ -439,6 +458,8 @@ def make_convolution(pdf, observables):
     with(pdf):
         for obs in observables:
             with obs:
+                print(pdf)
+                print(obs)
                 for rep in pdf.reps:
                     sys.stdout.write('\r-> Computing replica %d of %s' %
                                      (rep, pdf))
@@ -487,9 +508,48 @@ def get_dataset(pdfsets, observables, db=None):
         dataset[pdf] = res
     return dataset
 
+def get_dataset_parallel(pdfsets, observables, db=None):
+    def make_key(pdf, obs):
+        return str((pdf.get_key(), obs.get_key()))
+    n_cores = multiprocessing.cpu_count()
+    dataset = OrderedDict()
+    to_compute =  []
+    for pdf in pdfsets:
+        dataset[pdf] = {}
+        for obs in observables:
+            if db is not None:
+                key = make_key(pdf, obs)
+                if key in db:
+                    dataset[pdf][obs] = db[key]
+                else:
+                    to_compute.append((pdf, obs))
+            else:
+                to_compute.append((pdf, obs))
+
+    def break_in(to_compute, n_cores):
+       i = 0
+       while i < len(to_compute):
+           yield to_compute[i:i + n_cores]
+           i += n_cores
+
+    for convs in break_in(to_compute, n_cores):
+        pool = multiprocessing.Pool(processes=len(convs))
+        results = pool.map(_convolve_one_args, convs)
+        for ((pdf, obs), result) in zip(convs, results):
+            dataset[pdf][obs] = result
+            if db is not None:
+                db[make_key(pdf, obs)] = result
+
+    return dataset
+
+
+
+
+
+
 def convolve_or_load(pdfsets, observables, db=None):
     #results = []
-    results = results_from_datas(get_dataset(pdfsets, observables, db))
+    results = results_from_datas(get_dataset_parallel(pdfsets, observables, db))
     return results
 
 def produce_results(pdfsets, observables, db=None):
