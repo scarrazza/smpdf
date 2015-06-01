@@ -681,12 +681,12 @@ def optimize_hessian(X):
 
         #est = compute_estimator()
 
-        if est <= 1e-2:
+        if est <= 1e-3:
             break
     return vec, cov
 
 def create_smpdf(pdf, corrlist, output_dir, prefix, full_grid=False):
-    from mc2hlib.common import compress_X_abs as compress_X
+    from mc2hlib.common import compress_X_rel as compress_X
     from mc2hlib.lh import hessian_from_lincomb
     if prefix is None:
         prefix = ''
@@ -720,7 +720,7 @@ def create_smpdf(pdf, corrlist, output_dir, prefix, full_grid=False):
     #TODO: Make this more efficient: compute only once the SVD.
     # Step 2: solve the system
     print "\n- Quick test:"
-    vec, cov = optimize_hessian(Xm)
+    vec, cov = compress_X(Xm, 5)
 
     if full_grid:
         diff = min(X.shape[0], X.shape[1]) - vec.shape[1]
