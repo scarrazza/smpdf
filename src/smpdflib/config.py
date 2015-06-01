@@ -94,7 +94,20 @@ class Config(object):
         defaults.update(group)
         #Now it has everything
         final = defaults
+        #Finally make the final checks, that require everything to be parsed.
+        cls.check_actiongroup(final)
         return final
+
+    @classmethod
+    def check_actiongroup(cls, final):
+        for action in final['actions']:
+            if hasattr(action, 'appends_to'):
+                final[action['appends_to']] = []
+            if hasattr(action, 'check'):
+                try:
+                    action.check(action, final)
+                except actions.ActionError as e:
+                    raise ConfigError(e.message)
 
 
     @classmethod
@@ -116,8 +129,7 @@ class Config(object):
                         lhaindex.expand_local_names(names)]
             if not newsets:
                 raise ConfigError("pdfset is empty for specification '%s'. "
-                "Is it in the LHAPDF path?"
-                                  %names)
+                "Is it in the LHAPDF path?" % names)
             remote_sets = {PDF(name) for
                            name in lhaindex.expand_index_names(names)}
             diff = remote_sets - set(newsets)

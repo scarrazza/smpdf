@@ -24,14 +24,12 @@ def main(conf, output_dir, db, quiet=False):
     resultset = []
     for group in conf.actiongroups:
         pdfsets, observables = group['pdfsets'], group['observables']
-        kwargs = group.copy()
-        kwargs.pop('actions')
+        resources = group.copy()
+        resources.pop('actions')
         # perform convolution
         #TODO Do this better
         if any(actions.requires_result(act) for act in group['actions']):
-            #TODO: Use multicore
             results = lib.produce_results(pdfsets, observables, db)
-            #results = lib.convolve_or_load(pdfsets, observables, db)
             resultset.append(results)
             data_table = lib.results_table(results)
             summed_table = lib.summed_results_table(results)
@@ -41,19 +39,19 @@ def main(conf, output_dir, db, quiet=False):
                                 ignore_index = True)
             if not quiet:
                 print_results(results)
-            kwargs.update({'results':results, 'data_table':data_table,
+            resources.update({'results':results, 'data_table':data_table,
                            'total':total, 'summed_table':summed_table})
 
         if any(actions.requires_correlations(act) for act in group['actions']):
             pdfcorrlist = lib.correlations(data_table)
-            kwargs.update({'pdfcorrlist':pdfcorrlist})
+            resources.update({'pdfcorrlist':pdfcorrlist})
 
 
         prefix = group['prefix']
-        kwargs.update({ 'output_dir':output_dir,
+        resources.update({ 'output_dir':output_dir,
                        'prefix':prefix,
                        'pdfsets': pdfsets})
-        for action, res in actions.do_actions(group['actions'], **kwargs):
+        for action, res in actions.do_actions(group['actions'], resources):
             if not quiet:
                 print("Finalized action '%s'." % action)
     return resultset
@@ -148,6 +146,7 @@ if __name__ == "__main__":
               file=sys.stderr)
         sys.exit(1)
     make_output_dir(args.output)
+
     shutil.copy(args.config_yml, args.output)
 
     #TODO: handle this better
