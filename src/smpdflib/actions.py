@@ -113,7 +113,7 @@ def save_correlations(pdfcorrlist, output_dir, prefix, fmt='pdf'):
     """Compute PDF/Observable correlations"""
     import smpdflib.plots as plots
     def namefunc(obs,pdf):
-        return "smpdfplot_%s:%s"%(pdf.pdf_name, obs)
+        return "smpdfplot_%s_%s"%(pdf.pdf_name, obs)
     return save_figures(plots.plot_correlations, pdfcorrlist, output_dir,
                         prefix=prefix,
                         fmt=fmt, namefunc=namefunc)
