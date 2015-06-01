@@ -62,8 +62,8 @@ def compare_cis(results, base_pdf = None):
         base = combined[obs].get(base_pdf, None)
         results = sorted(combined[obs].values(), key = lambda x: x!=base)
         l = len(results)
-        if l < 10:
-            delta = iter(np.linspace(-0.025*l, 0.025*l, l))
+        if l < 5:
+            delta = iter(np.linspace(-0.05*l, 0.05*l, l))
         else:
             delta = iter(np.linspace(-0.25, 0.25, l))
         #x = iter(np.arange(1, len(results) + 1))
@@ -91,7 +91,7 @@ def compare_cis(results, base_pdf = None):
                                          linestyle='none',
                                          color=color,
                                          elinewidth = 2,
-                                         capsize=7)
+                                         capsize=15)
 
         plt.xlabel('bins')
         if base_pdf:
