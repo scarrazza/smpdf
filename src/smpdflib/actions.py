@@ -29,9 +29,20 @@ def provides(resource):
 
 def check(check_func):
     def decorator(f):
-        f.check = check_func
+        if not hasattr(f, 'checks'):
+            f.checks = []
+        f.checks += [check_func]
         return f
     return decorator
+
+def require_args(*args):
+    def check_func(action, group):
+        for arg in args:
+            if not arg in group:
+                raise ActionError("Action %s requires a parameter '%s'" %
+                                  (action, arg))
+    return check_func
+
 
 def save_figures(generator, table, output_dir, namefunc=None,
                  prefix=None, fmt ='pdf', **kwargs):
@@ -142,11 +153,16 @@ def save_correlations(pdfcorrlist, output_dir, prefix, fmt='pdf'):
                         fmt=fmt, namefunc=namefunc)
 
 @appends_to('grids')
-def create_smpdf(pdfcorrlist, output_dir, prefix, N_eig ,full_grid=False):
+@check(require_args('N_eig'))
+def create_smpdf(pdfcorrlist, output_dir, prefix, N_eig, full_grid=False):
     import smpdflib.core as lib
+    gridpaths = []
     for pdf, corrlist in pdfcorrlist:
-        lib.create_smpdf(pdf, corrlist, output_dir, prefix,
-                         full_grid=full_grid)
+        result = lib.create_smpdf(pdf, corrlist, output_dir, prefix,
+                                  N_eig=N_eig,
+                                  full_grid=full_grid)
+        gridpaths.append(result)
+    return gridpaths
 
 def check_lhawrite(action, group):
     import smpdflib.lhaindex
@@ -228,9 +244,9 @@ def do_actions(acts, resources):
         elif hasattr(func, 'appends_to'):
             key = func.appends_to
             if key in resources:
-                resources[key] += result
+                resources[key] += list(result)
             else:
-                resources[key] = result
+                resources[key] = list(result)
         yield action, result
 
 def helptext(action):

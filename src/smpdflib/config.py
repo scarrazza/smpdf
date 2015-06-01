@@ -101,11 +101,13 @@ class Config(object):
     @classmethod
     def check_actiongroup(cls, final):
         for action in final['actions']:
-            if hasattr(action, 'appends_to'):
-                final[action['appends_to']] = []
-            if hasattr(action, 'check'):
+            actionfunc = actions.ACTION_DICT[action]
+            if hasattr(actionfunc, 'appends_to'):
+                final[actionfunc.appends_to] = []
+            if hasattr(actionfunc, 'checks'):
                 try:
-                    action.check(action, final)
+                    for check_func in actionfunc.checks:
+                        check_func(action, final)
                 except actions.ActionError as e:
                     raise ConfigError(e.message)
 
