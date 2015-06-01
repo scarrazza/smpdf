@@ -371,7 +371,7 @@ class MCResult(Result):
         return self._all_vals.as_matrix().T/ rel_to
 
 def aggregate_results(results):
-    combined = defaultdict(lambda: {})
+    combined = defaultdict(lambda: OrderedDict())
     for result in results:
         combined[result.obs][result.pdf] = result
     return combined
@@ -515,7 +515,7 @@ def get_dataset_parallel(pdfsets, observables, db=None):
     dataset = OrderedDict()
     to_compute =  []
     for pdf in pdfsets:
-        dataset[pdf] = {}
+        dataset[pdf] = OrderedDict()
         for obs in observables:
             if db is not None:
                 key = make_key(pdf, obs)
