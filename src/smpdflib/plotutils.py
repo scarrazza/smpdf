@@ -198,21 +198,26 @@ def violin_plot(data, normvalues=None, ax=None, bw_method=None, **kwargs):
                stats)]
 
     vp = ax.violin(stats, **myargs)
+    vp_edge = ax.violin(stats, **myargs)
 
-    for pc in vp['bodies']:
+    for pc , edge in zip(vp['bodies'], vp_edge['bodies']):
         if color:
 
             if len(color) == 4:
                 pc.set_alpha(color[3])
-            pc.set_color(color)
+                edge.set_alpha(1)
+            pc.set_facecolor(color)
+            pc.set_edgecolor('none')
+            edge.set_edgecolor(color[:3])
+            edge.set_facecolor('none')
         if hatches:
             pc.set_hatch(hatches)
     if label:
         if not color:
             color =  vp['bodies'][0].get_facecolor()[0]
         vp['bodies'][0].set_label(label)
-        handle = matplotlib.patches.Patch(color=color, label=label,
-                                          hatch=hatches)
+        handle = matplotlib.patches.Patch(facecolor=color, label=label,
+                                          hatch=hatches, edgecolor=color[:3])
     else:
         handle = None
 

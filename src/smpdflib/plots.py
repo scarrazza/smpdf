@@ -12,6 +12,9 @@ import matplotlib.pyplot as plt
 from smpdflib import plotutils
 from smpdflib.core import aggregate_results, M_REF
 
+colorlist = ['#66c2a5', '#fc8d62', '#8da0cb', '#e78ac3', '#a6d854',
+                     '#ffd92f']
+
 def compare_violins(results, base_pdf = None):
     if not isinstance(results, dict):
         combined = aggregate_results(results)
@@ -22,11 +25,7 @@ def compare_violins(results, base_pdf = None):
         norms = None
         handles = []
         plt.title(str(obs))
-        #ncolors = len(combined[obs])
-        colorlist = ['#222222','#ff0000', '#00ff00', '#0000ff',]
         colors  = plotutils.color_names_to_rgb(colorlist)
-        #colors = itertools.cycle(plotutils.get_set1_colors(
-        #                         ncolors).mpl_colors)
         alpha = 1
         base = combined[obs].get(base_pdf, None)
         results = sorted(combined[obs].values(), key = lambda x: x!=base)
@@ -58,6 +57,7 @@ def compare_cis(results, base_pdf = None):
         combined = results
     for obs in combined:
         figure = plt.figure()
+        colors  = plotutils.color_names_to_rgb(colorlist)
         plt.title(str(obs))
         base = combined[obs].get(base_pdf, None)
         results = sorted(combined[obs].values(), key = lambda x: x!=base)
@@ -78,6 +78,7 @@ def compare_cis(results, base_pdf = None):
             data_ci = np.abs(data_ci)
             plt.errorbar(x, data_cv, yerr=data_ci.T,
                                      linestyle='none',
+                                     color=next(colors),
                                      label=result.pdf, elinewidth = 2,
                                      capsize=5)
         plt.xlabel('bins')
@@ -197,7 +198,7 @@ def plot_correlations(pdfcorrlist):
                     axarr[f].set_ylim([-1,1])
                     axarr[f].set_xscale('log')
                     axarr[f].set_ylabel("pdg: " + str(fl.id[f]))
-                    
+
                     axarr[f].axhline(threshold[bin], c='r', ls='--')
                     axarr[f].axhline(-threshold[bin], c='r', ls='--')
 
