@@ -4,11 +4,34 @@ Created on Mon May  4 18:58:08 2015
 
 @author: zah
 """
+#TODO: Call this 'actionlib' and move actual actions to another module.
+import os
 import os.path as  osp
-import inspect
+import shutil
 from collections import OrderedDict
 import textwrap
+import inspect
 
+class ActionError(Exception):
+    pass
+
+def appends_to(resource):
+    def decorator(f):
+        f.appends_to = resource
+        return f
+    return decorator
+
+def provides(resource):
+    def decorator(f):
+        f.provides = resource
+        return f
+    return decorator
+
+def check(check_func):
+    def decorator(f):
+        f.check = check_func
+        return f
+    return decorator
 
 def save_figures(generator, table, output_dir, namefunc=None,
                  prefix=None, fmt ='pdf', **kwargs):
@@ -118,11 +141,26 @@ def save_correlations(pdfcorrlist, output_dir, prefix, fmt='pdf'):
                         prefix=prefix,
                         fmt=fmt, namefunc=namefunc)
 
+@appends_to('grids')
 def create_smpdf(pdfcorrlist, output_dir, prefix, full_grid=False):
     import smpdflib.core as lib
     for pdf, corrlist in pdfcorrlist:
         lib.create_smpdf(pdf, corrlist, output_dir, prefix,
                          full_grid=full_grid)
+
+def check_lhawrite(action, group):
+    import smpdflib.lhaindex
+    path = smpdflib.lhaindex.get_lha_path()
+    if not os.access(path, os.W_OK):
+        raise ActionError("Cannot write in LHAPDF path: %s. "
+                          "Unable to complete action %s" %(path, action))
+
+@check(check_lhawrite)
+def install_grids(grids):
+    import smpdflib.lhaindex
+    path = smpdflib.lhaindex.get_lha_path()
+    for grid in grids:
+        shutil.copytree(grid, path)
 
 
 ACTION_DICT = OrderedDict((
@@ -136,6 +174,7 @@ ACTION_DICT = OrderedDict((
                ('exportcsv', export_csv),
                ('plotcorrs', save_correlations),
                ('smpdf', create_smpdf),
+               ('installgrids', install_grids)
                ))
 
 
@@ -176,14 +215,23 @@ def build_actions(acts, flt=None):
         return parse_actions(acts)
     return parse_actions(acts) & parse_actions(flt)
 
-def do_actions(acts, **kwargs):
+def do_actions(acts, resources):
     for action in ACTION_DICT.keys():
         if not action in acts:
             continue
         func = ACTION_DICT[action]
         fargs = inspect.getargspec(func).args
-        args = {k:v for k,v in kwargs.items() if k in fargs}
-        yield action, func(**args)
+        args = {k:v for k,v in resources.items() if k in fargs}
+        result = func(**args)
+        if hasattr(func, 'provides'):
+            resources[func.provides] = result
+        elif hasattr(func, 'appends_to'):
+            key = func.appends_to
+            if key in resources:
+                resources[key] += result
+            else:
+                resources[key] = result
+        yield action, result
 
 def helptext(action):
     if action in METAACTION_DICT:
