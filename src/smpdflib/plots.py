@@ -10,7 +10,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 from smpdflib import plotutils
-from smpdflib.core import aggregate_results, M_REF
+from smpdflib.core import aggregate_results, M_REF, MCResult
 
 colorlist = ['#66c2a5', '#fc8d62', '#8da0cb', '#e78ac3', '#a6d854',
                      '#ffd92f']
@@ -62,10 +62,10 @@ def compare_cis(results, base_pdf = None):
         base = combined[obs].get(base_pdf, None)
         results = sorted(combined[obs].values(), key = lambda x: x!=base)
         l = len(results)
-        if l < 20:
-            delta = iter(np.linspace(-0.0125*l, 0.0125*l, l))
+        if l < 10:
+            delta = iter(np.linspace(-0.025*l, 0.025*l, l))
         else:
-            delta = iter(np.linspace(0.25, 0.25, l))
+            delta = iter(np.linspace(-0.25, 0.25, l))
         #x = iter(np.arange(1, len(results) + 1))
         for result in results:
             x = np.arange(1, result.nbins+1) + next(delta)
@@ -76,11 +76,23 @@ def compare_cis(results, base_pdf = None):
                 data_cv /= base_cv
                 data_ci /= base_cv[:,np.newaxis]
             data_ci = np.abs(data_ci)
+            color = next(colors)
             plt.errorbar(x, data_cv, yerr=data_ci.T,
                                      linestyle='none',
-                                     color=next(colors),
+                                     color=color,
                                      label=result.pdf, elinewidth = 2,
-                                     capsize=5)
+                                     capsize=10)
+            if isinstance(result, MCResult):
+                data_std = result.rel_std_interval().as_matrix().copy()
+                if base is not None:
+                    data_std /= base_cv[:,np.newaxis]
+                data_std = np.abs(data_std)
+                plt.errorbar(x, data_cv, yerr=data_std.T,
+                                         linestyle='none',
+                                         color=color,
+                                         elinewidth = 2,
+                                         capsize=7)
+
         plt.xlabel('bins')
         if base_pdf:
             plt.ylabel('Rel to %s' % base_pdf)
