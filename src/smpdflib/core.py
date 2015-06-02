@@ -685,11 +685,9 @@ def optimize_hessian(X):
             break
     return vec, cov
 
-def create_smpdf(pdf, corrlist, output_dir, prefix,  N_eig, full_grid=False,):
+def create_smpdf(pdf, corrlist, output_dir, name,  N_eig, full_grid=False,):
     from mc2hlib.common import compress_X_abs as compress_X
     from mc2hlib.lh import hessian_from_lincomb
-    if prefix is None:
-        prefix = ''
     first = corrlist[0]
     xgrid = first.xgrid
     fl = first.fl
@@ -734,4 +732,4 @@ def create_smpdf(pdf, corrlist, output_dir, prefix,  N_eig, full_grid=False,):
     # Step 4: exporting to LHAPDF
     print "\n- Exporting new grid..."
     return hessian_from_lincomb(pdf, vec, folder=output_dir,
-                         set_name= prefix+ "smpdf_" + str(pdf.pdf_name))
+                         set_name= name)

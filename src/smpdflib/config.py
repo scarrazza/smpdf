@@ -8,6 +8,7 @@ from __future__ import print_function
 import sys
 import itertools
 import glob
+import fnmatch
 
 import yaml
 
@@ -20,6 +21,9 @@ class ConfigError(ValueError): pass
 class Config(object):
     def __init__(self, params):
         self._group_counter = iter("group_%d_" % i for i in itertools.count())
+        self._grid_names = []
+
+
         self.actiongroups = self.parse_params(params)
 
 
@@ -105,7 +109,7 @@ class Config(object):
             if hasattr(actionfunc, 'checks'):
                 try:
                     for check_func in actionfunc.checks:
-                        check_func(action, final)
+                        check_func(action, final, self)
                 except actions.ActionError as e:
                     raise ConfigError(e.message)
 
@@ -125,7 +129,8 @@ class Config(object):
                 raise ConfigError("Unrecognized format for pdfsets: %s" % pdfs)
 
             newsets = [PDF(name) for name in
-                        lhaindex.expand_local_names(names)]
+                        (lhaindex.expand_local_names(names) +
+                        fnmatch.filter(self._grid_names, names))]
             if not newsets:
                 raise ConfigError("pdfset is empty for specification '%s'. "
                 "Is it in the LHAPDF path?" % names)
