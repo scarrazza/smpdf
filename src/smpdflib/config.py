@@ -13,27 +13,26 @@ import yaml
 
 import smpdflib.lhaindex as lhaindex
 import smpdflib.actions as actions
-from smpdflib.core import PDF, Observable, make_observable
+from smpdflib.core import PDF, make_observable
 
 class ConfigError(ValueError): pass
 
 class Config(object):
-    def __init__(self, actiongroups):
-        self.actiongroups = actiongroups
+    def __init__(self, params):
+        self._group_counter = iter("group_%d_" % i for i in itertools.count())
+        self.actiongroups = self.parse_params(params)
 
-    _group_counter = iter("group_%d_" % i for i in itertools.count())
+
     _group_len = None
 
-    @classmethod
-    def parse_defaults(cls, group):
+    def parse_defaults(self, group):
         if not isinstance(group, dict):
             raise ConfigError("Defaults not understood: %s" % group)
         if 'prefix' in group:
             raise ConfigError("'prefix' not allowed in defaults")
         return group
 
-    @classmethod
-    def parse_action_group(cls,  group, defaults=None):
+    def parse_action_group(self,  group, defaults=None):
         if not isinstance(group, dict):
             raise ConfigError("Group not understood: %s" % group)
 
@@ -50,12 +49,12 @@ class Config(object):
         else:
             acts = {'all'}
 
-        acts = cls.parse_actions(acts)
+        acts = self.parse_actions(acts)
 
         if 'observables' in group:
-            observables = cls.parse_observables(group['observables'])
+            observables = self.parse_observables(group['observables'])
         elif 'observables' in defaults:
-            observables = cls.parse_observables(defaults['observables'])
+            observables = self.parse_observables(defaults['observables'])
         else:
             if any(actions.requires_result(act) for act in acts):
                 #plot_asq does not need observables.
@@ -63,25 +62,25 @@ class Config(object):
             observables = []
 
         if 'pdfsets' in group:
-            pdfsets = cls.parse_pdfsets(group['pdfsets'])
+            pdfsets = self.parse_pdfsets(group['pdfsets'])
         elif 'pdfsets' in defaults:
-            pdfsets = cls.parse_pdfsets(defaults['pdfsets'])
+            pdfsets = self.parse_pdfsets(defaults['pdfsets'])
         else:
             raise ConfigError("No pdfsets found for action group.")
 
         if 'base_pdf' in group or 'base_pdf' in defaults:
             if 'base_pdf' in group:
-                base_pdf = cls.parse_base_pdf(group['base_pdf'])
+                base_pdf = self.parse_base_pdf(group['base_pdf'])
             elif 'base_pdf' in defaults:
-                base_pdf =  cls.parse_base_pdf(defaults['base_pdf'])
+                base_pdf =  self.parse_base_pdf(defaults['base_pdf'])
             if base_pdf not in pdfsets:
                 raise ConfigError("Base pdf must be included in pdfsets: %s"
                                   % base_pdf)
             d['base_pdf'] = base_pdf
 
-        groupcount = next(cls._group_counter)
+        groupcount = next(self._group_counter)
         if not 'prefix' in group:
-            if cls._group_len > 1:
+            if self._group_len > 1:
                 group['prefix'] = groupcount
             else:
                 group['prefix'] = ''
@@ -95,11 +94,10 @@ class Config(object):
         #Now it has everything
         final = defaults
         #Finally make the final checks, that require everything to be parsed.
-        cls.check_actiongroup(final)
+        self.check_actiongroup(final)
         return final
 
-    @classmethod
-    def check_actiongroup(cls, final):
+    def check_actiongroup(self, final):
         for action in final['actions']:
             actionfunc = actions.ACTION_DICT[action]
             if hasattr(actionfunc, 'appends_to'):
@@ -112,8 +110,7 @@ class Config(object):
                     raise ConfigError(e.message)
 
 
-    @classmethod
-    def parse_pdfsets(cls, pdfs):
+    def parse_pdfsets(self, pdfs):
         pdfsets =  []
         for pdf in pdfs:
             if isinstance(pdf, dict):
@@ -145,8 +142,7 @@ class Config(object):
             pdfsets += newsets
         return pdfsets
 
-    @classmethod
-    def parse_base_pdf(cls, base):
+    def parse_base_pdf(self, base):
         if isinstance(base, dict):
             try:
                 name = base['name']
@@ -166,8 +162,7 @@ class Config(object):
 
 
 
-    @classmethod
-    def parse_actions(cls, acts):
+    def parse_actions(self, acts):
         try:
             result = actions.build_actions(acts)
         except ValueError as e:
@@ -175,8 +170,7 @@ class Config(object):
                                                                     e.message))
         return result
 
-    @classmethod
-    def parse_observables(cls, obslitst):
+    def parse_observables(self, obslitst):
         observables = []
         allnames = []
         for obs in obslitst:
@@ -203,22 +197,21 @@ class Config(object):
             observables.append(obsobj)
         return observables
 
-    @classmethod
-    def from_params(cls, params):
+    def parse_params(self, params):
         if not 'actiongroups' in params:
             actiongroups = [params]
             defaults = {}
         else:
             actiongroups = params.pop('actiongroups')
-            cls._group_len = len(actiongroups)
-            defaults = cls.parse_defaults(params)
-        actiongroups = [cls.parse_action_group(group, defaults)
+            self._group_len = len(actiongroups)
+            defaults = self.parse_defaults(params)
+        actiongroups = [self.parse_action_group(group, defaults)
                         for group in actiongroups]
-        return cls(actiongroups)
+        return actiongroups
 
     @classmethod
     def from_yaml(cls, stream):
         try:
-            return cls.from_params(yaml.load(stream))
+            return cls(yaml.load(stream))
         except yaml.error.MarkedYAMLError as e:
             raise ConfigError("Failed to parse yaml file: %s" % e)
