@@ -7,6 +7,7 @@ Created on Mon May  4 18:58:08 2015
 #TODO: Call this 'actionlib' and move actual actions to another module.
 import os
 import os.path as  osp
+import re
 import shutil
 from collections import OrderedDict
 import textwrap
@@ -46,6 +47,9 @@ def require_args(*args):
         return check(check_func)(f)
     return decorator
 
+def normalize_name(name):
+    return re.sub(r'[\.\,]', '', str(name))
+
 
 def save_figures(generator, table, output_dir, namefunc=None,
                  prefix=None, fmt ='pdf', **kwargs):
@@ -71,7 +75,7 @@ def save_violins(results, output_dir, prefix, base_pdf=None, fmt='pdf'):
     #slow to import
     import smpdflib.plots as plots
     def namefunc(obs):
-        return "violinplot_%s"%obs
+        return "violinplot_%s"%normalize_name(obs)
     return save_figures(plots.compare_violins, results, output_dir,
                         base_pdf=base_pdf,
                         prefix=prefix, fmt=fmt, namefunc=namefunc)
@@ -84,7 +88,7 @@ def save_cis(results, output_dir, prefix, base_pdf=None, fmt='pdf'):
     #slow to import
     import smpdflib.plots as plots
     def namefunc(obs):
-        return "ciplot_%s"%obs
+        return "ciplot_%s"%normalize_name(obs)
     return save_figures(plots.compare_cis, results, output_dir,
                         base_pdf=base_pdf,
                         prefix=prefix, fmt=fmt, namefunc=namefunc)
@@ -95,8 +99,9 @@ def save_as(summed_table, output_dir, prefix, fmt='pdf'):
 
     #slow to import
     import smpdflib.plots as plots
-    def namefunc(process, nf, bin_):
-        return 'alphaplot_{process}_nf_{nf}'.format(**locals())
+    def namefunc(obs, nf, bin_):
+        obs = normalize_name(obs)
+        return 'alphaplot_{obs}_nf_{nf}'.format(**locals())
     return save_figures(plots.plot_alphaS, summed_table, output_dir,
                         prefix=prefix, fmt=fmt, namefunc=namefunc)
 
@@ -114,8 +119,9 @@ def save_nf(summed_table, output_dir, prefix, fmt='pdf'):
 
     #slow to import
     import smpdflib.plots as plots
-    def namefunc(process, bin_, oqcd):
-        return 'nfplot_{process}_{oqcd}'.format(**locals())
+    def namefunc(obs, bin_, oqcd):
+        obs = normalize_name(obs)
+        return 'nfplot_{obs}_{oqcd}'.format(**locals())
     return save_figures(plots.plot_nf, summed_table, output_dir,
                         prefix=prefix, fmt=fmt, namefunc=namefunc)
 
