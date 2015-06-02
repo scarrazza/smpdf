@@ -686,7 +686,7 @@ def optimize_hessian(X):
     return vec, cov
 
 def create_smpdf(pdf, corrlist, output_dir, prefix,  N_eig, full_grid=False,):
-    from mc2hlib.common import compress_X_rel as compress_X
+    from mc2hlib.common import compress_X_abs as compress_X
     from mc2hlib.lh import hessian_from_lincomb
     if prefix is None:
         prefix = ''
