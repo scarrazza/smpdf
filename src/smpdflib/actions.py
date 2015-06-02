@@ -41,7 +41,10 @@ def require_args(*args):
             if not arg in group:
                 raise ActionError("Action %s requires a parameter '%s'" %
                                   (action, arg))
-    return check_func
+    def decorator(f):
+        f.required_args = args
+        return check(check_func)(f)
+    return decorator
 
 
 def save_figures(generator, table, output_dir, namefunc=None,
@@ -153,7 +156,7 @@ def save_correlations(pdfcorrlist, output_dir, prefix, fmt='pdf'):
                         fmt=fmt, namefunc=namefunc)
 
 @appends_to('grids')
-@check(require_args('N_eig'))
+@require_args('N_eig')
 def create_smpdf(pdfcorrlist, output_dir, prefix, N_eig, full_grid=False):
     import smpdflib.core as lib
     gridpaths = []
