@@ -1,0 +1,32 @@
+observables:
+   - {name: 'data/ttbar/*.root', order: 1}
+pdfsets:
+   - 1000rep
+   - CMCPDFcomb_nnlo_rep0fix
+actions:
+   - smpdf
+   - installgrids
+
+actiongroups:
+   - prefix: cors
+     actions:
+        - plotcorrs
+   - prefix: "tt_XXX22X_10"
+     N_eig: 10
+   - prefix: "tt_XXX22X_15"
+     N_eig:  15
+   - prefix: "tt_XXX22X_20"
+     N_eig:  20
+   - prefix: "tt_XXX22X_25"
+     N_eig:  25
+#   - prefix: compall
+#     pdfsets:
+#        - 1000rep
+#        - tt_XXX22X_??smpdf*1000rep
+#        - tt_XXX22X_??smpdf*CMC*
+#     actions:
+#        - violinplots
+#        - ciplots
+#        - savedata
+#
+
