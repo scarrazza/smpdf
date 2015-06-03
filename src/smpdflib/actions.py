@@ -165,7 +165,7 @@ def gen_gridnames(action, group, config):
     from smpdflib import lhaindex
     prefix = group['prefix']
     if 'grid_names' not in group:
-        group['grid_names'] = []
+        group['grid_names'] = {}
     for pdf in group['pdfsets']:
         grid_name = prefix + action + '_' + str(pdf)
         if lhaindex.isinstalled(grid_name):
@@ -177,7 +177,7 @@ def gen_gridnames(action, group, config):
             raise ActionError("The grid %s would be generated multiple times."
                                % grid_name)
         config._grid_names.append(grid_name)
-        group['grid_names'].append(grid_name)
+        group['grid_names'][(action, pdf)] = grid_name
 
 
 @check(gen_gridnames)
@@ -185,8 +185,9 @@ def gen_gridnames(action, group, config):
 def create_smpdf(pdfcorrlist, output_dir, grid_names, N_eig, full_grid=False):
     import smpdflib.core as lib
     gridpaths = []
-    for name, (pdf, corrlist) in zip(grid_names ,pdfcorrlist):
-        result = lib.create_smpdf(pdf, corrlist, output_dir, name,
+    for (pdf, corrlist) in pdfcorrlist:
+        result = lib.create_smpdf(pdf, corrlist, output_dir,
+                                  grid_names[('smpdf', pdf)],
                                   N_eig=N_eig,
                                   full_grid=full_grid)
         gridpaths.append(result)
@@ -203,7 +204,7 @@ def check_lhawrite(action, group, config):
 def install_grids(grid_names, output_dir):
     import smpdflib.lhaindex
     dest = smpdflib.lhaindex.get_lha_path()
-    for name in grid_names:
+    for name in grid_names.values():
         shutil.copytree(osp.join(output_dir, name), osp.join(dest, name))
 
 
