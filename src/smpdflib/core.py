@@ -686,11 +686,11 @@ def optimize_hessian(X):
     return vec, cov
 
 def create_smpdf(pdf, corrlist, output_dir, name,  N_eig, full_grid=False,):
-    from mc2hlib.common import compress_X_abs as compress_X
+    from mc2hlib.common import compress_X_abs as compress_X, load_pdf
     from mc2hlib.lh import hessian_from_lincomb
+    lpdf, fl, xgrid = load_pdf(str(pdf), 1.0)
+
     first = corrlist[0]
-    xgrid = first.xgrid
-    fl = first.fl
     ccmax = np.zeros(shape=(first.cc.shape[1],
                             first.cc.shape[2]), dtype=bool)
 
@@ -700,11 +700,11 @@ def create_smpdf(pdf, corrlist, output_dir, name,  N_eig, full_grid=False,):
         for bin in range(len(threshold)):
             ccmax |= (np.abs(cc[bin])>=threshold[bin])
 
-    q2min = pdf.pdf[0].q2Min
-    pdf.setQ(q2min)
+    q2min = lpdf.pdf[0].q2Min
+    lpdf.setQ(q2min)
     # Step 1: create pdf covmat
     print ("\n- Building PDF covariance matrix at %f GeV:" % q2min)
-    X = (pdf.xfxQ.reshape(pdf.n_rep, xgrid.n*fl.n) - pdf.f0.reshape(xgrid.n*fl.n)).T
+    X = (lpdf.xfxQ.reshape(lpdf.n_rep, xgrid.n*fl.n) - lpdf.f0.reshape(xgrid.n*fl.n)).T
     print " [Done] "
 
     mask = (ccmax.reshape(fl.n*xgrid.n))
@@ -731,5 +731,5 @@ def create_smpdf(pdf, corrlist, output_dir, name,  N_eig, full_grid=False,):
 
     # Step 4: exporting to LHAPDF
     print "\n- Exporting new grid..."
-    return hessian_from_lincomb(pdf, vec, folder=output_dir,
+    return hessian_from_lincomb(lpdf, vec, folder=output_dir,
                          set_name= name)
