@@ -633,6 +633,13 @@ def compute_correlations(result, pdf,):
                 cc[bin,f,x] = corrcoeff(obs, lpdf.xfxQ[:,f,x])
 
         threshold.append( np.max(np.abs(cc[bin]))*0.5 )
+    with open('log.log', 'a') as f:
+        f.write("%s,%s,%s\n" % (result.pdf, result.obs, threshold))
+    print("*********************")
+    print(result.pdf, result.obs, threshold)
+    print("*********************")
+
+
 
     return Corrlist(cc, threshold, result.obs, xgrid, fl)
 
@@ -703,6 +710,7 @@ def create_smpdf(pdf, corrlist, output_dir, name,  N_eig, full_grid=False,):
     q2min = lpdf.pdf[0].q2Min
     lpdf.setQ(q2min)
     # Step 1: create pdf covmat
+    return
     print ("\n- Building PDF covariance matrix at %f GeV:" % q2min)
     X = (lpdf.xfxQ.reshape(lpdf.n_rep, xgrid.n*fl.n) - lpdf.f0.reshape(xgrid.n*fl.n)).T
     print " [Done] "

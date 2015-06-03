@@ -204,6 +204,7 @@ def check_lhawrite(action, group, config):
 def install_grids(grid_names, output_dir):
     import smpdflib.lhaindex
     dest = smpdflib.lhaindex.get_lha_path()
+    return
     for name in grid_names.values():
         shutil.copytree(osp.join(output_dir, name), osp.join(dest, name))
 
