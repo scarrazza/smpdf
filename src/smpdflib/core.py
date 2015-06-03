@@ -624,7 +624,6 @@ def compute_correlations(result, pdf,):
     for bin in range(result.nbins):
 
         lpdf.setQ(result.meanQ[bin])
-        obs = np.zeros(lpdf.n_rep)
 
         obs = np.array([result[rep][bin] for rep in range(1,lpdf.n_rep+1)])
 
@@ -632,7 +631,7 @@ def compute_correlations(result, pdf,):
             for x in range(xgrid.n):
                 cc[bin,f,x] = corrcoeff(obs, lpdf.xfxQ[:,f,x])
 
-        threshold.append( max(cc[bin].min(), cc[bin].max(), key=abs)*0.5 )
+        threshold.append( np.max(np.abs(cc[bin]))*0.5 )
 
     return Corrlist(cc, threshold, result.obs, xgrid, fl)
 
@@ -643,9 +642,6 @@ def correlations(data_table):
     pdfcorrlist = []
     for pdf, pdf_table in data_table.groupby('PDF'):
         results = pdf_table.Result.unique()
-
-
-
         corrlist = []
         for result in results:
             corrlist.append(compute_correlations(result, pdf))
