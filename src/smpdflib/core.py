@@ -535,6 +535,7 @@ def get_dataset_parallel(pdfsets, observables, db=None):
     for convs in break_in(to_compute, n_cores):
         pool = multiprocessing.Pool(processes=len(convs))
         results = pool.map(_convolve_one_args, convs)
+        pool.close()
         for ((pdf, obs), result) in zip(convs, results):
             dataset[pdf][obs] = result
             if db is not None:
