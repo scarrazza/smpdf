@@ -614,6 +614,8 @@ def corrcoeff(obs, pdf):
 
 Corrlist = namedtuple('Corrlist', ('cc', 'threshold', 'obs', 'xgrid', 'fl'))
 
+meanq_dict = {}
+
 def compute_correlations(result, pdf,):
     """Compute correlations"""
     from mc2hlib.common import load_pdf
@@ -623,21 +625,27 @@ def compute_correlations(result, pdf,):
 
     threshold = []
     for bin in range(result.nbins):
-
+        mq = result.meanQ[bin]
         lpdf.setQ(result.meanQ[bin])
+        if result.obs not in meanq_dict:
+            meanq_dict[result.obs] = mq
+        elif mq != meanq_dict[result.obs]:
+            raise Exception("WTF is wrong with meanq FFS!!!!")
 
-        obs = np.array([result[rep][bin] for rep in range(1,lpdf.n_rep+1)])
+        obs = result._all_vals.iloc[bin,:].as_matrix()
 
-        for f in range(fl.n):
-            for x in range(xgrid.n):
-                cc[bin,f,x] = corrcoeff(obs, lpdf.xfxQ[:,f,x])
+        #for f in range(fl.n):
+        #    for x in range(xgrid.n):
+        #        cc[bin,f,x] = corrcoeff(obs, lpdf.xfxQ[:,f,x])
+        cc[bin] = np.zeros((fl.n, xgrid.n))
+
 
         threshold.append( np.max(np.abs(cc[bin]))*0.5 )
-    with open('log.log', 'a') as f:
-        f.write("%s,%s,%s\n" % (result.pdf, result.obs, threshold))
-    print("*********************")
-    print(result.pdf, result.obs, threshold)
-    print("*********************")
+    #with open('log.log', 'a') as f:
+    #    f.write('\n'.join(str((result.pdf, result.obs, threshold)).split(',')) + '\n')
+    #print("*********************")
+    #print(result.pdf, result.obs, threshold)
+    #print("*********************")
 
 
 

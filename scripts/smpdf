@@ -42,9 +42,14 @@ def main(conf, output_dir, db, quiet=False):
             resources.update({'results':results, 'data_table':data_table,
                            'total':total, 'summed_table':summed_table})
 
+
+
         if any(actions.requires_correlations(act) for act in group['actions']):
             pdfcorrlist = lib.correlations(data_table)
             resources.update({'pdfcorrlist':pdfcorrlist})
+            #import IPython
+            #IPython.embed()
+            continue
 
 
         prefix = group['prefix']
