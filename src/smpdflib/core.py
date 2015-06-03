@@ -613,20 +613,24 @@ def corrcoeff(obs, pdf):
 
 Corrlist = namedtuple('Corrlist', ('cc', 'threshold', 'obs', 'xgrid', 'fl'))
 
-def compute_correlations(result, pdf, fl, xgrid):
+def compute_correlations(result, pdf,):
     """Compute correlations"""
+    from mc2hlib.common import load_pdf
 
+    lpdf, fl, xgrid = load_pdf(str(pdf), 1.0)
     cc = np.zeros(shape=(result.nbins, fl.n, xgrid.n))
+
     threshold = []
     for bin in range(result.nbins):
 
-        pdf.setQ(result.meanQ[bin])
-        obs = np.zeros(pdf.n_rep)
-        for rep in range(1,pdf.n_rep+1): obs[rep-1] = result[rep][bin]
+        lpdf.setQ(result.meanQ[bin])
+        obs = np.zeros(lpdf.n_rep)
+
+        obs = np.array([result[rep][bin] for rep in range(1,lpdf.n_rep+1)])
 
         for f in range(fl.n):
             for x in range(xgrid.n):
-                cc[bin,f,x] = corrcoeff(obs, pdf.xfxQ[:,f,x])
+                cc[bin,f,x] = corrcoeff(obs, lpdf.xfxQ[:,f,x])
 
         threshold.append( max(cc[bin].min(), cc[bin].max(), key=abs)*0.5 )
 
@@ -636,16 +640,15 @@ def compute_correlations(result, pdf, fl, xgrid):
 def correlations(data_table):
 
     """Includes from mc2hessian library"""
-    from mc2hlib.common import load_pdf
     pdfcorrlist = []
-    for ipdf, pdf_table in data_table.groupby('PDF'):
+    for pdf, pdf_table in data_table.groupby('PDF'):
         results = pdf_table.Result.unique()
 
-        pdf, fl, xgrid = load_pdf(str(ipdf.name), 1.0)
+
 
         corrlist = []
         for result in results:
-            corrlist.append(compute_correlations(result, pdf, fl, xgrid))
+            corrlist.append(compute_correlations(result, pdf))
         pdfcorrlist += [(pdf, corrlist)]
     return  pdfcorrlist
 
