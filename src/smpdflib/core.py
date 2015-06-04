@@ -624,13 +624,15 @@ def compute_correlations(result, pdf,):
     cc = np.zeros(shape=(result.nbins, fl.n, xgrid.n))
 
     threshold = []
+    mq = result.meanQ
+    if result.obs not in meanq_dict:
+        meanq_dict[result.obs] = mq
+    elif mq != meanq_dict[result.obs]:
+        raise Exception("WTF is wrong with meanq FFS!!!!")
     for bin in range(result.nbins):
-        mq = result.meanQ[bin]
-        lpdf.setQ(result.meanQ[bin])
-        if result.obs not in meanq_dict:
-            meanq_dict[result.obs] = mq
-        elif mq != meanq_dict[result.obs]:
-            raise Exception("WTF is wrong with meanq FFS!!!!")
+
+        lpdf.setQ(mq[bin])
+
 
         obs = result._all_vals.iloc[bin,:].as_matrix()
 
