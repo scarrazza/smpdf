@@ -614,9 +614,17 @@ def corrcoeff(obs, pdf):
 
 Corrlist = namedtuple('Corrlist', ('cc', 'threshold', 'obs', 'xgrid', 'fl'))
 
-def compute_correlations(result, pdf,):
+def compute_correlations(result, pdf, db=None):
     """Compute correlations"""
     from mc2hlib.common import load_pdf
+
+    def make_key(pdf, obs):
+        return str(("CORRELATIONS", pdf.get_key(), obs.get_key()))
+
+    if db is not None:
+        key = make_key(result.pdf, result.obs)
+        if key in db:
+            return Corrlist(*db[key])
 
     lpdf, fl, xgrid = load_pdf(str(pdf), 1.0)
     cc = np.zeros(shape=(result.nbins, fl.n, xgrid.n))
@@ -634,18 +642,23 @@ def compute_correlations(result, pdf,):
 
         threshold.append( np.max(np.abs(cc[bin]))*0.5 )
 
-    return Corrlist(cc, threshold, result.obs, xgrid, fl)
+    #It is easier to pickle and pickle tuples than namedtuples
+    tuple_result = (cc, threshold, result.obs, xgrid, fl)
+    result = Corrlist(*tuple_result)
+    if db is not None:
+        db[key] = tuple_result
+
+    return result
 
 
-def correlations(data_table):
+def correlations(data_table, db=None):
 
-    """Includes from mc2hessian library"""
     pdfcorrlist = []
     for pdf, pdf_table in data_table.groupby('PDF'):
         results = pdf_table.Result.unique()
         corrlist = []
         for result in results:
-            corrlist.append(compute_correlations(result, pdf))
+            corrlist.append(compute_correlations(result, pdf, db=db))
         pdfcorrlist += [(pdf, corrlist)]
     return  pdfcorrlist
 
