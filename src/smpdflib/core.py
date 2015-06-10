@@ -40,6 +40,8 @@ M_REF = defaultdict(lambda: 'Z', {4:'c'})
 
 
 class TupleComp(object):
+    """Class whose instances compare equal if two objects have the same tuple.
+    Objects also have the correct hash and can be used for dictionary keys."""
     def __hash__(self):
         return hash(self.get_key())
 
@@ -47,6 +49,7 @@ class TupleComp(object):
         return (isinstance(other, self.__class__)
                 and self.get_key() == other.get_key())
 
+#TODO: Merge with Observable
 class BaseObservable(TupleComp):
     def __init__(self, name, order):
         self.name = name
@@ -62,6 +65,8 @@ class BaseObservable(TupleComp):
         return (self.name, self.order)
 
 class Observable(BaseObservable):
+    """Class that represents the basic property of an Observable. Concrete
+    implementations are its subslasses."""
     _meanQ = None
     _nbins = None
     def __init__(self, filename, order):
@@ -79,10 +84,12 @@ class Observable(BaseObservable):
 _selected_grid = None
 
 class APPLGridObservable(Observable):
-
+    """Class that represents an APPLGrid. """
 
     @property
     def nbins(self):
+        """Number of bins in the APPLGrid. It will be loaded
+         in memory the first time this property is quiried."""
         if self._nbins is not None:
             return self.nbins
         with self:
@@ -92,6 +99,8 @@ class APPLGridObservable(Observable):
 
     @property
     def meanQ(self):
+        """A list containing the mean energy of
+        the nonzero weights of each bin"""
         if self._meanQ is not None:
             return self._meanQ
         with self:
@@ -101,7 +110,11 @@ class APPLGridObservable(Observable):
         return meanQ
 
     def __enter__(self):
-        """Load observable file in memory"""
+        """Load observable file in memory, using `with obs`.
+
+        Note: Except random bugs due to APPLGrid poor implementation
+        when loading several observables in the same process. In particular,
+        convolutions of grids made with AMCFast will not work."""
         global _selected_grid
         if _selected_grid == self.filename:
             return
@@ -117,6 +130,7 @@ class APPLGridObservable(Observable):
         _selected_grid = None
 
 class PredictionObservable(Observable):
+    """Class representing a prediction in the custom SMPDF format."""
     def __init__(self, filename):
         self.filename = filename
         with open(filename) as f:
@@ -125,6 +139,8 @@ class PredictionObservable(Observable):
         self._params = d
 
     def to_result(self, pdfset):
+        """Convert a prediction for the specified `pdfset`
+        into a `Result` instance."""
         if str(pdfset) not in self.pdf_predictions:
             raise ValueError("No predictions found for pdf %s" % pdfset)
         path = self.pdf_predictions[str(pdfset)]
@@ -147,15 +163,29 @@ class PredictionObservable(Observable):
 
 
 class PDF(TupleComp):
+    """A class representig the metadata of an LHAPDF grid.
+    The attributes of the `.info` file can be queried directly as attribute
+    of PDF objects.
+
+    Parameters
+    ----------
+    name : str
+           The LHAPDF name of the set. It do methoes not need to be installed
+           in the
+           LHAPDF path at the time the constructor is called, but the methods
+           that require reading the metadata will fail.
+    """
     def __init__(self, name):
+
         self.name = name
 
     def get_key(self):
+        """Return string to indentigy this object in the database"""
         #Convert python2 unicode to string so no u'prefix' is printed
         return (str(self.name),)
 
     def __enter__(self):
-        """Load PDF file in memory"""
+        """Load PDF in memory."""
         applwrap.initpdf(self.name)
 
     #TODO: Unload PDF here
@@ -170,22 +200,33 @@ class PDF(TupleComp):
 
     @property
     def oqcd_str(self):
+        """String corresponging to the QCD perturbative order, such as 'LO'
+        or 'NL0'."""
         return ORDERS_QCD[self.OrderQCD]
 
     @property
     def collaboration(self):
+        """Infer the collaboration from the name of the PDF"""
         return lhaindex.get_collaboration(self.name)
 
     @property
     def as_from_name(self):
+        r"""Infer :math:`\alpha_S(M_Z)` from the name of the PDF. This is
+        useful
+        when willing to group by :math:`\alpha_S` value sets of different
+        number of flavours."""
         return lhaindex.as_from_name(self.name)
 
     @property
     def mref(self):
+        """String corresponding to the reference physical quantity used to fix
+        the energy reference. ($M_Z$ for $N_f \geq 5$)."""
         return "M_%s" % M_REF[self.NumFlavors]
 
     @property
     def reps(self):
+        """Returin an iterator over the replica indexes (zero indexed, where
+        0 is the mean replica)."""
         return range(self.NumMembers)
 
     def __getattr__(self, name):
@@ -195,6 +236,27 @@ class PDF(TupleComp):
 
 
 class Result():
+    """A class representing a result of the computation of an observable for
+    each member of a PDF set. `pd.DataFrame` will be called on `data`. The
+    result must have the bins as the columns and each replica as the rows.
+    Subclasses of `Result` provide specialized methods to compute uncertainty.
+
+    #TODO: This docstring is **WRONG**, must traspose evey signle DataFrame!
+
+    Parameters
+    ----------
+    obs :
+        `Observable`
+
+
+    pdf :
+        `PDF`
+
+
+    data :
+        `DataFrame`-like
+
+    """
     def __init__(self, obs, pdf, data):
         self.obs = obs
         self.pdf = pdf
@@ -202,6 +264,7 @@ class Result():
 
     @property
     def central_value(self):
+        """Return a `Series` containing the central value for each bin."""
         return self._cv
 
     @property
@@ -214,15 +277,18 @@ class Result():
 
     @property
     def nrep(self):
+        """Number of PDF members"""
         return self._all_vals.shape[1]
 
     @property
     def nbins(self):
+        """Number of bins in the preduction."""
         return self._all_vals.shape[0]
 
     #TODO: This should really be done in Observable. Can we access nbins?
     @property
     def meanQ(self):
+        """Mean energy of the observable, for each bin"""
         return self.obs.meanQ
 
     def std_error(self, nsigma=1):
@@ -249,6 +315,7 @@ class Result():
 
     #TODO: Should this be the default iterator?
     def iterall(self):
+        """Iterate over all data, first being the central prediction"""
         return iter(self._data)
 
     def _violin_data(self, rel_to=None):
@@ -274,15 +341,19 @@ class Result():
 
 
 class SymHessianResult(Result):
+    """Result obtained from a symmetric Hessain PDF set"""
 
     def std_error(self, nsigma=1):
         diffsq = (self._all_vals.subtract(self._cv, axis=0))**2
         return diffsq.sum(axis=1).apply(np.sqrt)*nsigma
+
     @property
     def errorbar68(self):
+        """Compute the errorbars from the one sigma error"""
         return self.rel_std_interval()
 
     def sample_values(self, n):
+        """Sample n random values from th resulting Gaussian distribution"""
         diffs = self._all_vals.subtract(self._cv, axis=0)
         for _ in range(n):
             weights = np.random.normal(size=self.nrep)
@@ -320,6 +391,7 @@ class SymHessianResult(Result):
         return vpstats
 
 class HessianResult(SymHessianResult):
+    """Result obtained from an asymmetric Hessian PDF set"""
 
     def std_error(self, nsigma=1):
         m = self._all_vals.as_matrix()
@@ -327,6 +399,8 @@ class HessianResult(SymHessianResult):
         return np.sqrt(diffsq.sum(axis=1))/2.0*nsigma
 
     def sample_values(self, n):
+        """Sample n random values from the resulting asymmetric
+        distribution"""
         m = self._all_vals.as_matrix()
         plus = m[:, ::2]
         minus = m[:, 1::2]
@@ -338,8 +412,11 @@ class HessianResult(SymHessianResult):
 
 
 class MCResult(Result):
-    #TODO: Is it correct to consider each bin as independant here?
+    """Result obtained from a Monte Carlo PDF set"""
     def centered_interval(self, percent=68, addcentral=True):
+        """Compute the 69% prediction gor each bin in the following way:
+        Sort all results by the absolute value of the distance from the mean,
+        and select """
         n = percent*self.nrep//100
         def get_lims(row):
             row = row.as_matrix()
@@ -361,6 +438,7 @@ class MCResult(Result):
         return self._all_vals.std(axis=1)*nsigma
 
     def sample_values(self, n):
+        """Sample n random values from the results for the replicas"""
         for _ in range(n):
             col = np.random.choice(self._all_vals.columns)
             yield self._all_vals[col]
