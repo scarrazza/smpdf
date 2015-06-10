@@ -82,6 +82,17 @@ class Config(object):
                                   % base_pdf)
             d['base_pdf'] = base_pdf
 
+        if 'smpdf_spec' in group:
+            smpdf_spec = self.parse_smpdf_spec(group['smpdf_spec'],
+                                                     observables)
+        elif 'smpdf_spec' in defaults:
+            smpdf_spec = self.parse_smpdf_spec(defaults['smpdf_spec'],
+                                                     observables)
+        else:
+            smpdf_spec = [{'Observables': observables}]
+
+
+
         groupcount = next(self._group_counter)
         if not 'prefix' in group:
             if self._group_len > 1:
@@ -91,6 +102,7 @@ class Config(object):
         d['observables'] = observables
         d['pdfsets'] = pdfsets
         d['actions'] = acts
+        d['smpdf_spec'] = smpdf_spec
         #Substitute the things we just parsed
         group.update(d)
         #Dump group on top of defaults
@@ -201,6 +213,26 @@ class Config(object):
                                       "observable %s: %s" % (name, e.message))
             observables.append(obsobj)
         return observables
+
+    def parse_smpdf_spec(self, smpdf_spec, observables):
+        if not isinstance(smpdf_spec, list):
+            raise ConfigError("smpdf_spec must be a list of:\n"
+                              "- prefix: {obslist}")
+        d = {}
+        for item in smpdf_spec:
+            if len(item) != 1:
+                raise ConfigError("smpdf_spec must be a list of:\n"
+                  "- prefix: {obslist}")
+            key, obslist = item.items()[0]
+            obshere = self.parse_observables(obslist)
+            #Do not duplicate objects, to make use of caches and so on
+            d[key] = [obs for obs in observables if obs in obshere]
+            if any(obs not in observables for obs in obshere):
+                raise ConfigError("Observable %s in smpdf_spec must be "
+                                  "also in obsevables")
+        return d
+
+
 
     def parse_params(self, params):
         if not 'actiongroups' in params:
