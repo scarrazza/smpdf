@@ -9,6 +9,7 @@ import sys
 import itertools
 import glob
 import fnmatch
+from collections import Counter
 
 import yaml
 
@@ -212,6 +213,14 @@ class Config(object):
                     raise ConfigError("Incorrect arguments passed to process "
                                       "observable %s: %s" % (name, e.message))
             observables.append(obsobj)
+        s = set(observables)
+        if len(s) != len(observables):
+            #TODO: proper logging
+            c = Counter(observables)
+            dups = [obs.name for obs in observables if c[obs]>1]
+            obs = c.keys()
+            print("WARNING: Duplicate observables: %s" % dups, file=sys.stderr)
+
         return observables
 
     def parse_smpdf_spec(self, smpdf_spec, observables):
@@ -219,6 +228,7 @@ class Config(object):
             raise ConfigError("smpdf_spec must be a list of:\n"
                               "- prefix: {obslist}")
         d = {}
+        all_obs = set()
         for item in smpdf_spec:
             if len(item) != 1:
                 raise ConfigError("smpdf_spec must be a list of:\n"
@@ -230,6 +240,14 @@ class Config(object):
             if any(obs not in observables for obs in obshere):
                 raise ConfigError("Observable %s in smpdf_spec must be "
                                   "also in obsevables")
+            s = set(obshere)
+            common = all_obs & s
+            if common:
+                raise ConfigError("Duplicate observables in different "
+                "smpdf_specs: %s" % [obs.name for obs in common])
+            all_obs |= s
+
+
         return d
 
 
