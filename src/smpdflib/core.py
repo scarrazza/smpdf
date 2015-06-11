@@ -113,7 +113,7 @@ class APPLGridObservable(Observable):
         """Load observable file in memory, using `with obs`.
 
         Note: Except random bugs due to APPLGrid poor implementation
-        when loading several observables in the same process. In particular,
+        when loading several observables in the same process. In particular,pdf
         convolutions of grids made with AMCFast will not work."""
         global _selected_grid
         if _selected_grid == self.filename:
@@ -697,7 +697,7 @@ def compute_correlations(result, pdf, db=None):
     from mc2hlib.common import load_pdf
 
     def make_key(pdf, obs):
-        return str(("CORRELATIONS", pdf.get_key(), obs.get_key()))
+        return str(('CORRELATIONS', pdf.get_key(), obs.get_key()))
 
     if db is not None:
         key = make_key(result.pdf, result.obs)
@@ -728,12 +728,20 @@ def compute_correlations(result, pdf, db=None):
 
     return result
 
+def match_spec(corrlist, smpdf_spec):
+    corr_obs = {item.obs:item for item in corrlist}
+    result = {}
+    for label in smpdf_spec:
+        result[label] = [corr_obs[obs] for obs in smpdf_spec[label]]
+
+    return result
 
 def correlations(data_table, db=None):
 
     pdfcorrlist = []
     for pdf, pdf_table in data_table.groupby('PDF'):
         results = pdf_table.Result.unique()
+
         corrlist = []
         for result in results:
             corrlist.append(compute_correlations(result, pdf, db=db))
@@ -776,51 +784,63 @@ def optimize_hessian(X):
             break
     return vec, cov
 
-def create_smpdf(pdf, corrlist, output_dir, name,  N_eig, full_grid=False,):
-    from mc2hlib.common import compress_X_abs as compress_X, load_pdf
-    from mc2hlib.lh import hessian_from_lincomb
-    lpdf, fl, xgrid = load_pdf(str(pdf), 1.0)
-
+def get_mask(corrlist):
     first = corrlist[0]
     ccmax = np.zeros(shape=(first.cc.shape[1],
                             first.cc.shape[2]), dtype=bool)
-
+    xgrid = first.xgrid
+    fl = first.fl
     for c in corrlist:
         cc = c.cc
         threshold = c.threshold
         for bin in range(len(threshold)):
             ccmax |= (np.abs(cc[bin])>=threshold[bin])
+    mask = (ccmax.reshape(fl.n*xgrid.n))
+    return mask
 
+def get_X(pdf):
+    from mc2hlib.common import load_pdf
+
+    lpdf, fl, xgrid = load_pdf(str(pdf), 1.0)
     q2min = lpdf.pdf[0].q2Min
     lpdf.setQ(q2min)
     # Step 1: create pdf covmat
-    print ("\n- Building PDF covariance matrix at %f GeV:" % q2min)
+    print ("\n- Building PDF matrix at %f GeV:" % q2min)
     X = (lpdf.xfxQ.reshape(lpdf.n_rep, xgrid.n*fl.n) - lpdf.f0.reshape(xgrid.n*fl.n)).T
-    print " [Done] "
+    print (" [Done] ")
+    return X
 
-    mask = (ccmax.reshape(fl.n*xgrid.n))
+
+
+def create_smpdf(pdf, corrlist, output_dir, name,  N_eig, smpdf_spec = None,
+                 full_grid=False,):
+    from mc2hlib.common import compress_X_abs as compress_X
+    from mc2hlib.lh import hessian_from_lincomb
+
+    if smpdf_spec is None:
+        spec = {'Observables': corrlist}
+    else:
+        spec = match_spec(corrlist, smpdf_spec)
+
+
+    mask = get_mask(corrlist)
+
     print("[Info] Keeping %d nf*nx of %d" %
-          (np.count_nonzero(mask), xgrid.n*fl.n, ))
-    print("Thresholds:")
-    for th in threshold:
-        print ("%f"%th)
+          (np.count_nonzero(mask), mask.size, ))
+
+    X = get_X(pdf)
 
     Xm = X[mask,:]
     #TODO: Make this more efficient: compute only once the SVD.
     # Step 2: solve the system
-    print "\n- Quick test:"
+    print("\n- Quick test:")
     vec, cov = compress_X(Xm, N_eig)
 
     if full_grid:
-        diff = min(X.shape[0], X.shape[1]) - vec.shape[1]
-        dot_vec = np.pad(vec,((0,0), (0, vec.shape[0] - vec.shape[1])),
-                         mode = 'constant')
-        X_comp = np.dot(X, np.eye(len(dot_vec)) - dot_vec)
-        other_vec, other_cov = compress_X(X_comp, diff)
-        vec = np.concatenate((vec, other_vec), axis=1)
+        raise NotImplementedError()
 
 
     # Step 4: exporting to LHAPDF
-    print "\n- Exporting new grid..."
+    print("\n- Exporting new grid...")
     return hessian_from_lincomb(lpdf, vec, folder=output_dir,
                          set_name= name)
