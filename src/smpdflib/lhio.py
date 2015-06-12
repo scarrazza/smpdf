@@ -3,15 +3,21 @@
 Created on Tue Apr 21 22:00:01 2015
 
 @author: zah
+
+A module that reads and writes LHAPDF grids.
 """
 
 import os
+import os.path as osp
 import sys
 import shutil
 import lhapdf
 import numpy as np
 
 import pandas as pd
+
+from smpdflib import lhagrids
+from smpdflib import lhaindex
 
 def split_sep(f):
     for line in f:
@@ -48,13 +54,18 @@ def read_all_xqf(f):
         yield result
 
 #TODO: Make pdf_name the pdf_name instead of path
-def load_replica_2(rep, pdf_name, pdf=None, rep0grids=None):
+def load_replica(rep, pdf_name, pdf=None, rep0grids=None):
 
     sys.stdout.write("-> Reading replica from LHAPDF %d \r" % rep)
     sys.stdout.flush()
 
     suffix = str(rep).zfill(4)
-    with open(pdf_name + "_" + suffix + ".dat", 'rb') as inn:
+
+
+    path = osp.join(lhaindex.get_lha_path(), pdf_name,
+                    pdf_name + "_" + suffix + ".dat")
+
+    with open(path, 'rb') as inn:
         header = b"".join(split_sep(inn))
 
         if rep0grids is not None:
@@ -93,9 +104,12 @@ def write_replica(rep, pdf_name, header, subgrids):
     with open(pdf_name + "_" + suffix + ".dat", 'wb') as out:
         _rep_to_buffer(out, header, subgrids)
 
-def load_all_replicas(pdf, pdf_name):
-    rep0headers, rep0grids = load_replica_2(0,pdf_name)
-    headers, grids = zip(*[load_replica_2(rep, pdf_name, pdf.pdf[rep], rep0grids) for rep in range(1,pdf.n_rep+1)])
+def load_all_replicas(pdf):
+    rep0headers, rep0grids = load_replica(0,str(pdf))
+    lha_pdf = lhagrids.load_lhapdf(str(pdf))
+
+    headers, grids = zip(*[load_replica(rep, str(pdf), lha_pdf[rep], rep0grids)
+                         for rep in range(1, len(pdf))])
     return [rep0headers] + list(headers), [rep0grids] + list(grids)
 
 def big_matrix(gridlist):
@@ -108,13 +122,14 @@ def big_matrix(gridlist):
     return X
 
 def hessian_from_lincomb(pdf, V, set_name=None, folder = None):
+    """Construct a new LHAPDF grid from a linear combination of members"""
 
     # preparing output folder
     neig = V.shape[1]
 
-    base = lhapdf.paths()[0] + "/" + pdf.pdf_name + "/" + pdf.pdf_name
+    base = lhapdf.paths()[0] + "/" + str(pdf) + "/" + str(pdf)
     if set_name is None:
-        set_name = pdf.pdf_name + "_hessian_" + str(neig)
+        set_name = str(pdf) + "_hessian_" + str(neig)
     if folder is None:
         folder = ''
     set_root = os.path.join(folder,set_name)
@@ -123,26 +138,24 @@ def hessian_from_lincomb(pdf, V, set_name=None, folder = None):
     # copy replica 0
     shutil.copy(base + "_0000.dat", set_root + "/" + set_name + "_0000.dat")
 
-    inn = open(base + ".info", 'rb')
-    out = open(set_root + "/" + set_name + ".info", 'wb')
-    for l in inn.readlines():
-        if l.find("SetDesc:") >= 0:
-            out.write("SetDesc: \"Hessian " + pdf.pdf_name + "_hessian\"\n")
-        elif l.find("NumMembers:") >= 0:
-            out.write("NumMembers: " + str(neig+1) + "\n")
-        elif l.find("ErrorType: replicas") >= 0:
-            out.write("ErrorType: symmhessian\n")
-        else:
-            out.write(l)
-    inn.close()
-    out.close()
+    with open(base + ".info", 'rb') as inn, \
+         open(set_root + "/" + set_name + ".info", 'wb') as out:
 
-    headers, grids = load_all_replicas(pdf, base)
+        for l in inn.readlines():
+            if l.find("SetDesc:") >= 0:
+                out.write("SetDesc: \"Hessian " + str(pdf) + "_hessian\"\n")
+            elif l.find("NumMembers:") >= 0:
+                out.write("NumMembers: " + str(neig+1) + "\n")
+            elif l.find("ErrorType: replicas") >= 0:
+                out.write("ErrorType: symmhessian\n")
+            else:
+                out.write(l)
+
+    headers, grids = load_all_replicas(pdf)
     hess_name = set_root + '/' + set_name
     result  = (big_matrix(grids).dot(V)).add(grids[0], axis=0, )
     hess_header = b"PdfType: error\nFormat: lhagrid1\n"
     for column in result.columns:
         write_replica(column + 1, hess_name, hess_header, result[column])
 
-    print ("\n")
     return set_root
