@@ -704,11 +704,11 @@ def test_as_linearity(summed_table, diff_from_line = 0.25):
                                 diff.ix[ind])
                 summed_table.loc[ind,'Remarks'].append(remark)
 
-def corrcoeff(obs, pdf):
+def corrcoeff(prediction, pdf_val):
     return (
-            len(pdf)/(len(pdf)-1)*
-            (np.mean(obs*pdf) - np.mean(obs)*np.mean(pdf))/
-            (np.std(obs,ddof=1)*np.std(pdf,ddof=1))
+            len(pdf_val)/(len(pdf_val)-1)*
+            (np.mean(prediction*pdf_val) - np.mean(prediction)*np.mean(pdf_val))/
+            (np.std(prediction,ddof=1)*np.std(pdf_val,ddof=1))
             )
 
 Corrlist = namedtuple('Corrlist', ('cc', 'threshold', 'obs', 'xgrid', 'fl'))
