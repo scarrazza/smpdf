@@ -163,7 +163,7 @@ class PredictionObservable(Observable):
 
 
 class PDF(TupleComp):
-    """A class representig the metadata of an LHAPDF grid.
+    """A class representig the metadata and content of an LHAPDF grid.
     The attributes of the `.info` file can be queried directly as attribute
     of PDF objects.
 
@@ -228,6 +228,24 @@ class PDF(TupleComp):
         """Returin an iterator over the replica indexes (zero indexed, where
         0 is the mean replica)."""
         return range(self.NumMembers)
+
+    @property
+    def lha_pdf(self):
+        from smpdflib import lhagrids
+        return lhagrids.load_lhapdf(self)
+
+    @property
+    def q2min_rep0(self):
+        """Retreive the min q2 value of repica zero. NNote that this will
+        load the whole grid if not already in memory."""
+        return self.lha_pdf[0].q2Min
+
+
+    def grid_values(self, Q, xgrid=None, fl=None):
+        from smpdflib import lhagrids
+        vals = lhagrids.get_pdf_values(self, Q=Q, xgrid=xgrid, fl=fl)
+        return vals
+
 
     def __getattr__(self, name):
         if name.startswith('__'):
@@ -802,14 +820,16 @@ def get_mask(corrlist):
     return mask
 
 def get_X(pdf):
-    from mc2hlib.common import load_pdf
+    q2min = pdf.q2min_rep0
 
-    lpdf, fl, xgrid = load_pdf(str(pdf), 1.0)
-    q2min = lpdf.pdf[0].q2Min
-    lpdf.setQ(q2min)
+    mean, replicas = pdf.grid_values(q2min)
+
     # Step 1: create pdf covmat
     print ("\n- Building PDF matrix at %f GeV:" % q2min)
-    X = (lpdf.xfxQ.reshape(lpdf.n_rep, xgrid.n*fl.n) - lpdf.f0.reshape(xgrid.n*fl.n)).T
+    replicas = replicas.reshape(replicas.shape[0],
+                                replicas.shape[1]*replicas.shape[2])
+    mean = mean.reshape(mean.size)
+    X = (replicas - mean).T
     print (" [Done] ")
     return X
 

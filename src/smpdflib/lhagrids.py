@@ -29,8 +29,10 @@ def make_flavors(nf=3):
 
 #This is some 5 Mb for a 1000 replica set
 @fastcache.lru_cache(maxsize=128, unhashable='ignore')
-def get_pdf_values(pdf, Q, xgrid=None, fl=None):
+def get_pdf_values(pdf, Q=None, xgrid=None, fl=None):
     pdf_lha = load_lhapdf(pdf)
+    if Q is None:
+        Q = pdf_lha[0].q2Min
     if xgrid is None:
         xgrid = make_xgrid()
     #Allow tuples that can be saved in cache
