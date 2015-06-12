@@ -19,8 +19,8 @@ vector<LHAPDF::PDF*> _pdfs;
 int _imem = 0;
 
 extern "C" void evolvepdf_(const double& x,const double& Q, double* pdf)
-{  
-  for (int i = 0; i < 13; i++) 
+{
+  for (int i = 0; i < 13; i++)
     {
       const int id = i-6;
       pdf[i] = _pdfs[_imem]->xfxQ(id, x, Q);
@@ -36,7 +36,7 @@ static PyObject* py_initpdf(PyObject* self, PyObject* args)
 {
   char* setname;
   PyArg_ParseTuple(args, "s", &setname);
-  
+
   for (int i = 0; i < (int) _pdfs.size(); i++)
     if (_pdfs[i]) delete _pdfs[i];
   _pdfs.clear();
@@ -57,7 +57,7 @@ static PyObject* py_initpdf(PyObject* self, PyObject* args)
 
 static PyObject* py_pdfreplica(PyObject* self, PyObject* args)
 {
-  int nrep;  
+  int nrep;
   PyArg_ParseTuple(args, "i", &nrep);
   _imem = nrep;
 
@@ -65,10 +65,10 @@ static PyObject* py_pdfreplica(PyObject* self, PyObject* args)
 }
 
 static PyObject* py_initobs(PyObject* self, PyObject* args)
-{  
+{
   char *file;
   PyArg_ParseTuple(args,"s", &file);
-    
+
   if (_g) delete _g;
   try
   {
@@ -84,11 +84,11 @@ static PyObject* py_initobs(PyObject* self, PyObject* args)
 }
 
 static PyObject* py_convolute(PyObject* self, PyObject* args)
-{  
+{
   int pto;
   PyArg_ParseTuple(args,"i", &pto);
-    
-  if (!_g) exit(-1);  
+
+  if (!_g) exit(-1);
   vector<double> xsec = _g->vconvolute(evolvepdf_,alphaspdf_,pto);
 
   PyObject *out = PyList_New(xsec.size());
@@ -99,17 +99,17 @@ static PyObject* py_convolute(PyObject* self, PyObject* args)
 }
 
 static PyObject* py_getobsq(PyObject* self, PyObject* args)
-{  
+{
   int pto, bin;
   PyArg_ParseTuple(args,"ii", &pto, &bin);
 
   vector<double> Q;
 
-  int iorder = pto; 
+  int iorder = pto;
   if (_g->calculation() == appl::grid::AMCATNLO) // if aMCfast change iorder
     iorder = (pto == 0) ? 3:0;
 
-  appl::igrid const *igrid = _g->weightgrid(iorder,bin);  
+  appl::igrid const *igrid = _g->weightgrid(iorder,bin);
   for (int ix1 = 0; ix1 < igrid->Ny1(); ix1++)
     for (int ix2 = 0; ix2 < igrid->Ny2(); ix2++)
       for (int t = 0; t < igrid->Ntau(); t++)
@@ -117,20 +117,20 @@ static PyObject* py_getobsq(PyObject* self, PyObject* args)
 	  {
 
 	    const bool zero_weight = (*(const SparseMatrix3d*) const_cast<appl::igrid*>(igrid)->weightgrid(ip))(t,ix1,ix2) == 0;
-	    
+
 	    if (!zero_weight)
-	      Q.push_back(sqrt(igrid->fQ2(igrid->gettau(t))));	    
+	      Q.push_back(sqrt(igrid->fQ2(igrid->gettau(t))));
 	  }
-  
+
   double sum = 0;
   for (int i = 0; i < (int) Q.size(); i++) sum += Q[i];
   sum /= Q.size();
-  
+
   return Py_BuildValue("d", sum);
 }
 
 static PyObject* py_getnbins(PyObject* self, PyObject* args)
-{  
+{
   int nbins;
   try
   {
@@ -145,7 +145,17 @@ static PyObject* py_getnbins(PyObject* self, PyObject* args)
   return Py_BuildValue("i", nbins);
 }
 
+static PyObject* py_setlhapdfpath(PyObject* self, PyObject* args)
+{
+  char *file;
+  PyArg_ParseTuple(args,"s", &file);
+  LHAPDF::setPaths(file);
+
+  return Py_BuildValue("");
+}
+
 static PyMethodDef applwrap_methods[] = {
+  {"setlhapdfpath", py_setlhapdfpath, METH_VARARGS},
   {"initpdf", py_initpdf, METH_VARARGS},
   {"pdfreplica", py_pdfreplica, METH_VARARGS},
   {"initobs", py_initobs, METH_VARARGS},
