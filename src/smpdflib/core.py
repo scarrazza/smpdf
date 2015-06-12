@@ -838,7 +838,7 @@ def get_X(pdf):
 def create_smpdf(pdf, corrlist, output_dir, name,  N_eig, smpdf_spec = None,
                  full_grid=False,):
     from mc2hlib.common import compress_X_abs as compress_X
-    from mc2hlib.lh import hessian_from_lincomb
+    from smpdflib.lhio import hessian_from_lincomb
 
     if smpdf_spec is None:
         spec = {'Observables': corrlist}
@@ -865,5 +865,5 @@ def create_smpdf(pdf, corrlist, output_dir, name,  N_eig, smpdf_spec = None,
 
     # Step 4: exporting to LHAPDF
     print("\n- Exporting new grid...")
-    return hessian_from_lincomb(lpdf, vec, folder=output_dir,
+    return hessian_from_lincomb(pdf, vec, folder=output_dir,
                          set_name= name)
