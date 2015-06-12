@@ -26,8 +26,8 @@ import scipy.stats
 from pandas.stats import ols
 
 
-import smpdflib.lhaindex as lhaindex
-import smpdflib.plotutils as plotutils
+from smpdflib import lhaindex
+from smpdflib import plotutils
 
 import applwrap
 
@@ -233,6 +233,9 @@ class PDF(TupleComp):
         if name.startswith('__'):
             raise AttributeError()
         return lhaindex.parse_info(self.name)[name]
+
+    def __len__(self):
+        return self.NumMembers
 
 
 class Result():
