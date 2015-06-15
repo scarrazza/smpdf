@@ -711,6 +711,39 @@ def corrcoeff(prediction, pdf_val):
             (np.std(prediction,ddof=1)*np.std(pdf_val,ddof=1))
             )
 
+
+
+def compute_correlations2(result, db = None):
+    pdf, obs = result.pdf, result.obs
+    def make_key(pdf, obs):
+        return str(('CORRELATIONS', pdf.get_key(), obs.get_key()))
+    if db is not None:
+        key = make_key(pdf, obs)
+        if key in db:
+            return db[key]
+    pdf_val = get_X(pdf, reshape=False, Q=obs.meanQ)
+    predictions = result._all_vals
+    nbins = prediction.shape[0]
+    for b in range(nbins):
+        X = çç
+
+    prediction = result._all_vals
+    corrs = bin_corrs_from_X(prediction, pdf_val)
+    if db is not None:
+        db[key] = corrs
+    return corrs
+
+def bin_corrs_from_X(bin_val, X):
+    nx, nf, nrep = X.shape
+    threshold = []
+    cc = np.zeros(shape=(nf, nx))
+    for f in range(nf):
+        for x in range(nx):
+            cc[f, x] = corrcoeff(bin_val, X[x,f,:])
+    threshold.append( np.max(np.abs(cc))*0.5)
+    return cc, threshold
+
+
 Corrlist = namedtuple('Corrlist', ('cc', 'threshold', 'obs', 'xgrid', 'fl'))
 
 def compute_correlations(result, pdf, db=None):
@@ -748,6 +781,7 @@ def compute_correlations(result, pdf, db=None):
         db[key] = tuple_result
 
     return result
+
 
 def match_spec(corrlist, smpdf_spec):
     corr_obs = {item.obs:item for item in corrlist}
@@ -819,17 +853,15 @@ def get_mask(corrlist):
     mask = (ccmax.reshape(fl.n*xgrid.n))
     return mask
 
-def get_X(pdf):
-    q2min = pdf.q2min_rep0
-
-    mean, replicas = pdf.grid_values(q2min)
-
+def get_X(pdf, reshape=False, Q=None):
     # Step 1: create pdf covmat
-    print ("\n- Building PDF matrix at %f GeV:" % q2min)
-    replicas = replicas.reshape(replicas.shape[0],
-                                replicas.shape[1]*replicas.shape[2])
-    mean = mean.reshape(mean.size)
+    if Q is None:
+        Q = pdf.q2min_rep0
+    print ("\n- Building PDF matrix at %f GeV:" % Q)
+    mean, replicas = pdf.grid_values(Q)
     X = (replicas - mean).T
+    if reshape:
+        X = X.reshape(X.shape[0], X.shape[1]*X.shape[2])
     print (" [Done] ")
     return X
 
