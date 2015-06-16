@@ -343,6 +343,9 @@ class Result():
         """Give the prdictions for each bin"""
         return self._all_vals.iterrows()
 
+    def __len__(self):
+        return len(self._all_vals)
+
 
     def _violin_data(self, rel_to=None):
         absdata = pd.concat(self.sample_values(10000),axis=1)
