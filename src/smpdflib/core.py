@@ -339,12 +339,14 @@ class Result():
         """Iterate over all data, first being the central prediction"""
         return iter(self._data)
 
-    def __iter__(self):
-        """Give the prdictions for each bin"""
-        return self._all_vals.iterrows()
-
-    def __len__(self):
-        return len(self._all_vals)
+#==============================================================================
+#     def __iter__(self):
+#         """Give the prdictions for each bin"""
+#         return self._all_vals.iterrows()
+#
+#     def __len__(self):
+#         return len(self._all_vals)
+#==============================================================================
 
 
     def _violin_data(self, rel_to=None):
