@@ -20,6 +20,7 @@ import numbers
 import multiprocessing
 
 import numpy as np
+import numpy.linalg as la
 import pandas as pd
 import yaml
 import scipy.stats
@@ -334,10 +335,14 @@ class Result():
     def __getitem__(self, item):
         return self._data[item]
 
-    #TODO: Should this be the default iterator?
-    def iterall(self):
+    def iterreplicas(self):
         """Iterate over all data, first being the central prediction"""
         return iter(self._data)
+
+    def __iter__(self):
+        """Give the prdictions for each bin"""
+        return self._all_vals.iterrows()
+
 
     def _violin_data(self, rel_to=None):
         absdata = pd.concat(self.sample_values(10000),axis=1)
@@ -713,7 +718,7 @@ def corrcoeff(prediction, pdf_val):
 
 
 
-def compute_correlations2(result, db = None):
+def compute_correlations2(result, db=None):
     pdf, obs = result.pdf, result.obs
     def make_key(pdf, obs):
         return str(('CORRELATIONS', pdf.get_key(), obs.get_key()))
@@ -721,26 +726,42 @@ def compute_correlations2(result, db = None):
         key = make_key(pdf, obs)
         if key in db:
             return db[key]
-    pdf_val = get_X(pdf, reshape=False, Q=obs.meanQ)
-    predictions = result._all_vals
-    nbins = prediction.shape[0]
-    for b in range(nbins):
-        X = çç
 
-    prediction = result._all_vals
-    corrs = bin_corrs_from_X(prediction, pdf_val)
+    predictions = result._all_vals
+    nbins = predictions.shape[0]
+    ccs , thresholds = [],[]
+    for b in range(nbins):
+        X = get_X(pdf, reshape=False, Q=obs.meanQ[b])
+        cc, threshold = bin_corrs_from_X(predictions.iloc[b,:], X)
+        ccs.append(ccs)
+        thresholds.append(threshold)
+    corrs = ccs, thresholds
     if db is not None:
         db[key] = corrs
     return corrs
 
+
+def corrmess(result):
+    pdf, obs = result.pdf, result.obs
+    predictions = result._all_vals
+    nbins = predictions.shape[0]
+    R = None
+    for b in range(nbins):
+        X = get_X(pdf, reshape=False, Q=obs.meanQ[b])
+        if R is not None:
+            X = np.dot(X, R)
+        cc, threshold = bin_corrs_from_X(predictions.iloc[b,:], X)
+
+        R = yield cc, threshold
+
 def bin_corrs_from_X(bin_val, X):
     nx, nf, nrep = X.shape
-    threshold = []
     cc = np.zeros(shape=(nf, nx))
+    #TODO: Optimize this
     for f in range(nf):
         for x in range(nx):
             cc[f, x] = corrcoeff(bin_val, X[x,f,:])
-    threshold.append( np.max(np.abs(cc))*0.5)
+    threshold = np.max(np.abs(cc))*0.5
     return cc, threshold
 
 
@@ -841,13 +862,13 @@ def optimize_hessian(X):
 
 def get_mask(corrlist):
     first = corrlist[0]
-    ccmax = np.zeros(shape=(first.cc.shape[1],
-                            first.cc.shape[2]), dtype=bool)
+    ccmax = np.zeros(shape=(first[0].shape[1],
+                            first[1].shape[2]), dtype=bool)
     xgrid = first.xgrid
     fl = first.fl
     for c in corrlist:
-        cc = c.cc
-        threshold = c.threshold
+        cc = c[0]
+        threshold = c[1]
         for bin in range(len(threshold)):
             ccmax |= (np.abs(cc[bin])>=threshold[bin])
     mask = (ccmax.reshape(fl.n*xgrid.n))
@@ -865,37 +886,54 @@ def get_X(pdf, reshape=False, Q=None):
     print (" [Done] ")
     return X
 
+def decompose_eigenvectors(X):
+    #TODO: !!!
+    neig = 10
+    U,s,Vt = la.svd(X)
+    Pt = Vt[:neig,:]
+    #Wt = np.zeros_like(Vt)
+    Rt = Vt[neig:,:]
+    return Pt.T, Rt.T
 
+def get_smpdf_lincomb(pdf, pdf_results, Rold = None, full_grid = True):
+    #TODO: !!!!
+    Neig_total = 120
+    index = 0
+    nrep = len(pdf)
+    lincomb = np.zeros(shape=(nrep,Neig_total))
+    for result in pdf_results:
+        for b in range(result.nbins):
+            X = get_X(pdf, result.meanQ)
+            predictions = result._all_vals.iloc[b,:]
+            if Rold is not None:
+                X = np.dot(X,Rold)
+                predictions = np.dot(Rold, predictions)
+            mask = get_mask(bin_corrs_from_X(result, X))
+            X = X[mask]
+            P,R = decompose_eigenvectors(X)
+            if Rold is not None:
+                P = np.dot(Rold, P)
+                R = np.dot(Rold, R)
+            Rold = R
 
-def create_smpdf(pdf, corrlist, output_dir, name,  N_eig, smpdf_spec = None,
+            neig = P.shape[1]
+            lincomb[:,index:index+neig] = P
+            index += neig
+    if index < Neig_total and full_grid:
+        lincomb[:, index:Neig_total] = R[:, :Neig_total - index]
+    elif not full_grid:
+        lincomb = lincomb[:, :index]
+    return lincomb
+
+def create_smpdf(pdf, results_table, output_dir, name,  N_eig,
+                 smpdf_spec,
                  full_grid=False,):
-    from mc2hlib.common import compress_X_abs as compress_X
     from smpdflib.lhio import hessian_from_lincomb
 
-    if smpdf_spec is None:
-        spec = {'Observables': corrlist}
-    else:
-        spec = match_spec(corrlist, smpdf_spec)
+    pdf_table = results_table[results_table.PDF == pdf]
+
+    vec = get_smpdf_lincomb(pdf, pdf_table)
 
 
-    mask = get_mask(corrlist)
-
-    print("[Info] Keeping %d nf*nx of %d" %
-          (np.count_nonzero(mask), mask.size, ))
-
-    X = get_X(pdf)
-
-    Xm = X[mask,:]
-    #TODO: Make this more efficient: compute only once the SVD.
-    # Step 2: solve the system
-    print("\n- Quick test:")
-    vec, cov = compress_X(Xm, N_eig)
-
-    if full_grid:
-        raise NotImplementedError()
-
-
-    # Step 4: exporting to LHAPDF
-    print("\n- Exporting new grid...")
     return hessian_from_lincomb(pdf, vec, folder=output_dir,
                          set_name= name)
