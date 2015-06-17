@@ -760,12 +760,11 @@ def corrmess(result):
         R = yield cc, threshold
 
 def bin_corrs_from_X(bin_val, X):
-    nx, nf, nrep = X.shape
-    cc = np.zeros(shape=(nf, nx))
+    nxf, nrep = X.shape
+    cc = np.zeros(shape=(nxf))
     #TODO: Optimize this
-    for f in range(nf):
-        for x in range(nx):
-            cc[f, x] = corrcoeff(bin_val, X[x,f,:])
+    for i in range(nxf):
+        cc[i] = corrcoeff(bin_val, X[i,:])
     threshold = np.max(np.abs(cc))*0.5
     return cc, threshold
 
@@ -865,35 +864,33 @@ def optimize_hessian(X):
             break
     return vec, cov
 
-def get_mask(corrlist):
-    first = corrlist[0]
-    ccmax = np.zeros(shape=(first[0].shape[1],
-                            first[1].shape[2]), dtype=bool)
-    xgrid = first.xgrid
-    fl = first.fl
-    for c in corrlist:
-        cc = c[0]
-        threshold = c[1]
-        for bin in range(len(threshold)):
-            ccmax |= (np.abs(cc[bin])>=threshold[bin])
-    mask = (ccmax.reshape(fl.n*xgrid.n))
-    return mask
+#==============================================================================
+# def get_mask(cc, threshold):
+#     firstcc = corrlist[0][0]
+#     ccmax = np.zeros_like(firstcc, dtype=bool)
+#     for c in corrlist:
+#         cc = c[0]
+#         threshold = c[1]
+#         ccmax |= (np.abs(cc) >= threshold)
+#     mask = ccmax
+#     return mask
+#==============================================================================
 
-def get_X(pdf, reshape=False, Q=None):
+def get_X(pdf, Q=None,  reshape=False):
     # Step 1: create pdf covmat
     if Q is None:
         Q = pdf.q2min_rep0
     print ("\n- Building PDF matrix at %f GeV:" % Q)
     mean, replicas = pdf.grid_values(Q)
-    X = (replicas - mean).T
+    Xt = (replicas - mean)
     if reshape:
-        X = X.reshape(X.shape[0], X.shape[1]*X.shape[2])
+        Xt = Xt.reshape(Xt.shape[0], Xt.shape[1]*Xt.shape[2])
     print (" [Done] ")
-    return X
+    return Xt.T
 
 def decompose_eigenvectors(X):
     #TODO: !!!
-    neig = 10
+    neig = np.min([np.min(X.shape), 20])
     U,s,Vt = la.svd(X)
     Pt = Vt[:neig,:]
     #Wt = np.zeros_like(Vt)
@@ -904,40 +901,93 @@ def get_smpdf_lincomb(pdf, pdf_results, Rold = None, full_grid = True):
     #TODO: !!!!
     Neig_total = 120
     index = 0
-    nrep = len(pdf)
+    nrep = len(pdf) - 1
+    #We must divide by norm since we are reproducing the covmat and not XX.T
+    norm = np.sqrt(nrep - 1)
     lincomb = np.zeros(shape=(nrep,Neig_total))
     for result in pdf_results:
         for b in range(result.nbins):
-            X = get_X(pdf, result.meanQ)
-            predictions = result._all_vals.iloc[b,:]
+            Xreal = get_X(pdf, Q=result.meanQ[b], reshape=True)
+            prediction = result._all_vals.iloc[b,:]
+            original_diffs = prediction - np.mean(prediction)
             if Rold is not None:
-                X = np.dot(X,Rold)
-                predictions = np.dot(Rold, predictions)
-            mask = get_mask(bin_corrs_from_X(result, X))
+                X = np.dot(Xreal,Rold)
+                prediction_diffs = np.dot(original_diffs, Rold)
+            else:
+                prediction_diffs = original_diffs
+                X = Xreal
+            cc, threshold = bin_corrs_from_X(prediction_diffs, X)
+
+            #la.norm is std and is conserved in an exact rotation
+            # (but np.std is wrong after rotating)
+            accuracy = 1 - la.norm(prediction_diffs)/la.norm(original_diffs)
+
+            print("Current accuracy : %.4f" % accuracy)
+
+            if threshold < 0.01 or accuracy > 0.90:
+                #We have already selected this x range
+                print("Observable %s, bin %s is already well reproduced "
+                      "(threshold: %4f)" %
+                      (result.obs, b+1, threshold))
+
+                continue
+            #import IPython
+            #IPython.embed()
+            mask = np.abs(cc) > threshold
             X = X[mask]
+
+            print("Using a %s X matrix to compute eigenvectors "
+                  "for observable %s, bin %s" % (X.shape, result.obs, b+1))
+
+            print("Correlation threshold is: %.4f" % threshold)
+
+
             P,R = decompose_eigenvectors(X)
+            print("Obtained %d eigenvectors" % P.shape[1])
             if Rold is not None:
                 P = np.dot(Rold, P)
                 R = np.dot(Rold, R)
             Rold = R
 
+
+            prediction_diffs = np.dot(original_diffs, Rold)
+            new_accuracy = 1 - la.norm(prediction_diffs)/la.norm(original_diffs)
+            print("New accuracy : %.4f" % new_accuracy)
+
             neig = P.shape[1]
+            if index + neig >= Neig_total:
+                to_keep = Neig_total - index
+                lincomb[:, index:Neig_total] = P[:, :to_keep]
+                return lincomb/norm
             lincomb[:,index:index+neig] = P
             index += neig
+
+#np.sum(Us**2, axis=1)
+            XV = np.dot(Xreal, lincomb/norm)
+            covest = np.dot(XV, XV.T)
+            stdest = np.sqrt(np.diag(covest))[mask]
+            mean = np.mean(Xreal[mask], axis=1)
+            std = np.std(Xreal[mask], axis=1)
+            smt = np.sum((stdest/ std)*mean)/np.sum(mean)
+            print("Estimator: %s " % smt )
+
+
     if index < Neig_total and full_grid:
         lincomb[:, index:Neig_total] = R[:, :Neig_total - index]
     elif not full_grid:
         lincomb = lincomb[:, :index]
-    return lincomb
+    return lincomb/norm
 
 def create_smpdf(pdf, results_table, output_dir, name,  N_eig,
                  smpdf_spec,
                  full_grid=False,):
     from smpdflib.lhio import hessian_from_lincomb
 
-    pdf_table = results_table[results_table.PDF == pdf]
+    #It fails without .get_values(). No iddea why.
+    pdf_table = results_table[results_table.PDF.get_values() == pdf].Result.unique()
 
-    vec = get_smpdf_lincomb(pdf, pdf_table)
+    vec = get_smpdf_lincomb(pdf, pdf_table, full_grid=full_grid)
+    print("Final linear combination has %d eigenvectors" % vec.shape[1])
 
 
     return hessian_from_lincomb(pdf, vec, folder=output_dir,

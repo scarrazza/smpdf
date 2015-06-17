@@ -58,7 +58,7 @@ def main(conf, output_dir, db, quiet=False):
 
 def print_results(results):
     for result in results:
-        for member in result.iterall():
+        for member in result.iterreplicas():
             print ("\n- %s replica %d"% (result.pdf,member))
             print ("- APPLgrid convolution results:")
             for i, val in enumerate(result[member]):
