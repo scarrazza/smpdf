@@ -543,7 +543,7 @@ def make_observable(name, *args, **kwargs):
 
 def convolve_one(pdf, observable):
     import applwrap
-    from smpdflib.core import PDF, APPLGridObservable
+    from smpdflib.core import PDF, APPLGridObservable #analysis:ignore
     print(pdf)
     print(observable)
     res = {}
