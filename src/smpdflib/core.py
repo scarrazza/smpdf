@@ -722,43 +722,6 @@ def corrcoeff(prediction, pdf_val):
             )
 
 
-
-def compute_correlations2(result, db=None):
-    pdf, obs = result.pdf, result.obs
-    def make_key(pdf, obs):
-        return str(('CORRELATIONS', pdf.get_key(), obs.get_key()))
-    if db is not None:
-        key = make_key(pdf, obs)
-        if key in db:
-            return db[key]
-
-    predictions = result._all_vals
-    nbins = predictions.shape[0]
-    ccs , thresholds = [],[]
-    for b in range(nbins):
-        X = get_X(pdf, reshape=False, Q=obs.meanQ[b])
-        cc, threshold = bin_corrs_from_X(predictions.iloc[b,:], X)
-        ccs.append(ccs)
-        thresholds.append(threshold)
-    corrs = ccs, thresholds
-    if db is not None:
-        db[key] = corrs
-    return corrs
-
-
-def corrmess(result):
-    pdf, obs = result.pdf, result.obs
-    predictions = result._all_vals
-    nbins = predictions.shape[0]
-    R = None
-    for b in range(nbins):
-        X = get_X(pdf, reshape=False, Q=obs.meanQ[b])
-        if R is not None:
-            X = np.dot(X, R)
-        cc, threshold = bin_corrs_from_X(predictions.iloc[b,:], X)
-
-        R = yield cc, threshold
-
 def bin_corrs_from_X(bin_val, X):
     nxf, nrep = X.shape
     cc = np.zeros(shape=(nxf))
@@ -769,45 +732,6 @@ def bin_corrs_from_X(bin_val, X):
     return cc, threshold
 
 
-Corrlist = namedtuple('Corrlist', ('cc', 'threshold', 'obs', 'xgrid', 'fl'))
-
-def compute_correlations(result, pdf, db=None):
-    """Compute correlations"""
-    from mc2hlib.common import load_pdf
-
-    def make_key(pdf, obs):
-        return str(('CORRELATIONS', pdf.get_key(), obs.get_key()))
-
-    if db is not None:
-        key = make_key(result.pdf, result.obs)
-        if key in db:
-            return Corrlist(*db[key])
-
-    lpdf, fl, xgrid = load_pdf(str(pdf), 1.0)
-    cc = np.zeros(shape=(result.nbins, fl.n, xgrid.n))
-
-    threshold = []
-    for bin in range(result.nbins):
-
-        lpdf.setQ(result.meanQ[bin])
-
-        obs = np.array([result[rep][bin] for rep in range(1,lpdf.n_rep+1)])
-
-        for f in range(fl.n):
-            for x in range(xgrid.n):
-                cc[bin,f,x] = corrcoeff(obs, lpdf.xfxQ[:,f,x])
-
-        threshold.append( np.max(np.abs(cc[bin]))*0.5 )
-
-    #It is easier to pickle and pickle tuples than namedtuples
-    tuple_result = (cc, threshold, result.obs, xgrid, fl)
-    result = Corrlist(*tuple_result)
-    if db is not None:
-        db[key] = tuple_result
-
-    return result
-
-
 def match_spec(corrlist, smpdf_spec):
     corr_obs = {item.obs:item for item in corrlist}
     result = {}
@@ -816,6 +740,7 @@ def match_spec(corrlist, smpdf_spec):
 
     return result
 
+#TODO: Fix this to use new interfaces
 def correlations(data_table, db=None):
 
     pdfcorrlist = []
@@ -828,53 +753,6 @@ def correlations(data_table, db=None):
         pdfcorrlist += [(pdf, corrlist)]
     return  pdfcorrlist
 
-#==============================================================================
-# def compute_estimator():
-#     rmask = mask.reshape(fl.n, xgrid.n)
-#     est = Norm = 0
-#     for f in range(fl.n):
-#         for x in range(xgrid.n):
-#             if rmask[f,x]:
-#                 t0 = pdf.std[f,x]
-#                 t1 = next(stdh)
-#                 est += abs(pdf.f0[f,x] * (1-t1/t0))
-#                 Norm += abs(pdf.f0[f,x])
-#
-#     est /= Norm
-#==============================================================================
-#    return est
-
-#TODO: Integrate in mc2hessian
-def optimize_hessian(X):
-    from mc2hlib.common import compress_X_abs as compress_X
-    std = np.std(X, axis=1)
-    for neig in range(1, min(X.shape)):
-        vec, cov = compress_X(X, neig)
-
-        stdh = np.sqrt(np.diag(cov))
-        # TODO: is this the best estimator? and cut criteria?
-        # Step 3: quick test
-        est = np.sum(np.abs(std - stdh)/std)/len(std)
-        print ("Neig %3d, estimator: %e" % (neig, est))
-
-
-        #est = compute_estimator()
-
-        if est <= 1e-3:
-            break
-    return vec, cov
-
-#==============================================================================
-# def get_mask(cc, threshold):
-#     firstcc = corrlist[0][0]
-#     ccmax = np.zeros_like(firstcc, dtype=bool)
-#     for c in corrlist:
-#         cc = c[0]
-#         threshold = c[1]
-#         ccmax |= (np.abs(cc) >= threshold)
-#     mask = ccmax
-#     return mask
-#==============================================================================
 
 def get_X(pdf, Q=None,  reshape=False):
     # Step 1: create pdf covmat
