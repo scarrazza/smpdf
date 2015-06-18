@@ -1,0 +1,22 @@
+observables:
+   - {name: data/higgs/*.root, order: 1 }
+
+actiongroups:
+   - prefix: mytestxx12
+     pdfsets :
+      - 1000rep
+     actions:
+      - smpdf      
+      - installgrids
+     N_eig: 20
+   - prefix: compare
+     pdfsets:
+        - 1000rep
+        - mytestxx12*
+     base_pdf: 1000rep
+     fmt: png
+     actions:
+        - ciplots
+        - violinplots
+        - savedata
+      
