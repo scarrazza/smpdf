@@ -15,7 +15,7 @@ __email__ = 'stefano.carrazza@mi.infn.it'
 
 import os.path as osp
 import sys
-from collections import defaultdict, OrderedDict, namedtuple
+from collections import defaultdict, OrderedDict
 import numbers
 import multiprocessing
 
@@ -772,16 +772,33 @@ def get_X(pdf, Q=None,  reshape=False):
     print (" [Done] ")
     return Xt.T
 
-def decompose_eigenvectors(X):
-    #TODO: !!!
-    neig = np.min([np.min(X.shape), 20])
+def decompose_eigenvectors(X, predictions ,target_estimator):
+    target_value = target_estimator
+
     U,s,Vt = la.svd(X)
+
+    newrot = np.dot(Vt, predictions)
+    total = np.dot(predictions, predictions)
+    s = 0
+    print("Target value: %.4f" % target_value)
+    for i in range(len(newrot)):
+        s += newrot[i]**2
+        value = s/total
+        print("Added new eigenvector. Value: %.4f" % value)
+
+        if value >= target_value:
+            neig = i + 1
+            break
+    else: #for .. else is no break
+        neig = len(newrot)
+
     Pt = Vt[:neig,:]
     #Wt = np.zeros_like(Vt)
     Rt = Vt[neig:,:]
     return Pt.T, Rt.T
 
-def get_smpdf_lincomb(pdf, pdf_results, Rold = None, full_grid = True):
+def get_smpdf_lincomb(pdf, pdf_results, Rold = None, full_grid = True,
+                      target_error = 0.1):
     #TODO: !!!!
     Neig_total = 120
     index = 0
@@ -789,6 +806,12 @@ def get_smpdf_lincomb(pdf, pdf_results, Rold = None, full_grid = True):
     #We must divide by norm since we are reproducing the covmat and not XX.T
     norm = np.sqrt(nrep - 1)
     lincomb = np.zeros(shape=(nrep,Neig_total))
+
+
+    #Estimator= norm**2(rotated)/norm**2(total) which is additive when adding
+    #eigenvecotors
+    #Error = (1 - sqrt(1-estimator))
+    target_estimator = 1 - (1-target_error)**2
     for result in pdf_results:
         for b in range(result.nbins):
             Xreal = get_X(pdf, Q=result.meanQ[b], reshape=True)
@@ -796,27 +819,29 @@ def get_smpdf_lincomb(pdf, pdf_results, Rold = None, full_grid = True):
             original_diffs = prediction - np.mean(prediction)
             if Rold is not None:
                 X = np.dot(Xreal,Rold)
-                prediction_diffs = np.dot(original_diffs, Rold)
+                rotated_diffs = np.dot(original_diffs, Rold)
             else:
-                prediction_diffs = original_diffs
+                rotated_diffs = original_diffs
                 X = Xreal
-            cc, threshold = bin_corrs_from_X(prediction_diffs, X)
+            cc, threshold = bin_corrs_from_X(rotated_diffs, X)
+
 
             #la.norm is std and is conserved in an exact rotation
             # (but np.std is wrong after rotating)
-            accuracy = 1 - la.norm(prediction_diffs)/la.norm(original_diffs)
+            rotsqnorm = np.dot(rotated_diffs, rotated_diffs)
+            origsqnorm = np.dot(original_diffs, original_diffs)
+            estimator = rotsqnorm/origsqnorm
+            error = 1 - np.sqrt(1 - estimator)
 
-            print("Current accuracy : %.4f" % accuracy)
+            print("Current error : %.4f" % error)
 
-            if threshold < 0.01 or accuracy > 0.90:
+            if error < target_error:
                 #We have already selected this x range
                 print("Observable %s, bin %s is already well reproduced "
                       "(threshold: %4f)" %
                       (result.obs, b+1, threshold))
 
                 continue
-            #import IPython
-            #IPython.embed()
             mask = np.abs(cc) > threshold
             X = X[mask]
 
@@ -826,7 +851,8 @@ def get_smpdf_lincomb(pdf, pdf_results, Rold = None, full_grid = True):
             print("Correlation threshold is: %.4f" % threshold)
 
 
-            P,R = decompose_eigenvectors(X)
+            P,R = decompose_eigenvectors(X, rotated_diffs,
+                      target_estimator=(estimator - target_estimator)/estimator)
             print("Obtained %d eigenvectors" % P.shape[1])
             if Rold is not None:
                 P = np.dot(Rold, P)
@@ -834,9 +860,17 @@ def get_smpdf_lincomb(pdf, pdf_results, Rold = None, full_grid = True):
             Rold = R
 
 
-            prediction_diffs = np.dot(original_diffs, Rold)
-            new_accuracy = 1 - la.norm(prediction_diffs)/la.norm(original_diffs)
-            print("New accuracy : %.4f" % new_accuracy)
+            rotated_diffs = np.dot(original_diffs, Rold)
+            debug_diffs = np.dot(original_diffs, P)
+            debugsqnorm = np.dot(debug_diffs, debug_diffs)
+
+            rotsqnorm = np.dot(rotated_diffs, rotated_diffs)
+            origsqnorm = np.dot(original_diffs, original_diffs)
+            new_error = 1 - np.sqrt((origsqnorm - rotsqnorm)/origsqnorm)
+
+            debug_aaa = (debugsqnorm + rotsqnorm)/origsqnorm
+            print(debug_aaa)
+            print("New error : %.4f" % new_error)
 
             neig = P.shape[1]
             if index + neig >= Neig_total:
@@ -846,7 +880,6 @@ def get_smpdf_lincomb(pdf, pdf_results, Rold = None, full_grid = True):
             lincomb[:,index:index+neig] = P
             index += neig
 
-#np.sum(Us**2, axis=1)
             XV = np.dot(Xreal, lincomb/norm)
             covest = np.dot(XV, XV.T)
             stdest = np.sqrt(np.diag(covest))[mask]
@@ -864,7 +897,7 @@ def get_smpdf_lincomb(pdf, pdf_results, Rold = None, full_grid = True):
 
 def create_smpdf(pdf, results_table, output_dir, name,  N_eig,
                  smpdf_spec,
-                 full_grid=False,):
+                 full_grid=False, db = None):
     from smpdflib.lhio import hessian_from_lincomb
 
     #It fails without .get_values(). No iddea why.
