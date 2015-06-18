@@ -9,6 +9,7 @@ import argparse
 import shelve
 import shutil
 import logging
+import gc
 
 import smpdflib.actions as actions
 
@@ -24,7 +25,7 @@ logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
 def main(conf, output_dir, db, quiet=False):
     import pandas as pd
 
-    resultset = []
+    #resultset = []
     for group in conf.actiongroups:
         pdfsets, observables = group['pdfsets'], group['observables']
         resources = group.copy()
@@ -33,7 +34,7 @@ def main(conf, output_dir, db, quiet=False):
         #TODO Do this better
         if any(actions.requires_result(act) for act in group['actions']):
             results = lib.produce_results(pdfsets, observables, db)
-            resultset.append(results)
+            #resultset.append(results)
             data_table = lib.results_table(results)
             summed_table = lib.summed_results_table(results)
 
@@ -58,7 +59,11 @@ def main(conf, output_dir, db, quiet=False):
         for action, res in actions.do_actions(group['actions'], resources):
             if not quiet:
                 print("Finalized action '%s'." % action)
-    return resultset
+        del resources
+        #import smpdflib.lhagrids
+        #smpdflib.lhagrids.load_lhapdf.cache_clear()
+        gc.collect()
+    #return resultset
 
 def print_results(results):
     for result in results:

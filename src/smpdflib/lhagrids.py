@@ -58,7 +58,7 @@ def get_pdf_values(pdf, Q=None, xgrid=None, fl=None):
     return mean, replicas
 
 #TODO: Determine how much to cache this
-@fastcache.lru_cache(maxsize=4)
+#@fastcache.lru_cache(maxsize=4)
 def load_lhapdf(pdf):
     _pdf = lhapdf.mkPDFs(str(pdf))
     return _pdf
