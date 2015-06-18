@@ -33,6 +33,7 @@ from smpdflib import plotutils
 import applwrap
 
 ORDERS_QCD = {0: 'LO', 1: 'NLO', 2: 'NNLO'}
+NUMS_QCD = {val: key for key , val in ORDERS_QCD.items()}
 
 #for N_f = 4, LHAPDF's M_Z is actually M_{charm}
 M_REF = defaultdict(lambda: 'Z', {4:'c'})
@@ -72,6 +73,11 @@ class Observable(BaseObservable):
     _nbins = None
     def __init__(self, filename, order):
         self.filename = filename
+        if not order in ORDERS_QCD:
+            if order in NUMS_QCD:
+                order = NUMS_QCD[order]
+            else:
+                raise ValueError("Invalid value for order")
         self.order = order
 
     @property
