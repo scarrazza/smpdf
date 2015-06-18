@@ -745,7 +745,6 @@ def match_spec(corrlist, smpdf_spec):
 
 #TODO: Fix this to use new interfaces
 def correlations(data_table, db=None):
-
     pdfcorrlist = []
     for pdf, pdf_table in data_table.groupby('PDF'):
         results = pdf_table.Result.unique()
@@ -793,7 +792,7 @@ def decompose_eigenvectors(X, predictions ,target_estimator):
     Rt = Vt[neig:,:]
     return Pt.T, Rt.T
 
-def get_smpdf_lincomb(pdf, pdf_results, Rold = None, full_grid = True,
+def get_smpdf_lincomb(pdf, pdf_results, Rold = None, full_grid = False,
                       target_error = 0.1):
     #TODO: !!!!
     Neig_total = 120
@@ -809,6 +808,8 @@ def get_smpdf_lincomb(pdf, pdf_results, Rold = None, full_grid = True,
     #Error = (1 - sqrt(1-estimator))
     target_estimator = 1 - (1-target_error)**2
     for result in pdf_results:
+        if result.pdf != pdf:
+            raise ValueError("PDF results must be for %s" % pdf)
         for b in range(result.nbins):
             Xreal = get_X(pdf, Q=result.meanQ[b], reshape=True)
             prediction = result._all_vals.iloc[b,:]
@@ -887,13 +888,14 @@ def get_smpdf_lincomb(pdf, pdf_results, Rold = None, full_grid = True,
         lincomb = lincomb[:, :index]
     return lincomb/norm
 
-def create_smpdf(pdf, results_table, output_dir, name,  N_eig,
-                 smpdf_spec,
+def create_smpdf(pdf, pdf_results, output_dir, name,  smpdf_tolerance=0.05,
+                 Neig_total = 200,
                  full_grid=False, db = None):
     from smpdflib.lhio import hessian_from_lincomb
 
-    pdf_table = results_table[results_table.PDF.get_values() == pdf].Result.unique()
-    vec = get_smpdf_lincomb(pdf, pdf_table, full_grid=full_grid)
+
+    vec = get_smpdf_lincomb(pdf, pdf_results, full_grid=full_grid,
+                            target_error=smpdf_tolerance)
     logging.info("Final linear combination has %d eigenvectors" % vec.shape[1])
 
 

@@ -23,7 +23,7 @@ db = shelve.open("db/db")
 
 results = core.produce_results([pdf], observables, db = db)
 
-core.create_smpdf(pdf, results, '.', 'hall2', 1231, None, full_grid=False,
-                  db = db)
+core.create_smpdf(pdf, results, '.', 'hallN', full_grid=False,
+                  db = db,  smpdf_tolerance=0.05)
 
 db.close()

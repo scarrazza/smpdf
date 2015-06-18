@@ -181,15 +181,19 @@ def gen_gridnames(action, group, config):
 
 
 @check(gen_gridnames)
-@require_args('N_eig')
-def create_smpdf(pdfcorrlist, output_dir, grid_names, N_eig, full_grid=False):
+#@require_args('N_eig')
+def create_smpdf(data_table, output_dir, grid_names, smpdf_tolerance=0.05,
+                 Neig_total = 200, full_grid=False, db = None):
     import smpdflib.core as lib
     gridpaths = []
-    for (pdf, corrlist) in pdfcorrlist:
-        result = lib.create_smpdf(pdf, corrlist, output_dir,
+    for (pdf, pdf_table) in data_table.groupby('PDF'):
+        pdf_results = pdf_table.Result.unique()
+        result = lib.create_smpdf(pdf, pdf_results, output_dir,
                                   grid_names[('smpdf', pdf)],
-                                  N_eig=N_eig,
-                                  full_grid=full_grid)
+                                  smpdf_tolerance=smpdf_tolerance,
+                                  Neig_total = Neig_total,
+                                  full_grid=full_grid,
+                                  db=db)
         gridpaths.append(result)
     return gridpaths
 
@@ -239,7 +243,8 @@ ACTIONS = REALACTIONS | METAACTIONS
 #TODO: Do this better
 def requires_result(action):
     args = inspect.getargspec(ACTION_DICT[action]).args
-    return ('results' in args) or ('summed_table' in args) or ('data_table' in args) or ('pdfcorrlist' in args)
+    return (('results' in args) or ('summed_table' in args) or
+           ('data_table' in args) or ('pdfcorrlist' in args))
 
 #TODO: Do this better
 def requires_correlations(action):

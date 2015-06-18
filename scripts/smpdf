@@ -53,7 +53,8 @@ def main(conf, output_dir, db, quiet=False):
         prefix = group['prefix']
         resources.update({ 'output_dir':output_dir,
                        'prefix':prefix,
-                       'pdfsets': pdfsets})
+                       'pdfsets': pdfsets,
+                       'db': db})
         for action, res in actions.do_actions(group['actions'], resources):
             if not quiet:
                 print("Finalized action '%s'." % action)
