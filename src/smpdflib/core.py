@@ -908,4 +908,4 @@ def create_smpdf(pdf, results_table, output_dir, name,  N_eig,
 
 
     return hessian_from_lincomb(pdf, vec, folder=output_dir,
-                         set_name= name)
+                         set_name= name, db=db)

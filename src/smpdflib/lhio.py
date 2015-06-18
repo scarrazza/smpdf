@@ -53,7 +53,6 @@ def read_all_xqf(f):
             return
         yield result
 
-#TODO: Make pdf_name the pdf_name instead of path
 def load_replica(rep, pdf_name, pdf=None, rep0grids=None):
 
     sys.stdout.write("-> Reading replica from LHAPDF %d \r" % rep)
@@ -104,13 +103,20 @@ def write_replica(rep, pdf_name, header, subgrids):
     with open(pdf_name + "_" + suffix + ".dat", 'wb') as out:
         _rep_to_buffer(out, header, subgrids)
 
-def load_all_replicas(pdf):
+def load_all_replicas(pdf, db=None):
+    if db is not None:
+        key = "(load_all_replicas, %s)" % pdf
+        if key in db:
+            return db[key]
     rep0headers, rep0grids = load_replica(0,str(pdf))
     lha_pdf = lhagrids.load_lhapdf(str(pdf))
 
     headers, grids = zip(*[load_replica(rep, str(pdf), lha_pdf[rep], rep0grids)
                          for rep in range(1, len(pdf))])
-    return [rep0headers] + list(headers), [rep0grids] + list(grids)
+    result = [rep0headers] + list(headers), [rep0grids] + list(grids)
+    if db is not None:
+        db[key] = result
+    return result
 
 def big_matrix(gridlist):
     central_value = gridlist[0]
@@ -121,7 +127,7 @@ def big_matrix(gridlist):
         raise ValueError("Incompatible grid specifications")
     return X
 
-def hessian_from_lincomb(pdf, V, set_name=None, folder = None):
+def hessian_from_lincomb(pdf, V, set_name=None, folder = None, db=None):
     """Construct a new LHAPDF grid from a linear combination of members"""
 
     # preparing output folder
@@ -151,7 +157,7 @@ def hessian_from_lincomb(pdf, V, set_name=None, folder = None):
             else:
                 out.write(l)
 
-    headers, grids = load_all_replicas(pdf)
+    headers, grids = load_all_replicas(pdf, db=db)
     hess_name = set_root + '/' + set_name
     result  = (big_matrix(grids).dot(V)).add(grids[0], axis=0, )
     hess_header = b"PdfType: error\nFormat: lhagrid1\n"
