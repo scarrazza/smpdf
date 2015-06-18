@@ -7,8 +7,12 @@ Created on Tue Jun 16 15:11:04 2015
 #TODO: Convert this into proper unit test
 import glob
 import shelve
+import logging
 
 from smpdflib import core
+
+logging.basicConfig(format='%(levelname)s: %(message)s')
+logging.getLogger().setLevel(logging.INFO)
 
 pdf = core.PDF('1000rep')
 
@@ -18,9 +22,8 @@ observables = [core.make_observable(path, order = 1)
 db = shelve.open("db/db")
 
 results = core.produce_results([pdf], observables, db = db)
-results_table = core.results_table(results)
 
-core.create_smpdf(pdf, results_table, '.', 'hall2', 1231, None, full_grid=False,
+core.create_smpdf(pdf, results, '.', 'hall2', 1231, None, full_grid=False,
                   db = db)
 
 db.close()

@@ -18,6 +18,7 @@ import sys
 from collections import defaultdict, OrderedDict
 import numbers
 import multiprocessing
+import logging
 
 import numpy as np
 import numpy.linalg as la
@@ -550,8 +551,6 @@ def make_observable(name, *args, **kwargs):
 def convolve_one(pdf, observable):
     import applwrap
     from smpdflib.core import PDF, APPLGridObservable #analysis:ignore
-    print(pdf)
-    print(observable)
     res = {}
     with pdf, observable:
         for rep in pdf.reps:
@@ -573,8 +572,6 @@ def make_convolution(pdf, observables):
     with(pdf):
         for obs in observables:
             with obs:
-                print(pdf)
-                print(obs)
                 for rep in pdf.reps:
                     sys.stdout.write('\r-> Computing replica %d of %s' %
                                      (rep, pdf))
@@ -764,12 +761,11 @@ def get_X(pdf, Q=None,  reshape=False):
     # Step 1: create pdf covmat
     if Q is None:
         Q = pdf.q2min_rep0
-    print ("\n- Building PDF matrix at %f GeV:" % Q)
+    logging.debug("Building PDF matrix at %f GeV:" % Q)
     mean, replicas = pdf.grid_values(Q)
     Xt = (replicas - mean)
     if reshape:
         Xt = Xt.reshape(Xt.shape[0], Xt.shape[1]*Xt.shape[2])
-    print (" [Done] ")
     return Xt.T
 
 def decompose_eigenvectors(X, predictions ,target_estimator):
@@ -780,11 +776,11 @@ def decompose_eigenvectors(X, predictions ,target_estimator):
     newrot = np.dot(Vt, predictions)
     total = np.dot(predictions, predictions)
     s = 0
-    print("Target value: %.4f" % target_value)
+    logging.debug("Target value: %.4f" % target_value)
     for i in range(len(newrot)):
         s += newrot[i]**2
         value = s/total
-        print("Added new eigenvector. Value: %.4f" % value)
+        logging.debug("Added new eigenvector. Value: %.4f" % value)
 
         if value >= target_value:
             neig = i + 1
@@ -833,27 +829,27 @@ def get_smpdf_lincomb(pdf, pdf_results, Rold = None, full_grid = True,
             estimator = rotsqnorm/origsqnorm
             error = 1 - np.sqrt(1 - estimator)
 
-            print("Current error : %.4f" % error)
+            logging.info("Current error : %.4f" % error)
 
             if error < target_error:
                 #We have already selected this x range
-                print("Observable %s, bin %s is already well reproduced "
-                      "(threshold: %4f)" %
-                      (result.obs, b+1, threshold))
+                logging.info("Observable %s, bin %s is already well reproduced "
+                      %
+                      (result.obs, b+1))
 
                 continue
             mask = np.abs(cc) > threshold
             X = X[mask]
 
-            print("Using a %s X matrix to compute eigenvectors "
+            logging.info("Using a %s X matrix to compute eigenvectors "
                   "for observable %s, bin %s" % (X.shape, result.obs, b+1))
 
-            print("Correlation threshold is: %.4f" % threshold)
+            logging.debug("Correlation threshold is: %.4f" % threshold)
 
 
             P,R = decompose_eigenvectors(X, rotated_diffs,
                       target_estimator=(estimator - target_estimator)/estimator)
-            print("Obtained %d eigenvectors" % P.shape[1])
+            logging.info("Obtained %d eigenvectors" % P.shape[1])
             if Rold is not None:
                 P = np.dot(Rold, P)
                 R = np.dot(Rold, R)
@@ -861,16 +857,12 @@ def get_smpdf_lincomb(pdf, pdf_results, Rold = None, full_grid = True,
 
 
             rotated_diffs = np.dot(original_diffs, Rold)
-            debug_diffs = np.dot(original_diffs, P)
-            debugsqnorm = np.dot(debug_diffs, debug_diffs)
 
             rotsqnorm = np.dot(rotated_diffs, rotated_diffs)
             origsqnorm = np.dot(original_diffs, original_diffs)
             new_error = 1 - np.sqrt((origsqnorm - rotsqnorm)/origsqnorm)
 
-            debug_aaa = (debugsqnorm + rotsqnorm)/origsqnorm
-            print(debug_aaa)
-            print("New error : %.4f" % new_error)
+            logging.info("New error : %.4f" % new_error)
 
             neig = P.shape[1]
             if index + neig >= Neig_total:
@@ -886,7 +878,7 @@ def get_smpdf_lincomb(pdf, pdf_results, Rold = None, full_grid = True,
             mean = np.mean(Xreal[mask], axis=1)
             std = np.std(Xreal[mask], axis=1)
             smt = np.sum((stdest/ std)*mean)/np.sum(mean)
-            print("Estimator: %s " % smt )
+            logging.debug("Estimator: %s " % smt )
 
 
     if index < Neig_total and full_grid:
@@ -900,11 +892,9 @@ def create_smpdf(pdf, results_table, output_dir, name,  N_eig,
                  full_grid=False, db = None):
     from smpdflib.lhio import hessian_from_lincomb
 
-    #It fails without .get_values(). No iddea why.
     pdf_table = results_table[results_table.PDF.get_values() == pdf].Result.unique()
-
     vec = get_smpdf_lincomb(pdf, pdf_table, full_grid=full_grid)
-    print("Final linear combination has %d eigenvectors" % vec.shape[1])
+    logging.info("Final linear combination has %d eigenvectors" % vec.shape[1])
 
 
     return hessian_from_lincomb(pdf, vec, folder=output_dir,
