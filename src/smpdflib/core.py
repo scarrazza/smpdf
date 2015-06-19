@@ -25,8 +25,8 @@ import numpy.linalg as la
 import pandas as pd
 import yaml
 import scipy.stats
+import fastcache
 from pandas.stats import ols
-
 
 from smpdflib import lhaindex
 from smpdflib import plotutils
@@ -169,7 +169,8 @@ class PredictionObservable(Observable):
         return self._params[attr]
 
 
-
+_selected_pdf = None
+_context_pdf = None
 class PDF(TupleComp):
     """A class representig the metadata and content of an LHAPDF grid.
     The attributes of the `.info` file can be queried directly as attribute
@@ -192,13 +193,26 @@ class PDF(TupleComp):
         #Convert python2 unicode to string so no u'prefix' is printed
         return (str(self.name),)
 
+
     def __enter__(self):
         """Load PDF in memory."""
+        global _selected_pdf
+        global _context_pdf
+        if _selected_pdf == str(self):
+            _context_pdf = str(self)
+            return
+        if _context_pdf is not None and _context_pdf != str(self):
+            raise RuntimeError("Contrdicting PDF scope. "
+                               "Was %s and trying to enter %s" %
+                               (_context_pdf, self))
+        _selected_pdf = str(self)
+        _context_pdf = str(self)
         applwrap.initpdf(self.name)
 
     #TODO: Unload PDF here
     def __exit__(self, exc_type, exc_value, traceback):
-        pass
+        global _context_pdf
+        _context_pdf = None
 
     def __str__(self):
         return self.name
@@ -238,25 +252,64 @@ class PDF(TupleComp):
         return range(self.NumMembers)
 
     @property
-    def lha_pdf(self):
-        from smpdflib import lhagrids
-        return lhagrids.load_lhapdf(self)
-
-    @property
     def q2min_rep0(self):
         """Retreive the min q2 value of repica zero. NNote that this will
         load the whole grid if not already in memory."""
-        return self.lha_pdf[0].q2Min
+        with self:
+            res = applwrap.q2Min()
+        return res
 
+    def make_xgrid(self, xminlog=1e-5, xminlin=1e-1, xmax=1, nplog=50, nplin=50):
+        """Provides the points in x to sample the PDF. `logspace` and `linspace`
+        will be called with the respsctive parameters."""
 
+        return np.append(np.logspace(np.log10(xminlog), np.log10(xminlin),
+                                           num=nplog, endpoint=False),
+                         np.linspace(xminlin, xmax, num=nplin, endpoint=False)
+                        )
+
+    def make_flavors(self, nf=3):
+        return np.arange(-nf,nf+1)
+
+    @fastcache.lru_cache(maxsize=128, unhashable='ignore')
     def grid_values(self, Q, xgrid=None, fl=None):
-        from smpdflib import lhagrids
-        vals = lhagrids.get_pdf_values(self, Q=Q, xgrid=xgrid, fl=fl)
-        return vals
 
+        if Q is None:
+            Q = self.q2Min
+        if xgrid is None:
+            xgrid = self.make_xgrid()
+        #Allow tuples that can be saved in cache
+        elif isinstance(xgrid, tuple):
+            xgrid = self.make_xgrid(*xgrid)
+
+        if fl is None:
+            fl = self.make_flavors()
+        elif isinstance(fl, int):
+            fl = self.make_flavors(fl)
+        elif isinstance(fl, tuple):
+            fl = self.make_flavors(*fl)
+
+        with self:
+            #TODO: Can we implement this loop in C
+            all_members = [[[applwrap.xfxQ(r, f, x, Q)
+                             for x in xgrid]
+                             for f in fl]
+                             for r in range(len(self))]
+
+            all_members = np.array(all_members)
+            mean = all_members[0]
+            replicas = all_members[1:]
+
+        return mean, replicas
+
+    def xfxQ(self, rep, fl, x, Q):
+        with self:
+            res = applwrap.xfxQ(rep, fl, x, Q)
+        return res
 
     def __getattr__(self, name):
-        if name.startswith('__'):
+        #next is for pandas not to get confused
+        if name.startswith('__') or name == 'next':
             raise AttributeError()
         return lhaindex.parse_info(self.name)[name]
 

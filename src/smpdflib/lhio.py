@@ -11,12 +11,11 @@ import os
 import os.path as osp
 import sys
 import shutil
-import lhapdf
 import numpy as np
 
 import pandas as pd
+import applwrap
 
-from smpdflib import lhagrids
 from smpdflib import lhaindex
 
 def split_sep(f):
@@ -39,11 +38,11 @@ def read_xqf_from_file(f):
     return pd.Series(vals, index = pd.MultiIndex.from_product((xvals, qvals, fvals)))
 
 
-def read_xqf_from_lhapdf(pdf, rep0grids):
+def read_xqf_from_lhapdf(pdf, replica, rep0grids):
     indexes = tuple(rep0grids.index)
     vals = []
     for x in indexes:
-        vals += [pdf.xfxQ(x[3],x[1],x[2])]
+        vals += [pdf.xfxQ(replica,x[3],x[1],x[2])]
     return pd.Series(vals, index = rep0grids.index)
 
 def read_all_xqf(f):
@@ -53,13 +52,14 @@ def read_all_xqf(f):
             return
         yield result
 
-def load_replica(rep, pdf_name, pdf=None, rep0grids=None):
+def load_replica( pdf, rep, rep0grids=None):
 
     sys.stdout.write("-> Reading replica from LHAPDF %d \r" % rep)
     sys.stdout.flush()
 
     suffix = str(rep).zfill(4)
 
+    pdf_name = str(pdf)
 
     path = osp.join(lhaindex.get_lha_path(), pdf_name,
                     pdf_name + "_" + suffix + ".dat")
@@ -68,7 +68,7 @@ def load_replica(rep, pdf_name, pdf=None, rep0grids=None):
         header = b"".join(split_sep(inn))
 
         if rep0grids is not None:
-            xfqs = read_xqf_from_lhapdf(pdf, rep0grids)
+            xfqs = read_xqf_from_lhapdf(pdf, rep, rep0grids)
         else:
             xfqs = list(read_all_xqf(inn))
             xfqs = pd.concat(xfqs, keys=range(len(xfqs)))
@@ -109,10 +109,9 @@ def load_all_replicas(pdf, db=None):
         key = str("(load_all_replicas, %s)" % pdf)
         if key in db:
             return db[key]
-    rep0headers, rep0grids = load_replica(0,str(pdf))
-    lha_pdf = lhagrids.load_lhapdf(str(pdf))
+    rep0headers, rep0grids = load_replica(pdf, 0)
 
-    headers, grids = zip(*[load_replica(rep, str(pdf), lha_pdf[rep], rep0grids)
+    headers, grids = zip(*[load_replica(pdf, rep, rep0grids)
                          for rep in range(1, len(pdf))])
     result = [rep0headers] + list(headers), [rep0grids] + list(grids)
     if db is not None:
@@ -134,7 +133,7 @@ def hessian_from_lincomb(pdf, V, set_name=None, folder = None, db=None):
     # preparing output folder
     neig = V.shape[1]
 
-    base = lhapdf.paths()[0] + "/" + str(pdf) + "/" + str(pdf)
+    base = applwrap.getlhapdfpath()[-1] + "/" + str(pdf) + "/" + str(pdf)
     if set_name is None:
         set_name = str(pdf) + "_hessian_" + str(neig)
     if folder is None:
@@ -145,8 +144,8 @@ def hessian_from_lincomb(pdf, V, set_name=None, folder = None, db=None):
     # copy replica 0
     shutil.copy(base + "_0000.dat", set_root + "/" + set_name + "_0000.dat")
 
-    with open(base + ".info", 'rb') as inn, \
-         open(set_root + "/" + set_name + ".info", 'wb') as out:
+    with open(base + ".info", 'r') as inn, \
+         open(set_root + "/" + set_name + ".info", 'w') as out:
 
         for l in inn.readlines():
             if l.find("SetDesc:") >= 0:

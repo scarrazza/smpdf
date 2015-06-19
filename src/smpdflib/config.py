@@ -124,7 +124,7 @@ class Config(object):
                     for check_func in actionfunc.checks:
                         check_func(action, final, self)
                 except actions.ActionError as e:
-                    raise ConfigError(e.message)
+                    raise ConfigError(str(e))
 
 
     def parse_pdfsets(self, pdfs):
