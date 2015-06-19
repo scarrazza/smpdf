@@ -3,12 +3,13 @@
  * S. Carrazza - April 2015
  ********************************************/
 
-#include <Python.h>
+#include "Python.h"
 #include <LHAPDF/LHAPDF.h>
 #include <LHAPDF/Exceptions.h>
 #include <appl_grid/appl_grid.h>
 #include <appl_grid/appl_igrid.h>
 using std::vector;
+using std::string;
 using std::cout;
 using std::endl;
 using std::exception;
@@ -53,6 +54,54 @@ static PyObject* py_initpdf(PyObject* self, PyObject* args)
   _imem = 0;
 
   return Py_BuildValue("");
+}
+
+static PyObject* py_xfxQ(PyObject *self, PyObject *args)
+{
+  int rep, fl;
+  double x, Q, res;
+  PyArg_ParseTuple(args, "iidd", &rep, &fl, &x, &Q);
+
+  if (_pdfs[rep] == 0)
+    {
+      PyErr_SetString(PyExc_ValueError, "PDF not allocated");
+      return NULL;
+    }
+
+  try
+  {
+    res = _pdfs[rep]->xfxQ(fl, x, Q);
+  }
+  catch (LHAPDF::Exception e)
+  {
+    PyErr_SetString(PyExc_ValueError, e.what());
+    return NULL;
+  }
+
+  return Py_BuildValue("d", res);
+}
+
+static PyObject* py_q2Min(PyObject *self, PyObject *args)
+{
+  double res;
+
+  if (_pdfs[0] == 0)
+    {
+      PyErr_SetString(PyExc_ValueError, "PDF not allocated");
+      return NULL;
+    }
+
+  try
+  {
+    res = _pdfs[0]->q2Min();
+  }
+  catch (LHAPDF::Exception e)
+  {
+    PyErr_SetString(PyExc_ValueError, e.what());
+    return NULL;
+  }
+
+  return Py_BuildValue("d", res);
 }
 
 static PyObject* py_pdfreplica(PyObject* self, PyObject* args)
@@ -154,18 +203,41 @@ static PyObject* py_setlhapdfpath(PyObject* self, PyObject* args)
   return Py_BuildValue("");
 }
 
+static PyObject* py_getlhapdfpath(PyObject* self, PyObject* args)
+{
+  vector<string> res = LHAPDF::paths();
+
+  PyObject *out = PyList_New(res.size());
+  for (int i = 0; i < (int) res.size(); i++)
+    PyList_SET_ITEM(out, i, PyUnicode_FromString(res[i].c_str()));
+
+  return out;
+}
+
 static PyMethodDef applwrap_methods[] = {
-  {"setlhapdfpath", py_setlhapdfpath, METH_VARARGS},
-  {"initpdf", py_initpdf, METH_VARARGS},
-  {"pdfreplica", py_pdfreplica, METH_VARARGS},
-  {"initobs", py_initobs, METH_VARARGS},
-  {"convolute", py_convolute, METH_VARARGS},
-  {"getobsq", py_getobsq, METH_VARARGS},
-  {"getnbins",py_getnbins, METH_VARARGS},
-  {NULL, NULL}
+  {"setlhapdfpath", py_setlhapdfpath, METH_VARARGS, "set lhapdf path"},
+  {"getlhapdfpath", py_getlhapdfpath, METH_VARARGS, "get lhapdf path"},
+  {"initpdf", py_initpdf, METH_VARARGS, "init pdf"},
+  {"xfxQ", py_xfxQ, METH_VARARGS, "get xfxQ"},
+  {"q2Min", py_q2Min, METH_VARARGS, "get q2min"},
+  {"pdfreplica", py_pdfreplica, METH_VARARGS, "set pdf replica"},
+  {"initobs", py_initobs, METH_VARARGS, "init obs"},
+  {"convolute", py_convolute, METH_VARARGS, "convolute"},
+  {"getobsq", py_getobsq, METH_VARARGS, "get observable q"},
+  {"getnbins",py_getnbins, METH_VARARGS, "get number of bins"},
+  {NULL, NULL, 0, NULL}
 };
 
-extern "C" void initapplwrap()
+static struct PyModuleDef applwrap_module = {
+  PyModuleDef_HEAD_INIT,
+  "applwrap",
+  "A appl wrapper",
+  -1,
+  applwrap_methods
+};
+
+PyMODINIT_FUNC
+PyInit_applwrap(void)
 {
-  (void) Py_InitModule("applwrap", applwrap_methods);
+  return PyModule_Create(&applwrap_module);
 }

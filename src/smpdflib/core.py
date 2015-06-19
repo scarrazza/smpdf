@@ -25,8 +25,8 @@ import numpy.linalg as la
 import pandas as pd
 import yaml
 import scipy.stats
+import fastcache
 from pandas.stats import ols
-
 
 from smpdflib import lhaindex
 from smpdflib import plotutils
@@ -238,22 +238,60 @@ class PDF(TupleComp):
         return range(self.NumMembers)
 
     @property
-    def lha_pdf(self):
-        from smpdflib import lhagrids
-        return lhagrids.load_lhapdf(self)
-
-    @property
     def q2min_rep0(self):
         """Retreive the min q2 value of repica zero. NNote that this will
         load the whole grid if not already in memory."""
-        return self.lha_pdf[0].q2Min
+        with self:
+            res = applwrap.q2Min()
+        return res
 
+    def make_xgrid(self, xminlog=1e-5, xminlin=1e-1, xmax=1, nplog=50, nplin=50):
+        """Provides the points in x to sample the PDF. `logspace` and `linspace`
+        will be called with the respsctive parameters."""
 
+        return np.append(np.logspace(np.log10(xminlog), np.log10(xminlin),
+                                           num=nplog, endpoint=False),
+                         np.linspace(xminlin, xmax, num=nplin, endpoint=False)
+                        )
+
+    def make_flavors(self, nf=3):
+        return np.arange(-nf,nf+1)
+
+    @fastcache.lru_cache(maxsize=128, unhashable='ignore')
     def grid_values(self, Q, xgrid=None, fl=None):
-        from smpdflib import lhagrids
-        vals = lhagrids.get_pdf_values(self, Q=Q, xgrid=xgrid, fl=fl)
-        return vals
 
+        if Q is None:
+            Q = self.q2Min
+        if xgrid is None:
+            xgrid = self.make_xgrid()
+        #Allow tuples that can be saved in cache
+        elif isinstance(xgrid, tuple):
+            xgrid = self.make_xgrid(*xgrid)
+
+        if fl is None:
+            fl = self.make_flavors()
+        elif isinstance(fl, int):
+            fl = self.make_flavors(fl)
+        elif isinstance(fl, tuple):
+            fl = self.make_flavors(*fl)
+
+        with self:
+            #TODO: Can we implement this loop in C
+            all_members = [[[applwrap.xfxQ(r, f, x, Q)
+                             for x in xgrid]
+                             for f in fl]
+                             for r in range(len(self))]
+
+            all_members = np.array(all_members)
+            mean = all_members[0]
+            replicas = all_members[1:]
+
+        return mean, replicas
+
+    def xfxQ(self, rep, fl, x, Q):
+        with self:
+            res = applwrap.xfxQ(rep, fl, x, Q)
+        return res
 
     def __getattr__(self, name):
         if name.startswith('__'):
