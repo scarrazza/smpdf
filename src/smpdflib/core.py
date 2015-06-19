@@ -169,7 +169,8 @@ class PredictionObservable(Observable):
         return self._params[attr]
 
 
-
+_selected_pdf = None
+_context_pdf = None
 class PDF(TupleComp):
     """A class representig the metadata and content of an LHAPDF grid.
     The attributes of the `.info` file can be queried directly as attribute
@@ -192,13 +193,26 @@ class PDF(TupleComp):
         #Convert python2 unicode to string so no u'prefix' is printed
         return (str(self.name),)
 
+
     def __enter__(self):
         """Load PDF in memory."""
+        global _selected_pdf
+        global _context_pdf
+        if _selected_pdf == str(self):
+            _context_pdf = str(self)
+            return
+        if _context_pdf is not None and _context_pdf != str(self):
+            raise RuntimeError("Contrdicting PDF scope. "
+                               "Was %s and trying to enter %s" %
+                               (_context_pdf, self))
+        _selected_pdf = str(self)
+        _context_pdf = str(self)
         applwrap.initpdf(self.name)
 
     #TODO: Unload PDF here
     def __exit__(self, exc_type, exc_value, traceback):
-        pass
+        global _context_pdf
+        _context_pdf = None
 
     def __str__(self):
         return self.name
@@ -294,7 +308,8 @@ class PDF(TupleComp):
         return res
 
     def __getattr__(self, name):
-        if name.startswith('__'):
+        #next is for pandas not to get confused
+        if name.startswith('__') or name == 'next':
             raise AttributeError()
         return lhaindex.parse_info(self.name)[name]
 
