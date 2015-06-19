@@ -603,10 +603,6 @@ def make_observable(name, *args, **kwargs):
 
 def convolve_one(pdf, observable):
     import applwrap
-    import os
-    print("################")
-    print("MY PID IS %d" % os.getpid())
-    print("################")
     from smpdflib.core import PDF, APPLGridObservable #analysis:ignore
     res = {}
     with pdf, observable:
@@ -711,15 +707,20 @@ def get_dataset_parallel(pdfsets, observables, db=None):
            yield to_compute[i:i + n_cores]
            i += n_cores
 
-    pool = multiprocessing.Pool(processes=n_cores, maxtasksperchild=1)
-    results = pool.map(_convolve_one_args, to_compute)
-    pool.close()
-    for ((pdf, obs), result) in zip(to_compute, results):
-        dataset[pdf][obs] = result
-        if db is not None:
-            db[make_key(pdf, obs)] = result
+    for convs in break_in(to_compute, n_cores):
+        pool = multiprocessing.Pool(processes=len(convs))
+        results = pool.map(_convolve_one_args, convs)
+        pool.close()
+        for ((pdf, obs), result) in zip(convs, results):
+            dataset[pdf][obs] = result
+            if db is not None:
+                db[make_key(pdf, obs)] = result
 
     return dataset
+
+
+
+
 
 
 def convolve_or_load(pdfsets, observables, db=None):
