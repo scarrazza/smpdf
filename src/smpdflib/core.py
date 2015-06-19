@@ -334,10 +334,14 @@ class Result():
     def __getitem__(self, item):
         return self._data[item]
 
-    #TODO: Should this be the default iterator?
-    def iterall(self):
+    def iterreplicas(self):
         """Iterate over all data, first being the central prediction"""
         return iter(self._data)
+
+    def __iter__(self):
+        """Give the prdictions for each bin"""
+        return self._all_vals.iterrows()
+
 
     def _violin_data(self, rel_to=None):
         absdata = pd.concat(self.sample_values(10000),axis=1)
