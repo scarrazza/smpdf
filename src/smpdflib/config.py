@@ -10,6 +10,7 @@ import itertools
 import glob
 import fnmatch
 from collections import Counter
+import logging
 
 import yaml
 
@@ -151,12 +152,11 @@ class Config(object):
                            name in lhaindex.expand_index_names(names)}
             diff = remote_sets - set(newsets)
             if diff:
-                #TODO: Use logging.
-                print("WARNING: The specification '%s' matches "
+                logging.warn("The specification '%s' matches "
                       "some official PDF sets that are not locally installed. "
                       "They are:\n%s" % (names, '\n'.join(str(d) for
                                                           d in diff)),
-                      file=sys.stderr)
+                      )
             pdfsets += newsets
         return pdfsets
 
@@ -215,11 +215,10 @@ class Config(object):
             observables.append(obsobj)
         s = set(observables)
         if len(s) != len(observables):
-            #TODO: proper logging
             c = Counter(observables)
             dups = [obs.name for obs in observables if c[obs]>1]
             obs = c.keys()
-            print("WARNING: Duplicate observables: %s" % dups, file=sys.stderr)
+            logging.warn("Duplicate observables: %s" % dups)
 
         return observables
 
