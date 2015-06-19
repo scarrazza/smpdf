@@ -125,7 +125,8 @@ def plot_alphaS(results_table):
     x = 'alpha_sMref'
     df = results_table.sort(x)
     for (process, nf, bin_), process_df in df.groupby(['Observable',
-                                                    'NumFlavors', 'Bin']):
+                                                    'NumFlavors', 'Bin'],
+                                                    sort = False):
         fig = plt.figure()
 
 
@@ -154,12 +155,14 @@ def plot_nf(results_table):
     x = 'NumFlavors'
     df = results_table.sort(x)
     for (process, bin_, oqcd), process_df in df.groupby(['Observable',
-                                                    'Bin', 'PDF_OrderQCD']):
+                                                    'Bin', 'PDF_OrderQCD'],
+                                                    sort=False):
         fig = plt.figure()
 
 
         for (col, asn), pdf_df in process_df.groupby(['Collaboration',
-                                                      'as_from_name']):
+                                                      'as_from_name'],
+                                                      sort=False):
             label = "%s(as: %s)"%(col, asn)
 
             plt.errorbar(pdf_df[x], pdf_df['CV'],
@@ -184,7 +187,7 @@ def plot_nf(results_table):
 def plot_asQ(pdfsets):
     df = pd.DataFrame([{'NumFlavors':pdf.NumFlavors, 'PDF':pdf} for
                         pdf in pdfsets])
-    for nf, gdf in df.groupby(['NumFlavors']):
+    for nf, gdf in df.groupby(['NumFlavors'], sort=False):
         fig = plt.figure()
         for pdf in gdf.PDF:
             plt.plot(pdf.AlphaS_Qs, pdf.AlphaS_Vals, label=pdf.name)

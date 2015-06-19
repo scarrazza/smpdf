@@ -767,7 +767,8 @@ def save_html(df, path):
 
 def test_as_linearity(summed_table, diff_from_line = 0.25):
     group_by = ('Observable','NumFlavors', 'PDF_OrderQCD', 'Collaboration')
-    for (process, nf, oqcd, col), curve_df in summed_table.groupby(group_by):
+    for (process, nf, oqcd, col), curve_df in summed_table.groupby(group_by,
+                                                                   sort=False):
         if len(curve_df) <= 2:
             continue
         fit = ols.OLS(y=curve_df['CV'], x=curve_df['alpha_sMref'],
