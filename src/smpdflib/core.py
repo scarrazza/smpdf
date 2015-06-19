@@ -20,6 +20,7 @@ import numbers
 import multiprocessing
 
 import numpy as np
+import numpy.linalg as la
 import pandas as pd
 import yaml
 import scipy.stats
@@ -717,7 +718,7 @@ def corrcoeff(prediction, pdf_val):
 
 
 
-def compute_correlations2(result, db = None):
+def compute_correlations2(result, db=None):
     pdf, obs = result.pdf, result.obs
     def make_key(pdf, obs):
         return str(('CORRELATIONS', pdf.get_key(), obs.get_key()))
@@ -725,17 +726,33 @@ def compute_correlations2(result, db = None):
         key = make_key(pdf, obs)
         if key in db:
             return db[key]
-    pdf_val = get_X(pdf, reshape=False, Q=obs.meanQ)
-    predictions = result._all_vals
-    nbins = prediction.shape[0]
-    for b in range(nbins):
-        X = çç
 
-    prediction = result._all_vals
-    corrs = bin_corrs_from_X(prediction, pdf_val)
+    predictions = result._all_vals
+    nbins = predictions.shape[0]
+    ccs , thresholds = [],[]
+    for b in range(nbins):
+        X = get_X(pdf, reshape=False, Q=obs.meanQ[b])
+        cc, threshold = bin_corrs_from_X(predictions.iloc[b,:], X)
+        ccs.append(ccs)
+        thresholds.append(threshold)
+    corrs = ccs, thresholds
     if db is not None:
         db[key] = corrs
     return corrs
+
+
+def corrmess(result):
+    pdf, obs = result.pdf, result.obs
+    predictions = result._all_vals
+    nbins = predictions.shape[0]
+    R = None
+    for b in range(nbins):
+        X = get_X(pdf, reshape=False, Q=obs.meanQ[b])
+        if R is not None:
+            X = np.dot(X, R)
+        cc, threshold = bin_corrs_from_X(predictions.iloc[b,:], X)
+
+        R = yield cc, threshold
 
 def bin_corrs_from_X(bin_val, X):
     nx, nf, nrep = X.shape
