@@ -142,7 +142,7 @@ if __name__ == "__main__":
         with open(args.config_yml,'r') as f:
             conf = config.Config.from_yaml(f)
     except config.ConfigError as e:
-        print("Bad configuration encountered:\n%s" % e.message,
+        print("Bad configuration encountered:\n%s" % str(e),
               file=sys.stderr)
         sys.exit(1)
     except IOError as e:
