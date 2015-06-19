@@ -674,6 +674,16 @@ def get_dataset(pdfsets, observables, db=None):
     return dataset
 
 def get_dataset_parallel(pdfsets, observables, db=None):
+    """Convolve a set of pdf with a set of observables. Note that to get rid of
+    issues arising from applgrid poor design, the multiprocessing start method
+    must be 'spawn', ie:
+
+    .. code:: python
+
+        multiprocessing.set_start_method('spawn')
+
+    Only once at the beginning of the program.
+    """
     def make_key(pdf, obs):
         return str((pdf.get_key(), obs.get_key()))
     n_cores = multiprocessing.cpu_count()
