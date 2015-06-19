@@ -14,7 +14,6 @@ import matplotlib.patches
 import matplotlib.mlab as mlab
 import matplotlib.colors as colors
 
-import palettable
 
 
 #TODO: use inspect to allow ax as arg?
@@ -119,16 +118,19 @@ def extend_range(rmin, rmax, prop=0.1):
     return rmin - diff, rmax + diff
 
 def get_accent_colors(num_colors):
+    import palettable
     num_colors = 3 if num_colors < 3 else 8 if num_colors > 8 else num_colors
     cmap = palettable.colorbrewer.get_map('Accent', 'qualitative', num_colors)
     return cmap
 
 def get_spectral_colors(num_colors):
+    import palettable
     num_colors = 3 if num_colors < 3 else 8 if num_colors > 11 else num_colors
     cmap = palettable.colorbrewer.get_map('Spectral', 'diverging', num_colors)
     return cmap
 
 def get_set1_colors(num_colors):
+    import palettable
     num_colors = 3 if num_colors < 3 else 9 if num_colors > 9 else num_colors
     cmap = palettable.colorbrewer.get_map('Set1', 'qualitative', num_colors)
     return cmap
