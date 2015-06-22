@@ -108,7 +108,7 @@ def write_replica(rep, pdf_name, header, subgrids):
 def load_all_replicas(pdf, db=None):
     if db is not None:
         #removing str() will crash as it casts to unicode due to pdf name
-        key = str("(load_all_replicas, %s)" % pdf)
+        key = str("(load_all_replicas, %s)" % pdf.get_key())
         if key in db:
             return db[key]
     rep0headers, rep0grids = load_replica(pdf, 0)

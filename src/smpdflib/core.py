@@ -183,10 +183,16 @@ class PDF(TupleComp):
            in the
            LHAPDF path at the time the constructor is called, but the methods
            that require reading the metadata will fail.
+    label : str
+           A label used for plotting (instrad the gris name).
     """
-    def __init__(self, name):
+    def __init__(self, name, label=None):
 
         self.name = name
+        if label is None:
+            label = name
+        self.label = label
+
 
     def get_key(self):
         """Return string to indentify this object in the database"""
@@ -420,7 +426,7 @@ class Result():
         if data is None:
             data = self._violin_data()
 
-        myargs = {'label': str(self.pdf)}
+        myargs = {'label': str(self.pdf.label)}
         myargs.update(kwargs)
         return plotutils.violin_plot(data, **myargs)
 

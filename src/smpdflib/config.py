@@ -148,6 +148,13 @@ class Config(object):
             if not newsets:
                 raise ConfigError("pdfset is empty for specification '%s'. "
                 "Is it in the LHAPDF path?" % names)
+
+            if isinstance(pdf, dict) and 'label' in pdf:
+                if len(newsets) == 1:
+                    newsets[0].label = pdf['label']
+                else:
+                    raise ConfigError("Label can only be set for a single pdf:\n"
+                                      "%s" % pdf)
             remote_sets = {PDF(name) for
                            name in lhaindex.expand_index_names(names)}
             diff = remote_sets - set(newsets)
@@ -161,11 +168,15 @@ class Config(object):
         return pdfsets
 
     def parse_base_pdf(self, base):
+        label = None
         if isinstance(base, dict):
             try:
                 name = base['name']
             except KeyError:
                 raise ConfigError("Unrecognized format for pdfsets: %s" % base)
+            else:
+                if 'label' in base:
+                    label = base['label']
         elif isinstance(base, str):
             name = base
         else:
@@ -176,7 +187,7 @@ class Config(object):
         if len(existing) > 1:
             raise ConfigError("Only one base_pdf allowed. Matches were %s"
                               % existing)
-        return PDF(name)
+        return PDF(name, label=label)
 
 
 

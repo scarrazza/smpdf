@@ -43,7 +43,7 @@ def compare_violins(results, base_pdf = None):
             handles.append(handle)
         plt.xlabel('bins')
         if base_pdf:
-            plt.ylabel('Ratio to %s' % base_pdf)
+            plt.ylabel('Ratio to %s' % base_pdf.label)
         else:
             plt.ylabel("Observable value")
         plt.xticks(range(1,len(result.central_value) + 1))
@@ -80,7 +80,7 @@ def compare_cis(results, base_pdf = None):
             plt.errorbar(x, data_cv, yerr=data_ci.T,
                                      linestyle='none',
                                      color=color,
-                                     label=result.pdf, elinewidth = 2,
+                                     label=result.pdf.label, elinewidth = 2,
                                      capsize=10)
             if isinstance(result, MCResult):
                 data_std = result.rel_std_interval().as_matrix().copy()
@@ -95,7 +95,7 @@ def compare_cis(results, base_pdf = None):
 
         plt.xlabel('bins')
         if base_pdf:
-            plt.ylabel('Rel to %s' % base_pdf)
+            plt.ylabel('Rel to %s' % base_pdf.label)
         else:
             plt.ylabel("Observable value")
         plt.xticks(range(1,len(result.central_value) + 1))
@@ -190,7 +190,7 @@ def plot_asQ(pdfsets):
     for nf, gdf in df.groupby(['NumFlavors'], sort=False):
         fig = plt.figure()
         for pdf in gdf.PDF:
-            plt.plot(pdf.AlphaS_Qs, pdf.AlphaS_Vals, label=pdf.name)
+            plt.plot(pdf.AlphaS_Qs, pdf.AlphaS_Vals, label=pdf.label)
             plt.ylabel(r'$\alpha_S$')
             plt.xlabel(r'Q(GeV)')
             plt.xscale('log')
