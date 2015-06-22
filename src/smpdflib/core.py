@@ -816,12 +816,12 @@ def correlations(data_table, db=None):
     return  pdfcorrlist
 
 
-def get_X(pdf, Q=None,  reshape=False):
+def get_X(pdf, Q=None,  reshape=False, xgrid=None, fl=None):
     # Step 1: create pdf covmat
     if Q is None:
         Q = pdf.q2min_rep0
     logging.debug("Building PDF matrix at %f GeV:" % Q)
-    mean, replicas = pdf.grid_values(Q)
+    mean, replicas = pdf.grid_values(Q, xgrid, fl)
     Xt = (replicas - mean)
     if reshape:
         Xt = Xt.reshape(Xt.shape[0], Xt.shape[1]*Xt.shape[2])
