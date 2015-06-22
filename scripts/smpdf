@@ -19,7 +19,6 @@ __license__ = 'GPL'
 __version__ = '1.0.0'
 __email__ = 'stefano.carrazza@mi.infn.it'
 
-logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
 
 def main(conf, output_dir, db, quiet=False):
     import pandas as pd
@@ -40,7 +39,7 @@ def main(conf, output_dir, db, quiet=False):
             total = pd.concat((data_table,
                                 summed_table),
                                 ignore_index = True)
-            if not quiet:
+            if logging.getLogger().isEnabledFor(logging.DEBUG):
                 print_results(results)
             resources.update({'results':results, 'data_table':data_table,
                            'total':total, 'summed_table':summed_table})
@@ -56,8 +55,7 @@ def main(conf, output_dir, db, quiet=False):
                        'pdfsets': pdfsets,
                        'db': db})
         for action, res in actions.do_actions(group['actions'], resources):
-            if not quiet:
-                print("Finalized action '%s'." % action)
+            logging.info("Finalized action '%s'." % action)
     return resultset
 
 def print_results(results):
@@ -118,10 +116,25 @@ if __name__ == "__main__":
                                          "store resulting plots and tables",
                         default='output')
 
-    parser.add_argument('-q','--quiet', help="Do not print the results",
+    loglevel = parser.add_mutually_exclusive_group()
+
+    loglevel.add_argument('-q','--quiet', help="Supress INFO messages",
                         action='store_true')
 
+    loglevel.add_argument('-d', '--debug', help = "Show debug info",
+                          action='store_true')
+
     args = parser.parse_args()
+
+    if args.quiet:
+        level = logging.WARN
+    elif args.debug:
+        level = logging.DEBUG
+    else:
+        level = logging.INFO
+
+    logging.basicConfig(format='%(levelname)s: %(message)s', level=level)
+
 
     splash()
 
