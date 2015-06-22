@@ -55,16 +55,20 @@ def save_figures(generator, table, output_dir, namefunc=None,
                  prefix=None, fmt ='pdf', **kwargs):
 
         import matplotlib.pyplot as plt
-
+        if isinstance(fmt, str):
+            fmts = [fmt]
+        else:
+            fmts = fmt
         prefixstr = prefix if prefix else ''
         if namefunc is None:
             namefunc = lambda *spec: ''.join(str(x) for x in spec)
         for namespec, fig in generator(table, **kwargs):
             nameresult = namefunc(*namespec)
-            filename = "{prefixstr}{nameresult}.{fmt}".format(**locals())
-            path = osp.join(output_dir, "figures", filename)
-            fig.savefig(path)
-            plt.close(fig)
+            for fmt in fmts:
+                filename = "{prefixstr}{nameresult}.{fmt}".format(**locals())
+                path = osp.join(output_dir, "figures", filename)
+                fig.savefig(path)
+                plt.close(fig)
 
 
 def save_violins(results, output_dir, prefix, base_pdf=None, fmt='pdf'):
