@@ -821,7 +821,7 @@ def get_X(pdf, Q=None,  reshape=False):
         Xt = Xt.reshape(Xt.shape[0], Xt.shape[1]*Xt.shape[2])
     return Xt.T
 
-def decompose_eigenvectors(X, predictions ,target_estimator):
+def decompose_eigenvectors(X, predictions, target_estimator):
     target_value = target_estimator
 
     U,s,Vt = la.svd(X)
@@ -848,6 +848,9 @@ def decompose_eigenvectors(X, predictions ,target_estimator):
 
 def get_smpdf_lincomb(pdf, pdf_results, Rold = None, full_grid = False,
                       target_error = 0.1):
+    """Obtain the linear combination describing each bin in each observable in
+    pdf_results in order. Return the orthogonal linear combination and a
+    list describing the results."""
     #TODO: !!!!
     Neig_total = 120
     index = 0
@@ -855,6 +858,8 @@ def get_smpdf_lincomb(pdf, pdf_results, Rold = None, full_grid = False,
     #We must divide by norm since we are reproducing the covmat and not XX.T
     norm = np.sqrt(nrep - 1)
     lincomb = np.zeros(shape=(nrep,Neig_total))
+    smpdf_description = {'smpdf_description':[]}
+    description = smpdf_description['smpdf_description']
 
 
     #Estimator= norm**2(rotated)/norm**2(total) which is additive when adding
@@ -864,6 +869,9 @@ def get_smpdf_lincomb(pdf, pdf_results, Rold = None, full_grid = False,
     for result in pdf_results:
         if result.pdf != pdf:
             raise ValueError("PDF results must be for %s" % pdf)
+        obs_description = {'observable':str(result.obs),
+                            'eigenvectors_for_bin':[]}
+        description.append(obs_description)
         for b in range(result.nbins):
             Xreal = get_X(pdf, Q=result.meanQ[b], reshape=True)
             prediction = result._all_vals.iloc[b,:]
@@ -892,6 +900,7 @@ def get_smpdf_lincomb(pdf, pdf_results, Rold = None, full_grid = False,
                       %
                       (result.obs, b+1))
 
+                obs_description['eigenvectors_for_bin'].append(index)
                 continue
             mask = np.abs(cc) > threshold
             X = X[mask]
@@ -923,24 +932,28 @@ def get_smpdf_lincomb(pdf, pdf_results, Rold = None, full_grid = False,
             if index + neig >= Neig_total:
                 to_keep = Neig_total - index
                 lincomb[:, index:Neig_total] = P[:, :to_keep]
-                return lincomb/norm
+                return lincomb/norm, smpdf_description
             lincomb[:,index:index+neig] = P
             index += neig
 
-            XV = np.dot(Xreal, lincomb/norm)
-            covest = np.dot(XV, XV.T)
-            stdest = np.sqrt(np.diag(covest))[mask]
-            mean = np.mean(Xreal[mask], axis=1)
-            std = np.std(Xreal[mask], axis=1)
-            smt = np.sum((stdest/ std)*mean)/np.sum(mean)
-            logging.debug("Estimator: %s " % smt )
+            obs_description['eigenvectors_for_bin'].append(index)
+
+            #Expensive if not needed.
+            if logging.getLogger().isEnabledFor(logging.DEBUG):
+                XV = np.dot(Xreal, lincomb/norm)
+                covest = np.dot(XV, XV.T)
+                stdest = np.sqrt(np.diag(covest))[mask]
+                mean = np.mean(Xreal[mask], axis=1)
+                std = np.std(Xreal[mask], axis=1)
+                smt = np.sum((stdest/ std)*mean)/np.sum(mean)
+                logging.debug("Estimator: %s " % smt )
 
 
     if index < Neig_total and full_grid:
         lincomb[:, index:Neig_total] = R[:, :Neig_total - index]
     elif not full_grid:
         lincomb = lincomb[:, :index]
-    return lincomb/norm
+    return lincomb/norm, smpdf_description
 
 def create_smpdf(pdf, pdf_results, output_dir, name,  smpdf_tolerance=0.05,
                  Neig_total = 200,
@@ -948,10 +961,10 @@ def create_smpdf(pdf, pdf_results, output_dir, name,  smpdf_tolerance=0.05,
     from smpdflib.lhio import hessian_from_lincomb
 
 
-    vec = get_smpdf_lincomb(pdf, pdf_results, full_grid=full_grid,
+    vec, description = get_smpdf_lincomb(pdf, pdf_results, full_grid=full_grid,
                             target_error=smpdf_tolerance)
     logging.info("Final linear combination has %d eigenvectors" % vec.shape[1])
 
 
     return hessian_from_lincomb(pdf, vec, folder=output_dir,
-                         set_name= name, db=db)
+                         set_name= name, db=db, extra_fields=description)
