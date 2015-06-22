@@ -254,6 +254,7 @@ class Config(object):
     def parse_params(self, params):
         if not 'actiongroups' in params:
             actiongroups = [params]
+            self._group_len = 1
             defaults = {}
         else:
             actiongroups = params.pop('actiongroups')
