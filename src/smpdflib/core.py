@@ -189,7 +189,7 @@ class PDF(TupleComp):
         self.name = name
 
     def get_key(self):
-        """Return string to indentigy this object in the database"""
+        """Return string to indentify this object in the database"""
         #Convert python2 unicode to string so no u'prefix' is printed
         return (str(self.name),)
 
@@ -682,7 +682,7 @@ def get_dataset_parallel(pdfsets, observables, db=None):
 
         multiprocessing.set_start_method('spawn')
 
-    Only once at the beginning of the program.
+    Only once at the beginning of the program. This only works in Python 3.4+.
     """
     def make_key(pdf, obs):
         return str((pdf.get_key(), obs.get_key()))

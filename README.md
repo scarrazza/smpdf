@@ -24,9 +24,11 @@ $ lhapdf-config
 $ applgrid-config
 ```
 
+Python 3.4+ is also required.
+
 In order to manage the Python dependencies,
-[Anaconda](https://store.continuum.io/cshop/anaconda/) (with Python 2.7) is the
-recommended way. After setting it up, do:
+[Anaconda](https://store.continuum.io/cshop/anaconda/) (with a Python  
+3.4+ environment) is the recommended way. After setting it up, do:
 
 ````Shell
 $ conda install conda-env
