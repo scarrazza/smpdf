@@ -236,9 +236,9 @@ def plot_bindist(obs_table, b, base_pdf=None):
 
         color = next(colors)
         alphacolor = color + (alpha,)
-        plt.plot(stats['coords'], stats['vals'], color=color,)
-        plt.fill(stats['coords'], stats['vals'], color=alphacolor,
-                 label=result.pdf.label)
+        plt.plot(stats['coords'], stats['vals'], color=color,label=result.pdf.label)
+        plt.fill_between(stats['coords'], 0, stats['vals'], color=alphacolor,
+                 )
 
         alpha /= 2
 
