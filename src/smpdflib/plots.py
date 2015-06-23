@@ -95,7 +95,7 @@ def compare_cis(results, base_pdf = None):
 
         plt.xlabel('bins')
         if base_pdf:
-            plt.ylabel('Rel to %s' % base_pdf.label)
+            plt.ylabel('Ratio to %s' % base_pdf.label)
         else:
             plt.ylabel("Observable value")
         plt.xticks(range(1,len(result.central_value) + 1))
