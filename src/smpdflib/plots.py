@@ -9,6 +9,10 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
+from matplotlib.cbook import violin_stats
+import matplotlib.patches
+import matplotlib.mlab as mlab
+
 from smpdflib import plotutils
 from smpdflib.core import aggregate_results, M_REF, MCResult
 
@@ -197,6 +201,56 @@ def plot_asQ(pdfsets):
             plt.title('$N_f=%d$' % nf)
             plt.legend()
         yield (nf,), fig
+
+def plot_bindist(obs_table, b, base_pdf=None):
+
+
+    def _kde_method(X, coords):
+            kde = mlab.GaussianKDE(X, None)
+            return kde.evaluate(coords)
+
+    obs = obs_table.Observable.unique()
+    if len(obs) != 1:
+        raise ValueError("Must be only one observable")
+    obs = obs[0]
+    figure = plt.figure()
+    plt.title("%s [Bin %d]" % (obs, b+1))
+    colors  = plotutils.color_names_to_rgb(colorlist)
+    alpha = 1
+    if base_pdf:
+        base = obs_table[obs_table.PDF.get_values()==base_pdf].Result[0]
+    else:
+        base = None
+    results = obs_table.Result.unique()
+    for result in results:
+        if base is not None:
+            cv = base.central_value.as_matrix()
+            data = result._violin_data(rel_to=cv)
+        else:
+            data = data = result._violin_data()
+
+        if isinstance(data, list):
+            stats = data[b]
+        else:
+            stats = violin_stats(data, _kde_method)[b]
+
+        color = next(colors)
+        alphacolor = color + (alpha,)
+        plt.plot(stats['coords'], stats['vals'], color=color,)
+        plt.fill(stats['coords'], stats['vals'], color=alphacolor,
+                 label=result.pdf.label)
+
+        alpha /= 2
+
+
+    plt.ylabel("Distribution")
+    if base_pdf:
+        plt.xlabel('Ratio to %s' % base_pdf.label)
+    else:
+        plt.xlabel("Observable value")
+    plt.legend()
+    yield (obs, b), figure
+
 
 def plot_correlations(pdfcorrlist):
 
