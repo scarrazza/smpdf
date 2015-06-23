@@ -11,11 +11,9 @@ import os
 import os.path as osp
 import sys
 import shutil
-
 import numpy as np
-import pandas as pd
-import yaml
 
+import pandas as pd
 import applwrap
 
 from smpdflib import lhaindex
@@ -129,8 +127,7 @@ def big_matrix(gridlist):
         raise ValueError("Incompatible grid specifications")
     return X
 
-def hessian_from_lincomb(pdf, V, set_name=None, folder = None, db=None,
-                         extra_fields=None):
+def hessian_from_lincomb(pdf, V, set_name=None, folder = None, db=None):
     """Construct a new LHAPDF grid from a linear combination of members"""
 
     # preparing output folder
@@ -159,8 +156,6 @@ def hessian_from_lincomb(pdf, V, set_name=None, folder = None, db=None,
                 out.write("ErrorType: symmhessian\n")
             else:
                 out.write(l)
-        if extra_fields is not None:
-            yaml.dump(extra_fields, out)
 
     headers, grids = load_all_replicas(pdf, db=db)
     hess_name = set_root + '/' + set_name
