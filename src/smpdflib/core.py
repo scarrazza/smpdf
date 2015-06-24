@@ -969,6 +969,9 @@ def create_smpdf(pdf, pdf_results, output_dir, name,  smpdf_tolerance=0.05,
 
     vec, description = get_smpdf_lincomb(pdf, pdf_results, full_grid=full_grid,
                             target_error=smpdf_tolerance)
+    #We have do do this because LHAPDF seems to not parse complex structures
+    description['smpdf_description'] = yaml.dump(description['smpdf_description'],
+                                       default_flow_style=False)
     logging.info("Final linear combination has %d eigenvectors" % vec.shape[1])
 
 

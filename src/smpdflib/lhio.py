@@ -160,7 +160,7 @@ def hessian_from_lincomb(pdf, V, set_name=None, folder = None, db=None,
             else:
                 out.write(l)
         if extra_fields is not None:
-            yaml.dump(extra_fields, out)
+            yaml.dump(extra_fields, out, default_flow_style=False)
 
     headers, grids = load_all_replicas(pdf, db=db)
     hess_name = set_root + '/' + set_name
