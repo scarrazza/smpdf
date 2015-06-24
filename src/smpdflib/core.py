@@ -620,9 +620,6 @@ def convolve_one(pdf, observable):
             res[rep] = np.array(applwrap.convolute(observable.order))
     return res
 
-def _convolve_one_args(args):
-    return convolve_one(*args)
-
 
 def make_convolution(pdf, observables):
     datas = defaultdict(lambda:OrderedDict())
@@ -712,7 +709,7 @@ def get_dataset_parallel(pdfsets, observables, db=None):
 
     #http://stackoverflow.com/questions/30943161/multiprocessing-pool-with-maxtasksperchild-produces-equal-pids#30943161
     pool = multiprocessing.Pool(processes=n_cores, maxtasksperchild=1)
-    results = pool.map(_convolve_one_args, to_compute, chunksize=1)
+    results = pool.starmap(convolve_one, to_compute, chunksize=1)
     pool.close()
     for ((pdf, obs), result) in zip(to_compute, results):
         dataset[pdf][obs] = result
