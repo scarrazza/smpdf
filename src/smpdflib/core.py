@@ -609,11 +609,11 @@ def make_observable(name, *args, **kwargs):
                          "are valid observables" % str(prediction_extensions
                                                    + applgrid_extensions))
 
-
-def convolve_one(pdf, observable):
+def convolve_one(pdf, observable, logger=None):
     import applwrap
     from smpdflib.core import PDF, APPLGridObservable #analysis:ignore
     res = {}
+    logging.info("Convloving %s with %s" % (observable, pdf))
     with pdf, observable:
         for rep in pdf.reps:
             applwrap.pdfreplica(rep)
