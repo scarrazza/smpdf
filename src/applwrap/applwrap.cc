@@ -56,6 +56,15 @@ static PyObject* py_initpdf(PyObject* self, PyObject* args)
   return Py_BuildValue("");
 }
 
+static PyObject* py_setverbosity(PyObject *self, PyObject *args)
+{
+  int ver;
+  PyArg_ParseTuple(args, "i", &ver);
+  LHAPDF::setVerbosity(ver);
+
+  return Py_BuildValue("");
+}
+
 static PyObject* py_xfxQ(PyObject *self, PyObject *args)
 {
   int rep, fl;
@@ -217,6 +226,7 @@ static PyObject* py_getlhapdfpath(PyObject* self, PyObject* args)
 static PyMethodDef applwrap_methods[] = {
   {"setlhapdfpath", py_setlhapdfpath, METH_VARARGS, "set lhapdf path"},
   {"getlhapdfpath", py_getlhapdfpath, METH_VARARGS, "get lhapdf path"},
+  {"setverbosity",  py_setverbosity,  METH_VARARGS, "set verbosity"},
   {"initpdf", py_initpdf, METH_VARARGS, "init pdf"},
   {"xfxQ", py_xfxQ, METH_VARARGS, "get xfxQ"},
   {"q2Min", py_q2Min, METH_VARARGS, "get q2min"},
