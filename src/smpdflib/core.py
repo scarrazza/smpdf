@@ -30,6 +30,7 @@ from pandas.stats import ols
 
 from smpdflib import lhaindex
 from smpdflib import plotutils
+from smpdflib.utils import supress_stdout
 
 import applwrap
 
@@ -130,7 +131,9 @@ class APPLGridObservable(Observable):
             raise RuntimeError("Contrdicting observable scope. "
                                "Was %s and trying to enter %s" %
                                (_selected_grid, self.filename))
-        applwrap.initobs(self.filename)
+
+        with supress_stdout():
+            applwrap.initobs(self.filename)
         _selected_grid = self.filename
     #TODO: Unload Observable here
     def __exit__(self, exc_type, exc_value, traceback):
