@@ -9,23 +9,36 @@ import os
 from contextlib import contextmanager, redirect_stdout
 
 @contextmanager
-def supress_stdout():
-    devnull = open(os.devnull, 'wb')
+def _supress_stdout():
+    """This fits the 90% use case. It will fail badly inside ipython
+    or when sys.stdout is a strange object."""
+    sys.stdout.flush() # <--- important when redirecting to files
+    # Duplicate stdout (file descriptor 1)
+    # to a different file descriptor number
+    # /dev/null is used just to discard what is being printed
+    devnull = os.open('/dev/null', os.O_WRONLY)
+    newstdout = os.dup(1)
+    # Duplicate the file descriptor for /dev/null
+    # and overwrite the value for stdout (file descriptor 1)
+    os.dup2(devnull, 1)
     try:
-        stdout_flieno = sys.stdout.fileno()
-    except ValueError:
-        redirect = False
-    else:
-        redirect = True
-        sys.stdout.flush()
-        #sys.stdout.close()
-        devnull_fileno = devnull.fileno()
-        saved_stdout_fd = os.dup(stdout_flieno)
-        os.dup2(devnull_fileno, stdout_flieno)
 
-    try:
-        with redirect_stdout(devnull):
-            yield
+        yield
+
     finally:
-        if redirect:
-            os.dup2(stdout_flieno, saved_stdout_fd)
+        # Close devnull after duplication (no longer needed)
+        os.close(devnull)
+
+        # Use the original stdout to still be able
+        # to print to stdout within python
+        sys.stdout = os.fdopen(newstdout, 'w')
+
+def supress_stdout():
+    try:
+        fd = sys.stdout.fileno()
+    except ValueError:
+         fd = None
+    if fd == 1:
+        return _supress_stdout()
+    else:
+        return redirect_stdout(open(os.devnull, 'w'))
