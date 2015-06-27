@@ -16,9 +16,12 @@ __email__ = 'stefano.carrazza@mi.infn.it'
 import os.path as osp
 import sys
 from collections import defaultdict, OrderedDict
+import contextlib
 import numbers
 import multiprocessing
 import logging
+from logging.handlers import QueueHandler, QueueListener
+import atexit
 
 import numpy as np
 import numpy.linalg as la
@@ -39,7 +42,6 @@ NUMS_QCD = {val: key for key , val in ORDERS_QCD.items()}
 
 #for N_f = 4, LHAPDF's M_Z is actually M_{charm}
 M_REF = defaultdict(lambda: 'Z', {4:'c'})
-
 
 
 
@@ -132,7 +134,9 @@ class APPLGridObservable(Observable):
                                "Was %s and trying to enter %s" %
                                (_selected_grid, self.filename))
 
-        with supress_stdout():
+        with contextlib.ExitStack() as stack:
+            if not logging.getLogger().isEnabledFor(logging.DEBUG):
+                stack.enter_context(supress_stdout())
             applwrap.initobs(self.filename)
         _selected_grid = self.filename
     #TODO: Unload Observable here
@@ -609,10 +613,14 @@ def make_observable(name, *args, **kwargs):
                          "are valid observables" % str(prediction_extensions
                                                    + applgrid_extensions))
 
+
+
 def convolve_one(pdf, observable, logger=None):
     import applwrap
     from smpdflib.core import PDF, APPLGridObservable #analysis:ignore
     res = {}
+    import os
+    logging.debug("Convolving in PID: %d" % os.getpid())
     logging.info("Convloving %s with %s" % (observable, pdf))
     with pdf, observable:
         for rep in pdf.reps:
@@ -679,6 +687,42 @@ def get_dataset(pdfsets, observables, db=None):
         dataset[pdf] = res
     return dataset
 
+
+#https://gist.github.com/Zaharid/d4f8c9a44ce7941b0c37
+__queue = None
+def _get_logging_queue():
+    #This probably will have to be refactored to get access to manager as well.
+    global __queue, __manager
+    if __queue is None:
+        m = multiprocessing.Manager()
+        __manager = m
+        q = m.Queue(-1)
+        #https://docs.python.org/3/howto/logging-cookbook.html
+        listener = QueueListener(q, *logging.getLogger().handlers)
+        listener.start()
+        def exithandler():
+            q.join()
+            listener.stop()
+            #Seems to help silencing bugs...
+            import time; time.sleep(0.2)
+            m.shutdown()
+
+        atexit.register(exithandler)
+        __queue = q
+        return q
+    return __queue
+
+def _initlogging(q, loglevel):
+    handler = QueueHandler(q)
+    l = logging.getLogger()
+    l.level = loglevel
+    l.handlers = [handler,]
+    if not l.isEnabledFor(logging.DEBUG):
+        applwrap.setverbosity(0)
+    atexit.register(lambda: q.join())
+
+
+
 def get_dataset_parallel(pdfsets, observables, db=None):
     """Convolve a set of pdf with a set of observables. Note that to get rid of
     issues arising from applgrid poor design, the multiprocessing start method
@@ -707,8 +751,13 @@ def get_dataset_parallel(pdfsets, observables, db=None):
             else:
                 to_compute.append((pdf, obs))
 
+    q = _get_logging_queue()
+    loglevel = logging.getLogger().level
+    nprocesses = min((n_cores, len(to_compute)))
     #http://stackoverflow.com/questions/30943161/multiprocessing-pool-with-maxtasksperchild-produces-equal-pids#30943161
-    pool = multiprocessing.Pool(processes=n_cores, maxtasksperchild=1)
+    pool = multiprocessing.Pool(processes=nprocesses,
+                                maxtasksperchild=1,
+                                initializer=_initlogging, initargs=(q, loglevel))
     results = pool.starmap(convolve_one, to_compute, chunksize=1)
     pool.close()
     for ((pdf, obs), result) in zip(to_compute, results):

@@ -9,9 +9,11 @@ import argparse
 import shelve
 import shutil
 import logging
-
-import smpdflib.actions as actions
 import multiprocessing
+
+import applwrap
+import smpdflib.actions as actions
+
 
 
 __author__ = 'Stefano Carrazza'
@@ -21,6 +23,7 @@ __email__ = 'stefano.carrazza@mi.infn.it'
 
 
 def main(conf, output_dir, db, quiet=False):
+
     import pandas as pd
 
     resultset = []
@@ -176,8 +179,11 @@ if __name__ == "__main__":
         db = shelve.open(args.use_db)
     else:
         db = None
+
+    if not logging.getLogger().isEnabledFor(logging.DEBUG):
+        applwrap.setverbosity(0)
+    multiprocessing.set_start_method('spawn')
     try:
-        multiprocessing.set_start_method('spawn')
         results = main(conf, args.output ,db=db, quiet=args.quiet)
     finally:
         #bool(db) == False if empty

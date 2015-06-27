@@ -16,19 +16,16 @@ def _supress_stdout():
     # Duplicate stdout (file descriptor 1)
     # to a different file descriptor number
     # /dev/null is used just to discard what is being printed
-    devnull = os.open('/dev/null', os.O_WRONLY)
+    devnull = os.open(os.devnull, os.O_WRONLY)
     newstdout = os.dup(1)
     # Duplicate the file descriptor for /dev/null
     # and overwrite the value for stdout (file descriptor 1)
     os.dup2(devnull, 1)
     try:
-
         yield
-
     finally:
         # Close devnull after duplication (no longer needed)
         os.close(devnull)
-
         # Use the original stdout to still be able
         # to print to stdout within python
         sys.stdout = os.fdopen(newstdout, 'w')
