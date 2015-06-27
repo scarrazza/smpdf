@@ -6,7 +6,13 @@ Created on Wed Jun 24 15:41:26 2015
 """
 import sys
 import os
+import multiprocessing
+import logging
+import atexit
+from logging.handlers import QueueHandler, QueueListener
 from contextlib import contextmanager, redirect_stdout
+
+import applwrap
 
 @contextmanager
 def _supress_stdout():
@@ -39,3 +45,36 @@ def supress_stdout():
         return _supress_stdout()
     else:
         return redirect_stdout(open(os.devnull, 'w'))
+
+#https://gist.github.com/Zaharid/d4f8c9a44ce7941b0c37
+__queue = None
+def get_logging_queue():
+    #This probably will have to be refactored to get access to manager as well.
+    global __queue, __manager
+    if __queue is None:
+        m = multiprocessing.Manager()
+        __manager = m
+        q = m.Queue(-1)
+        #https://docs.python.org/3/howto/logging-cookbook.html
+        listener = QueueListener(q, *logging.getLogger().handlers)
+        listener.start()
+        def exithandler():
+            q.join()
+            listener.stop()
+            #Seems to help silencing bugs...
+            import time; time.sleep(0.2)
+            m.shutdown()
+
+        atexit.register(exithandler)
+        __queue = q
+        return q
+    return __queue
+
+def initlogging(q, loglevel):
+    handler = QueueHandler(q)
+    l = logging.getLogger()
+    l.level = loglevel
+    l.handlers = [handler,]
+    if not l.isEnabledFor(logging.DEBUG):
+        applwrap.setverbosity(0)
+    atexit.register(lambda: q.join())
