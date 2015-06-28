@@ -717,16 +717,18 @@ def get_dataset_parallel(pdfsets, observables, db=None):
     q = get_logging_queue()
     loglevel = logging.getLogger().level
     nprocesses = min((n_cores, len(to_compute)))
-    #http://stackoverflow.com/questions/30943161/multiprocessing-pool-with-maxtasksperchild-produces-equal-pids#30943161
-    pool = multiprocessing.Pool(processes=nprocesses,
-                                maxtasksperchild=1,
-                                initializer=initlogging, initargs=(q, loglevel))
-    results = pool.starmap(convolve_one, to_compute, chunksize=1)
-    pool.close()
-    for ((pdf, obs), result) in zip(to_compute, results):
-        dataset[pdf][obs] = result
-        if db is not None:
-            db[make_key(pdf, obs)] = result
+    if nprocesses:
+        #http://stackoverflow.com/questions/30943161/multiprocessing-pool-with-maxtasksperchild-produces-equal-pids#30943161
+        pool = multiprocessing.Pool(processes=nprocesses,
+                                    maxtasksperchild=1,
+                                    initializer=initlogging,
+                                    initargs=(q, loglevel))
+        results = pool.starmap(convolve_one, to_compute, chunksize=1)
+        pool.close()
+        for ((pdf, obs), result) in zip(to_compute, results):
+            dataset[pdf][obs] = result
+            if db is not None:
+                db[make_key(pdf, obs)] = result
 
     return dataset
 
