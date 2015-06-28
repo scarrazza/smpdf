@@ -32,6 +32,7 @@ from pandas.stats import ols
 from smpdflib import lhaindex
 from smpdflib import plotutils
 from smpdflib.utils import supress_stdout, initlogging, get_logging_queue
+from smpdflib.lhio import hessian_from_lincomb
 
 import applwrap
 
@@ -866,6 +867,17 @@ def decompose_eigenvectors(X, predictions, target_estimator):
     Rt = Vt[neig:,:]
     return Pt.T, Rt.T
 
+def compress_X(X, neig):
+    U, s, V = np.linalg.svd(X, full_matrices=False)
+    norm = np.sqrt(X.shape[1] - 1)
+    sn = s/norm
+    u = U[:,:neig]
+    vec = V[:neig,:].T/norm
+    cov = np.dot(u, np.dot(np.diag(sn[:neig]**2), u.T))
+
+    return vec, cov
+
+
 def get_smpdf_lincomb(pdf, pdf_results, Rold = None, full_grid = False,
                       target_error = 0.1):
     """Obtain the linear combination describing each bin in each observable in
@@ -975,11 +987,18 @@ def get_smpdf_lincomb(pdf, pdf_results, Rold = None, full_grid = False,
         lincomb = lincomb[:, :index]
     return lincomb/norm, smpdf_description
 
+def create_mc2hessian(pdf, Q, Neig, output_dir, name=None, db=None):
+    X = get_X(pdf, Q, reshape=True)
+    vec, _ = compress_X(X, Neig)
+    return hessian_from_lincomb(pdf, vec, folder=output_dir,
+                         set_name= name, db=db)
+
+
+
+
 def create_smpdf(pdf, pdf_results, output_dir, name,  smpdf_tolerance=0.05,
                  Neig_total = 200,
                  full_grid=False, db = None):
-    from smpdflib.lhio import hessian_from_lincomb
-
 
     vec, description = get_smpdf_lincomb(pdf, pdf_results, full_grid=full_grid,
                             target_error=smpdf_tolerance)
