@@ -101,7 +101,7 @@ class APPLGridObservable(Observable):
         """Number of bins in the APPLGrid. It will be loaded
          in memory the first time this property is quiried."""
         if self._nbins is not None:
-            return self.nbins
+            return self._nbins
         with self:
             nbins = applwrap.getnbins()
         self._nbins = nbins
