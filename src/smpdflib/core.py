@@ -15,7 +15,7 @@ __email__ = 'stefano.carrazza@mi.infn.it'
 
 import os.path as osp
 import sys
-from collections import defaultdict, OrderedDict
+from collections import defaultdict, OrderedDict, namedtuple
 import contextlib
 import numbers
 import multiprocessing
@@ -817,18 +817,6 @@ def match_spec(corrlist, smpdf_spec):
         result[label] = [corr_obs[obs] for obs in smpdf_spec[label]]
 
     return result
-
-#TODO: Fix this to use new interfaces
-def correlations(data_table, db=None):
-    pdfcorrlist = []
-    for pdf, pdf_table in data_table.groupby('PDF'):
-        results = pdf_table.Result.unique()
-
-        corrlist = []
-        for result in results:
-            corrlist.append(compute_correlations(result, pdf, db=db))
-        pdfcorrlist += [(pdf, corrlist)]
-    return  pdfcorrlist
 
 
 def get_X(pdf, Q=None,  reshape=False, xgrid=None, fl=None):

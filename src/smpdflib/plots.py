@@ -14,7 +14,8 @@ import matplotlib.patches
 import matplotlib.mlab as mlab
 
 from smpdflib import plotutils
-from smpdflib.core import aggregate_results, M_REF, MCResult
+from smpdflib.core import (aggregate_results, M_REF,
+                           MCResult, get_X, bin_corrs_from_X)
 
 colorlist = ['#66c2a5', '#fc8d62', '#8da0cb', '#e78ac3', '#a6d854',
                      '#ffd92f']
@@ -221,7 +222,8 @@ def plot_bindist(obs_table, b, base_pdf=None):
         base = obs_table[obs_table.PDF.get_values()==base_pdf].Result[0]
     else:
         base = None
-    results = obs_table.Result.unique()
+    results = obs_table.Result.unique(
+    )
     for result in results:
         if base is not None:
             cv = base.central_value.as_matrix()
@@ -252,28 +254,44 @@ def plot_bindist(obs_table, b, base_pdf=None):
     yield (obs, b), figure
 
 
-def plot_correlations(pdfcorrlist):
+def plot_correlations(results):
 
-    for pdf, corrlist in pdfcorrlist:
+    for result in results:
+        pdf = result.pdf
+        obs = result.obs
 
-        for corr, threshold, obs, xgrid, fl in corrlist:
-            figure, axarr = plt.subplots(corr.shape[1], sharex=True,
-                                         sharey=True,
-                                         figsize=(8, corr.shape[1]+3))
+        Qs = obs.meanQ
+        xgrid = pdf.make_xgrid()
 
-            for bin in range(corr.shape[0]):
-                for f in range(corr.shape[1]):
-                    axarr[f].plot(xgrid.x, corr[bin,f])
-                    axarr[f].set_ylim([-1,1])
-                    axarr[f].set_xscale('log')
-                    axarr[f].set_ylabel("pdg: " + str(fl.id[f]))
+        fl = pdf.make_flavors()
 
-                    axarr[f].axhline(threshold[bin], c='r', ls='--')
-                    axarr[f].axhline(-threshold[bin], c='r', ls='--')
 
-            axarr[0].set_title(str(obs) + "\n")
-            plt.xlabel("x")
-            figure.subplots_adjust(hspace=0)
-            plt.setp([a.get_xticklabels() for a in figure.axes[:-1]], visible=False)
 
-            yield (obs,pdf), figure
+
+        figure, axarr = plt.subplots(len(fl), sharex=True,
+                                     sharey=True,
+                                     figsize=(8, len(fl)+3))
+
+        for b in range(obs.nbins):
+            Q = Qs[b]
+            X = get_X(pdf, Q=Q, xgrid=xgrid, fl=fl, reshape=True)
+            values, threshold = bin_corrs_from_X(result._all_vals.ix[b], X)
+            ind = 0
+            for f in range(len(fl)):
+                step = len(xgrid)
+                current_vals = values[ind:ind+step]
+                ind+=step
+                axarr[f].plot(xgrid, current_vals)
+                axarr[f].set_ylim([-1,1])
+                axarr[f].set_xscale('log')
+                axarr[f].set_ylabel("pdg: " + str(fl[f]))
+
+                axarr[f].axhline(threshold, c='r', ls='--')
+                axarr[f].axhline(-threshold, c='r', ls='--')
+
+        axarr[0].set_title(str(obs) + "\n")
+        plt.xlabel("x")
+        figure.subplots_adjust(hspace=0)
+        plt.setp([a.get_xticklabels() for a in figure.axes[:-1]], visible=False)
+
+        yield (obs,pdf), figure

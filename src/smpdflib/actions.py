@@ -156,12 +156,12 @@ def test_as_linearity(summed_table, diff_from_line = 0.25):
     import smpdflib.core as lib
     return lib.test_as_linearity(summed_table, diff_from_line = diff_from_line)
 
-def save_correlations(pdfcorrlist, output_dir, prefix, fmt='pdf'):
-    """Compute PDF/Observable correlations"""
+def save_correlations(results, output_dir, prefix, fmt='pdf'):
+    """Plot correlations between PDFs and observables"""
     import smpdflib.plots as plots
     def namefunc(obs,pdf):
         return "smpdfplot_%s_%s"%(pdf, obs)
-    return save_figures(plots.plot_correlations, pdfcorrlist, output_dir,
+    return save_figures(plots.plot_correlations, results, output_dir,
                         prefix=prefix,
                         fmt=fmt, namefunc=namefunc)
 
