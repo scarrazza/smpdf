@@ -138,7 +138,6 @@ class APPLGridObservable(Observable):
                 stack.enter_context(supress_stdout())
             applwrap.initobs(self.filename)
         _selected_grid = self.filename
-    #TODO: Unload Observable here
     def __exit__(self, exc_type, exc_value, traceback):
         global _selected_grid
         _selected_grid = None
@@ -221,7 +220,6 @@ class PDF(TupleComp):
         _context_pdf = str(self)
         applwrap.initpdf(self.name)
 
-    #TODO: Unload PDF here
     def __exit__(self, exc_type, exc_value, traceback):
         global _context_pdf
         _context_pdf = None
@@ -302,7 +300,6 @@ class PDF(TupleComp):
             fl = self.make_flavors(*fl)
 
         with self:
-            #TODO: Can we implement this loop in C
             all_members = [[[applwrap.xfxQ(r, f, x, Q)
                              for x in xgrid]
                              for f in fl]
@@ -379,7 +376,6 @@ class Result():
         """Number of bins in the preduction."""
         return self._all_vals.shape[0]
 
-    #TODO: This should really be done in Observable. Can we access nbins?
     @property
     def meanQ(self):
         """Mean energy of the observable, for each bin"""
@@ -630,8 +626,6 @@ def convolve_one(pdf, observable, logger=None):
 
 def make_convolution(pdf, observables):
     datas = defaultdict(lambda:OrderedDict())
-    #TODO: load many replicas in C++
-    #TODO: Could we loop over observables and then over memebers?
     if not observables:
         return {}
 
@@ -656,7 +650,6 @@ def results_from_datas(dataset):
         results += [make_result(obs, pdf, data[obs]) for obs in data]
     return results
 
-#TODO: Refactor this after adding efficient convolution
 def get_dataset(pdfsets, observables, db=None):
     def make_key(pdf, obs):
         return str((pdf.get_key(), obs.get_key()))

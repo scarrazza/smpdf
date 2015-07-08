@@ -131,7 +131,6 @@ def save_nf(summed_table, output_dir, prefix, fmt='pdf'):
 
 
 
-#TODO: Refactor this so there is not so much back and forth with smpdflib
 def export_html(total, output_dir, prefix):
     """
     Export results as a rich HTML table."""
