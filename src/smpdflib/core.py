@@ -31,7 +31,7 @@ from pandas.stats import ols
 
 from smpdflib import lhaindex
 from smpdflib import plotutils
-from smpdflib.utils import supress_stdout, initlogging, get_logging_queue
+from smpdflib.loggingutils import supress_stdout, initlogging, get_logging_queue
 from smpdflib.lhio import hessian_from_lincomb
 
 import applwrap
