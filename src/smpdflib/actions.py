@@ -135,9 +135,10 @@ def save_nf(summed_table, output_dir, prefix, fmt='pdf'):
 def export_html(total, output_dir, prefix):
     """
     Export results as a rich HTML table."""
+    import smpdflib.utils as utils
     import smpdflib.core as lib
     filename = "%sresults.html" % (prefix if prefix else '')
-    lib.save_html(total[lib.DISPLAY_COLUMNS], osp.join(output_dir, filename))
+    utils.save_html(total[lib.DISPLAY_COLUMNS], osp.join(output_dir, filename))
 
 #TODO: Ability to import exported csv
 def export_csv(total, output_dir, prefix):

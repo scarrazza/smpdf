@@ -12,6 +12,8 @@ import atexit
 from logging.handlers import QueueHandler, QueueListener
 from contextlib import contextmanager, redirect_stdout
 
+import pandas as pd
+
 import applwrap
 
 @contextmanager
@@ -78,3 +80,25 @@ def initlogging(q, loglevel):
     if not l.isEnabledFor(logging.DEBUG):
         applwrap.setverbosity(0)
     atexit.register(lambda: q.join())
+
+def save_html(df, path):
+    import jinja2
+
+    env = jinja2.Environment(loader = jinja2.PackageLoader('smpdflib',
+                                                           'templates'))
+    template = env.get_template('results.html.template')
+    def remark_formatter(remarks):
+        if not remarks:
+            return ''
+        else:
+            return '<ul>%s</ul>' % '\n'.join('<li>%s</li>' %
+                   jinja2.escape(remark) for remark in remarks)
+
+    #http://stackoverflow.com/questions/26277757/pandas-to-html-truncates-string-contents
+    with pd.option_context('display.max_colwidth', -1):
+        table = df.to_html(
+                             formatters={'Remarks':remark_formatter},
+                             escape = False)
+    result = template.render(table=table)
+    with open(path, 'w') as f:
+        f.write(result)

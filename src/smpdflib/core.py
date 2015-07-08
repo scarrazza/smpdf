@@ -752,30 +752,6 @@ def produce_results(pdfsets, observables, db=None):
                 for pdfset in pdfsets for pred in predictions])
     return results
 
-#TODO: Move somewhere else
-def save_html(df, path):
-    import jinja2
-    import codecs
-
-    env = jinja2.Environment(loader = jinja2.PackageLoader('smpdflib',
-                                                           'templates'))
-    template = env.get_template('results.html.template')
-    def remark_formatter(remarks):
-        if not remarks:
-            return ''
-        else:
-            return '<ul>%s</ul>' % '\n'.join('<li>%s</li>' %
-                   jinja2.escape(remark) for remark in remarks)
-
-    #http://stackoverflow.com/questions/26277757/pandas-to-html-truncates-string-contents
-    with pd.option_context('display.max_colwidth', -1):
-        table = df.to_html(
-                             formatters={'Remarks':remark_formatter},
-                             escape = False)
-    result = template.render(table=table)
-    with codecs.open(path, 'w', 'utf-8') as f:
-        f.write(result)
-
 def test_as_linearity(summed_table, diff_from_line = 0.25):
     group_by = ('Observable','NumFlavors', 'PDF_OrderQCD', 'Collaboration')
     for (process, nf, oqcd, col), curve_df in summed_table.groupby(group_by,

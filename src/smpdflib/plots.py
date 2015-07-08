@@ -205,7 +205,6 @@ def plot_asQ(pdfsets):
 
 def plot_bindist(obs_table, b, base_pdf=None):
 
-
     def _kde_method(X, coords):
             kde = mlab.GaussianKDE(X, None)
             return kde.evaluate(coords)
@@ -264,9 +263,6 @@ def plot_correlations(results):
         xgrid = pdf.make_xgrid()
 
         fl = pdf.make_flavors()
-
-
-
 
         figure, axarr = plt.subplots(len(fl), sharex=True,
                                      sharey=True,
