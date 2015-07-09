@@ -15,7 +15,7 @@ __email__ = 'stefano.carrazza@mi.infn.it'
 
 import os.path as osp
 import sys
-from collections import defaultdict, OrderedDict, namedtuple
+from collections import defaultdict, OrderedDict
 import contextlib
 import numbers
 import multiprocessing
