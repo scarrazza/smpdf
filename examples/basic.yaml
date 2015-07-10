@@ -1,3 +1,4 @@
+fmt: png
 observables:
    - {name: data/applgrid/atlas-incljets-r06-arxiv-1112.6297-eta7.root, order: 1 }
    - {name: data/applgrid/ttbar-xsectot-8tev.root, order: 1}
@@ -13,20 +14,21 @@ actiongroups:
       - nfplots
       - asQplots 
       - savedata
-
+    
    - prefix: vsMMHT
      pdfsets :
       - NNPDF30_nlo_as_0118
       - {name: MMHT2014nlo68cl_1000MC}
      base_pdf : NNPDF30_nlo_as_0118
      actions:
-      - violinplots
       - ciplots
-      - savedata
+      - violinplots
+      - obscorrplots
    - prefix: abscomp
      pdfsets :
       - NNPDF30_nlo_as_0118
       - {name: MMHT2014nlo68cl_1000MC}
      actions:
-      - violinplots
       - ciplots
+      - violinplots
+      - obscorrplots
