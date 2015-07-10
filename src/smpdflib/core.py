@@ -320,7 +320,11 @@ class PDF(TupleComp):
         #next is for pandas not to get confused
         if name.startswith('__') or name == 'next':
             raise AttributeError()
-        return lhaindex.parse_info(self.name)[name]
+        try:
+            return lhaindex.parse_info(self.name)[name]
+        except KeyError:
+            raise AttributeError()
+
 
     def __len__(self):
         return self.NumMembers
