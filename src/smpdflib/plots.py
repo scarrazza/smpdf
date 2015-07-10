@@ -305,7 +305,6 @@ def plot_observable_correlations(results_table, base_pdf=None):
         ranges = (-rlim, rlim)
         pd.DataFrame(corrmat).to_csv('xx.csv', sep='\t')
 
-        size = 0.5+len(corrmat)*5
 
         ticks = np.arange(len(corrmat)), labels
 

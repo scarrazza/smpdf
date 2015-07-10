@@ -149,6 +149,16 @@ def export_html(total, output_dir, prefix):
     filename = "%sresults.html" % (prefix if prefix else '')
     utils.save_html(total[lib.DISPLAY_COLUMNS], osp.join(output_dir, filename))
 
+def export_obscorrs(summed_table, output_dir, prefix, base_pdf=None):
+    import pandas as pd
+
+    from smpdflib.core import observable_correlations
+
+    for title, corrmat, labels in observable_correlations(summed_table, base_pdf):
+        name = prefix + "_" + normalize_name(title)
+        filename = osp.join(output_dir, name + ".csv")
+        pd.DataFrame(corrmat, index=labels, columns=labels).to_csv(filename, sep='\t')
+
 #TODO: Ability to import exported csv
 def export_csv(total, output_dir, prefix):
     """
@@ -261,6 +271,7 @@ ACTION_DICT = OrderedDict((
                ('obscorrplots', save_obscorrs),
                ('exporthtml', export_html),
                ('exportcsv', export_csv),
+               ('exportobscorrs', export_obscorrs),
                ('plotcorrs', save_correlations),
                ('smpdf', create_smpdf),
                ('mc2hessian', create_mc2hessian),
