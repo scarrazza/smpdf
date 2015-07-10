@@ -27,3 +27,11 @@ def save_html(df, path):
     result = template.render(table=table)
     with open(path, 'w') as f:
         f.write(result)
+
+def break_bins(results):
+    for result in results:
+        for bin in range(result.nbins):
+            name = str(result.obs)
+            if result.nbins > 1:
+                name += " Bin (%d)" % bin+1
+            yield name, result._all_vals.iloc[bin,:]
