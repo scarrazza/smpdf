@@ -67,7 +67,7 @@ def save_figures(generator, table, output_dir, namefunc=None,
             for fmt in fmts:
                 filename = "{prefixstr}{nameresult}.{fmt}".format(**locals())
                 path = osp.join(output_dir, "figures", filename)
-                fig.savefig(path)
+                fig.savefig(path, bbox_inches='tight')
                 plt.close(fig)
 
 
@@ -128,6 +128,16 @@ def save_nf(summed_table, output_dir, prefix, fmt='pdf'):
         return 'nfplot_{obs}_{oqcd}'.format(**locals())
     return save_figures(plots.plot_nf, summed_table, output_dir,
                         prefix=prefix, fmt=fmt, namefunc=namefunc)
+
+def save_obscorrs(summed_table, output_dir, prefix, base_pdf=None, fmt='pdf'):
+
+    import smpdflib.plots as plots
+    def namefunc(pdf):
+        return 'obs_corrs_%s' % pdf
+    return save_figures(plots.plot_observable_correlations, summed_table,
+                        output_dir, base_pdf = base_pdf,
+                        prefix=prefix, fmt=fmt, namefunc=namefunc)
+
 
 
 
@@ -248,6 +258,7 @@ ACTION_DICT = OrderedDict((
                ('asplots',save_as),
                ('asQplots',save_asq),
                ('nfplots',save_nf),
+               ('obscorrplots', save_obscorrs),
                ('exporthtml', export_html),
                ('exportcsv', export_csv),
                ('plotcorrs', save_correlations),

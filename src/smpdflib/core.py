@@ -971,3 +971,39 @@ def create_smpdf(pdf, pdf_results, output_dir, name,  smpdf_tolerance=0.05,
 
     return hessian_from_lincomb(pdf, vec, folder=output_dir,
                          set_name= name, db=db, extra_fields=description)
+
+def observable_correlations(results_table, base_pdf=None):
+
+    if base_pdf is not None:
+        base_results = results_table[results_table.PDF == base_pdf].Result.unique()
+        M = np.concatenate([result._all_vals.as_matrix() for
+                            result in base_results])
+        base_corr = np.corrcoef(M)
+
+
+    for pdf, pdf_table in results_table.groupby('PDF', sort=False):
+        if base_pdf == pdf:
+            continue
+        results = pdf_table.Result.unique()
+        M = np.concatenate([result._all_vals.as_matrix() for result in results])
+        corrmat = np.corrcoef(M)
+        title = "Observables correlation\n%s" % pdf
+        if base_pdf:
+            corrmat -= base_corr
+            title += "-%s" % base_pdf
+
+
+        def make_labels(results):
+            for result in results:
+                obs = result.obs
+                obslabel = str(obs)
+                if len(obslabel) > 10:
+                    obslabel = obslabel[:10] + '...'
+                if result.nbins == 1:
+                    yield obslabel
+                else:
+                    for b in range(result.nbins):
+                        yield "%s (Bin %d)" % (obslabel, b+1)
+
+        labels = list(make_labels(results))
+        yield title, corrmat, labels

@@ -15,7 +15,10 @@ import matplotlib.mlab as mlab
 
 from smpdflib import plotutils
 from smpdflib.core import (aggregate_results, M_REF,
-                           MCResult, get_X, bin_corrs_from_X)
+                           MCResult, get_X, bin_corrs_from_X,
+                           observable_correlations)
+
+from smpdflib.utils import break_bins
 
 colorlist = ['#66c2a5', '#fc8d62', '#8da0cb', '#e78ac3', '#a6d854',
                      '#ffd92f']
@@ -291,3 +294,34 @@ def plot_correlations(results):
         plt.setp([a.get_xticklabels() for a in figure.axes[:-1]], visible=False)
 
         yield (obs,pdf), figure
+
+
+def plot_observable_correlations(results_table, base_pdf=None):
+
+    for title, corrmat, labels in observable_correlations(results_table, base_pdf):
+        if base_pdf is not None:
+            rlim = np.max(np.abs(corrmat))
+        else:
+            rlim = 1
+        ranges = (-rlim, rlim)
+        pd.DataFrame(corrmat).to_csv('xx.csv', sep='\t')
+
+        size = 0.5+len(corrmat)*5
+
+        ticks = np.arange(len(corrmat)), labels
+
+        fig = plt.figure()
+        plt.imshow(corrmat, cmap=plotutils.spectral_cm, vmin=ranges[0],
+                   vmax=ranges[1], interpolation='none')
+        plt.grid(False)
+        plt.xticks(*ticks, rotation=90)
+        plt.yticks(*ticks)
+
+        plt.title(title)
+        plt.tight_layout()
+        plt.colorbar()
+
+        yield (title.split()[-1],) , fig
+
+
+
