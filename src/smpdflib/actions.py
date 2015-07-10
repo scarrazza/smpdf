@@ -129,12 +129,12 @@ def save_nf(summed_table, output_dir, prefix, fmt='pdf'):
     return save_figures(plots.plot_nf, summed_table, output_dir,
                         prefix=prefix, fmt=fmt, namefunc=namefunc)
 
-def save_obscorrs(summed_table, output_dir, prefix, base_pdf=None, fmt='pdf'):
+def save_obscorrs(data_table, output_dir, prefix, base_pdf=None, fmt='pdf'):
 
     import smpdflib.plots as plots
     def namefunc(pdf):
         return 'obs_corrs_%s' % pdf
-    return save_figures(plots.plot_observable_correlations, summed_table,
+    return save_figures(plots.plot_observable_correlations, data_table,
                         output_dir, base_pdf = base_pdf,
                         prefix=prefix, fmt=fmt, namefunc=namefunc)
 
@@ -149,12 +149,12 @@ def export_html(total, output_dir, prefix):
     filename = "%sresults.html" % (prefix if prefix else '')
     utils.save_html(total[lib.DISPLAY_COLUMNS], osp.join(output_dir, filename))
 
-def export_obscorrs(summed_table, output_dir, prefix, base_pdf=None):
+def export_obscorrs(data_table, output_dir, prefix, base_pdf=None):
     import pandas as pd
 
     from smpdflib.core import observable_correlations
 
-    for title, corrmat, labels in observable_correlations(summed_table, base_pdf):
+    for title, corrmat, labels in observable_correlations(data_table, base_pdf):
         name = prefix + "_" + normalize_name(title)
         filename = osp.join(output_dir, name + ".csv")
         pd.DataFrame(corrmat, index=labels, columns=labels).to_csv(filename, sep='\t')

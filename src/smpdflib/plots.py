@@ -303,17 +303,23 @@ def plot_observable_correlations(results_table, base_pdf=None):
         else:
             rlim = 1
         ranges = (-rlim, rlim)
-        pd.DataFrame(corrmat).to_csv('xx.csv', sep='\t')
 
 
-        ticks = np.arange(len(corrmat)), labels
 
         fig = plt.figure()
         plt.imshow(corrmat, cmap=plotutils.spectral_cm, vmin=ranges[0],
                    vmax=ranges[1], interpolation='none')
         plt.grid(False)
-        plt.xticks(*ticks, rotation=90)
-        plt.yticks(*ticks)
+        if len(corrmat) < 20:
+            ticks = np.arange(len(corrmat)), labels
+            plt.xticks(*ticks, rotation=90)
+            plt.yticks(*ticks)
+        else:
+            ...
+            #empty = matplotlib.patches.Rectangle((0,0), 1, 1, fill=False,
+            #                                     edgecolor='none',
+            #                     visible=False)
+            #plt.legend([empty]*len(corrmat), labels)
 
         plt.title(title)
         plt.tight_layout()
