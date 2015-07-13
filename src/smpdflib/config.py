@@ -209,10 +209,11 @@ class Config(object):
                 obsdict = obs.copy()
             else:
                 raise ConfigError("Observable format not understood: %s" % obs)
-            names = glob.glob(obsdict.pop('name'))
+            namestr = obsdict.pop('name')
+            names = glob.glob(namestr)
             if not names:
                 raise ConfigError("No observables found for %s" %
-                                  names)
+                                  namestr)
             allnames += names
         for name in allnames:
             try:
