@@ -125,7 +125,7 @@ class Config(object):
                     for check_func in actionfunc.checks:
                         check_func(action, final, self)
                 except actions.ActionError as e:
-                    raise ConfigError(str(e))
+                    raise ConfigError(e)
 
 
     def parse_pdfsets(self, pdfs):
@@ -196,7 +196,7 @@ class Config(object):
             result = actions.build_actions(acts)
         except ValueError as e:
             raise ConfigError("Could not parse actions '%s': %s" % (acts,
-                                                                    e.message))
+                                                                    e))
         return result
 
     def parse_observables(self, obslitst):
@@ -220,10 +220,10 @@ class Config(object):
                 obsobj = make_observable(name, **obsdict)
             except ValueError as e:
                 raise ConfigError("Could not parse the observable %s: %s"
-                                       % (name, e.message))
+                                       % (name, e))
             except TypeError as e:
                     raise ConfigError("Incorrect arguments passed to process "
-                                      "observable %s: %s" % (name, e.message))
+                                      "observable %s: %s" % (name, e))
             observables.append(obsobj)
         s = set(observables)
         if len(s) != len(observables):
