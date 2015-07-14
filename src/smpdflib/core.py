@@ -866,7 +866,7 @@ def _pop_eigenvector(X):
     return Pt.T, Rt.T
 
 
-def get_smpdf_lincomb2(pdf, pdf_results, full_grid = False,
+def get_smpdf_lincomb(pdf, pdf_results, full_grid = False,
                       target_error = 0.1):
     #Estimator= norm**2(rotated)/norm**2(total) which is additive when adding
     #eigenvecotors
@@ -924,119 +924,6 @@ def get_smpdf_lincomb2(pdf, pdf_results, full_grid = False,
     lincomb = lincomb[:,:index+1]
     return lincomb/norm, {'smpdf_description':{}}
 
-
-
-
-
-def get_smpdf_lincomb(pdf, pdf_results, Rold = None, full_grid = False,
-                      target_error = 0.1):
-    """Obtain the linear combination describing each bin in each observable in
-    pdf_results in order. Return the orthogonal linear combination and a
-    list describing the results."""
-    #TODO: !!!!
-    Neig_total = 120
-    index = 0
-    nrep = len(pdf) - 1
-    #We must divide by norm since we are reproducing the covmat and not XX.T
-    norm = np.sqrt(nrep - 1)
-    lincomb = np.zeros(shape=(nrep,Neig_total))
-    smpdf_description = {'smpdf_description':[]}
-    description = smpdf_description['smpdf_description']
-
-
-    #Estimator= norm**2(rotated)/norm**2(total) which is additive when adding
-    #eigenvecotors
-    #Error = (1 - sqrt(1-estimator))
-    target_estimator = 1 - (1-target_error)**2
-    for result in pdf_results:
-        if result.pdf != pdf:
-            raise ValueError("PDF results must be for %s" % pdf)
-        obs_description = {'observable':str(result.obs),
-                            'eigenvectors_for_bin':[]}
-        description.append(obs_description)
-        for b in range(result.nbins):
-            Xreal = get_X(pdf, Q=result.meanQ[b], reshape=True)
-            prediction = result._all_vals.iloc[b,:]
-            original_diffs = prediction - np.mean(prediction)
-            if Rold is not None:
-                X = np.dot(Xreal,Rold)
-                rotated_diffs = np.dot(original_diffs, Rold)
-            else:
-                rotated_diffs = original_diffs
-                X = Xreal
-            cc, threshold = bin_corrs_from_X(rotated_diffs, X)
-
-
-            #la.norm is std and is conserved in an exact rotation
-            # (but np.std is wrong after rotating)
-            rotsqnorm = np.dot(rotated_diffs, rotated_diffs)
-            origsqnorm = np.dot(original_diffs, original_diffs)
-            estimator = rotsqnorm/origsqnorm
-            error = 1 - np.sqrt(1 - estimator)
-
-            logging.info("Current error : %.4f" % error)
-
-            if error < target_error:
-                #We have already selected this x range
-                logging.info("Observable %s, bin %s is already well reproduced "
-                      %
-                      (result.obs, b+1))
-
-                obs_description['eigenvectors_for_bin'].append(index)
-                continue
-            mask = np.abs(cc) > threshold
-            X = X[mask]
-
-            logging.info("Using a %s X matrix to compute eigenvectors "
-                  "for observable %s, bin %s" % (X.shape, result.obs, b+1))
-
-            logging.debug("Correlation threshold is: %.4f" % threshold)
-
-
-            P,R = decompose_eigenvectors(X, rotated_diffs,
-                      target_estimator=(estimator - target_estimator)/estimator)
-            logging.info("Obtained %d eigenvectors" % P.shape[1])
-            if Rold is not None:
-                P = np.dot(Rold, P)
-                R = np.dot(Rold, R)
-            Rold = R
-
-
-            rotated_diffs = np.dot(original_diffs, Rold)
-
-            rotsqnorm = np.dot(rotated_diffs, rotated_diffs)
-            origsqnorm = np.dot(original_diffs, original_diffs)
-            new_error = 1 - np.sqrt((origsqnorm - rotsqnorm)/origsqnorm)
-
-            logging.info("New error : %.4f" % new_error)
-
-            neig = P.shape[1]
-            if index + neig >= Neig_total:
-                to_keep = Neig_total - index
-                lincomb[:, index:Neig_total] = P[:, :to_keep]
-                return lincomb/norm, smpdf_description
-            lincomb[:,index:index+neig] = P
-            index += neig
-
-            obs_description['eigenvectors_for_bin'].append(index)
-
-            #Expensive if not needed.
-            if logging.getLogger().isEnabledFor(logging.DEBUG):
-                XV = np.dot(Xreal, lincomb/norm)
-                covest = np.dot(XV, XV.T)
-                stdest = np.sqrt(np.diag(covest))[mask]
-                mean = np.mean(Xreal[mask], axis=1)
-                std = np.std(Xreal[mask], axis=1)
-                smt = np.sum((stdest/ std)*mean)/np.sum(mean)
-                logging.debug("Estimator: %s " % smt )
-
-
-    if index < Neig_total and full_grid:
-        lincomb[:, index:Neig_total] = R[:, :Neig_total - index]
-    elif not full_grid:
-        lincomb = lincomb[:, :index]
-    return lincomb/norm, smpdf_description
-
 def create_mc2hessian(pdf, Q, Neig, output_dir, name=None, db=None):
     X = get_X(pdf, Q, reshape=True)
     vec, _ = compress_X(X, Neig)
@@ -1050,7 +937,7 @@ def create_smpdf(pdf, pdf_results, output_dir, name,  smpdf_tolerance=0.05,
                  Neig_total = 200,
                  full_grid=False, db = None):
 
-    vec, description = get_smpdf_lincomb2(pdf, pdf_results, full_grid=full_grid,
+    vec, description = get_smpdf_lincomb(pdf, pdf_results, full_grid=full_grid,
                             target_error=smpdf_tolerance)
     #We have do do this because LHAPDF seems to not parse complex structures
     description['smpdf_description'] = yaml.dump(description['smpdf_description'],
