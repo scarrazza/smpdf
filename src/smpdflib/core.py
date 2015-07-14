@@ -839,6 +839,89 @@ def compress_X(X, neig):
     return vec, cov
 
 
+def _get_estimator(rotated_diffs, original_diffs):
+    #la.norm is std and is conserved in an exact rotation
+    # (but np.std is wrong after rotating)
+    rotsqnorm = np.dot(rotated_diffs, rotated_diffs)
+    origsqnorm = np.dot(original_diffs, original_diffs)
+    estimator = rotsqnorm/origsqnorm
+    error = 1 - np.sqrt(1 - estimator)
+
+    return error
+
+def _mask_X(X,diffs):
+     cc, threshold = bin_corrs_from_X(diffs, X)
+     mask = np.abs(cc) > threshold
+     Xm = X[mask]
+     logging.debug("Masked shape is %s" % (Xm.shape,))
+     return Xm
+
+def _pop_eigenvector(X):
+    U,s,Vt = la.svd(X)
+    Pt = Vt[:1,:]
+    Rt = Vt[1:,:]
+    return Pt.T, Rt.T
+
+
+def get_smpdf_lincomb2(pdf, pdf_results, full_grid = False,
+                      target_error = 0.1):
+    #Estimator= norm**2(rotated)/norm**2(total) which is additive when adding
+    #eigenvecotors
+    #Error = (1 - sqrt(1-estimator))
+    Rold = None
+    target_estimator = 1 - (1-target_error)**2
+
+    nxf = len(pdf.make_xgrid())*len(pdf.make_flavors())
+    nrep = len(pdf) - 1
+    max_neig = np.min([nxf, nrep])
+    #We must divide by norm since we are reproducing the covmat and not XX.T
+    norm = np.sqrt(nrep - 1)
+    lincomb = np.zeros(shape=(nrep,max_neig))
+
+    index = 0
+
+    for result in pdf_results:
+        if result.pdf != pdf:
+            raise ValueError("PDF results must be for %s" % pdf)
+        for b in range(result.nbins):
+            Xreal = get_X(pdf, Q=result.meanQ[b], reshape=True)
+            prediction = result._all_vals.iloc[b,:]
+            original_diffs = prediction - np.mean(prediction)
+            if Rold is not None:
+                X = np.dot(Xreal,Rold)
+                rotated_diffs = np.dot(original_diffs, Rold)
+            else:
+                rotated_diffs = original_diffs
+                X = Xreal
+
+            eigs_for_bin = 0
+            while _get_estimator(rotated_diffs, original_diffs) > target_estimator:
+                X = _mask_X(X, rotated_diffs)
+                P, R = _pop_eigenvector(X)
+                if Rold is not None:
+                    P = np.dot(Rold, P)
+                    R = np.dot(Rold, R)
+                Rold = R
+
+                rotated_diffs = np.dot(original_diffs, Rold)
+                X = np.dot(Xreal,Rold)
+                lincomb[:,index:index+1] = P
+                index += 1
+                eigs_for_bin += 1
+            if eigs_for_bin:
+                logging.info("Obtained %d eigenvectors for observable %s, "
+                             "bin %d" % (eigs_for_bin, result.obs, b+1))
+            else:
+                logging.info("Observable %s, "
+                             "bin %d is already well reproduced."
+                             % (result.obs, b+1))
+    lincomb = lincomb[:,:index+1]
+    return lincomb/norm, {'smpdf_description':{}}
+
+
+
+
+
 def get_smpdf_lincomb(pdf, pdf_results, Rold = None, full_grid = False,
                       target_error = 0.1):
     """Obtain the linear combination describing each bin in each observable in
@@ -961,7 +1044,7 @@ def create_smpdf(pdf, pdf_results, output_dir, name,  smpdf_tolerance=0.05,
                  Neig_total = 200,
                  full_grid=False, db = None):
 
-    vec, description = get_smpdf_lincomb(pdf, pdf_results, full_grid=full_grid,
+    vec, description = get_smpdf_lincomb2(pdf, pdf_results, full_grid=full_grid,
                             target_error=smpdf_tolerance)
     #We have do do this because LHAPDF seems to not parse complex structures
     description['smpdf_description'] = yaml.dump(description['smpdf_description'],
