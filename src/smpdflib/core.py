@@ -914,8 +914,9 @@ def get_smpdf_lincomb2(pdf, pdf_results, full_grid = False,
                 index += 1
                 eigs_for_bin += 1
             if eigs_for_bin:
-                logging.info("Obtained %d eigenvectors for observable %s, "
-                             "bin %d" % (eigs_for_bin, result.obs, b+1))
+                logging.info("Obtained %d eigenvector%s for observable %s, "
+                             "bin %d" % (eigs_for_bin, 's'*(eigs_for_bin>1),
+                                         result.obs, b+1))
             else:
                 logging.info("Observable %s, "
                              "bin %d is already well reproduced."
