@@ -839,9 +839,12 @@ def compress_X(X, neig):
     return vec, cov
 
 
-def _get_estimator(rotated_diffs, original_diffs):
-    #la.norm is std and is conserved in an exact rotation
-    # (but np.std is wrong after rotating)
+def _get_error(rotated_diffs, original_diffs):
+    """Rotated diffs are the residual differences, that are not reproduced in
+    the hessian. They are to be minimized. It holds that
+    `norm(rotated_diffs)**2+norm(<reproduced>)**2==norm(original_diffs)**2`
+    """
+
     rotsqnorm = np.dot(rotated_diffs, rotated_diffs)
     origsqnorm = np.dot(original_diffs, original_diffs)
     estimator = rotsqnorm/origsqnorm
@@ -868,8 +871,10 @@ def get_smpdf_lincomb2(pdf, pdf_results, full_grid = False,
     #Estimator= norm**2(rotated)/norm**2(total) which is additive when adding
     #eigenvecotors
     #Error = (1 - sqrt(1-estimator))
+    #TODO: Optimize by calculating estimator instead of error?
+    #target_estimator = 1 - (1-target_error)**2
     Rold = None
-    target_estimator = 1 - (1-target_error)**2
+
 
     nxf = len(pdf.make_xgrid())*len(pdf.make_flavors())
     nrep = len(pdf) - 1
@@ -895,7 +900,7 @@ def get_smpdf_lincomb2(pdf, pdf_results, full_grid = False,
                 X = Xreal
 
             eigs_for_bin = 0
-            while _get_estimator(rotated_diffs, original_diffs) > target_estimator:
+            while _get_error(rotated_diffs, original_diffs) > target_error:
                 X = _mask_X(X, rotated_diffs)
                 P, R = _pop_eigenvector(X)
                 if Rold is not None:
