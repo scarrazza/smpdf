@@ -3,7 +3,7 @@ import sys
 from setuptools import setup, Extension, find_packages
 import subprocess
 
-if sys.version_info.major < 3 or sys.version_info.minor < 4:
+if sys.version_info < (3,4):
     print("SMPDF requires Python 3.4 or later", file=sys.stderr)
     sys.exit(1)
 
