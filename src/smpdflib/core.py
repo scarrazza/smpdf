@@ -712,10 +712,11 @@ def get_dataset_parallel(pdfsets, observables, db=None):
             else:
                 to_compute.append((pdf, obs))
 
-    q = get_logging_queue()
-    loglevel = logging.getLogger().level
+
     nprocesses = min((n_cores, len(to_compute)))
     if nprocesses:
+        q = get_logging_queue()
+        loglevel = logging.getLogger().level
         #http://stackoverflow.com/questions/30943161/multiprocessing-pool-with-maxtasksperchild-produces-equal-pids#30943161
         pool = multiprocessing.Pool(processes=nprocesses,
                                     maxtasksperchild=1,
