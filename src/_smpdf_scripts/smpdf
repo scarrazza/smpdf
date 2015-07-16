@@ -16,7 +16,7 @@ import smpdflib.actions as actions
 
 
 
-__author__ = 'Stefano Carrazza'
+__author__ = 'Stefano Carrazza, Zahari Kassabov'
 __license__ = 'GPL'
 __version__ = '1.0.0'
 __email__ = 'stefano.carrazza@mi.infn.it'
