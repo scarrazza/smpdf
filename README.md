@@ -23,21 +23,24 @@ executed and give valid reesults:
 $ lhapdf-config
 $ applgrid-config
 ```
+The default Applgrid installation **will not work**: **All** header files must 
+be copied to the appromiate include path, and not only those copied by
+`make install`, which is insufficient. For example, for a default
+Ubuntu installation:
+
+````Shell
+/applgrid-1.4.70/src $ sudo cp *.h /usr/local/include/appl_grid/
+````
 
 Python 3.4+ is also required.
 
 In order to manage the Python dependencies,
 [Anaconda](https://store.continuum.io/cshop/anaconda/) (with a Python  
-3.4+ environment) is the recommended way. After setting it up, do:
-
-````Shell
-$ conda install conda-env
-```
-
+3.4+ environment) is the recommended way. After setting it up,
 cd into the directory of SMPDF and:
 
 ````Shell
-$ conda env update -n root -f environment.yml
+$ conda install --file environment.yml
 ```
 
 Once all dependencies are satisfied, run:
