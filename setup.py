@@ -2,6 +2,7 @@ from __future__ import print_function
 import sys
 from setuptools import setup, Extension, find_packages
 import subprocess
+import platform
 
 if sys.version_info < (3,4):
     print("SMPDF requires Python 3.4 or later", file=sys.stderr)
@@ -23,9 +24,12 @@ lhapdf_libs = call_command('lhapdf-config --libs').split()
 
 applgrid_includes = call_command('applgrid-config --cxxflags').split()
 applgrid_libs = call_command('applgrid-config --ldflags').split()
+extra_compile_args = lhapdf_includes + applgrid_includes
+if platform.system() == 'Darwin':
+    mac_ver = platform.mac_ver()[0]
+    extra_compile_args += ['-mmacosx-version-min=%s' % mac_ver]
 module1 = Extension('applwrap',
-                    extra_compile_args = (lhapdf_includes + applgrid_includes
-                                           ),
+                    extra_compile_args = extra_compile_args ,
                     extra_link_args = (lhapdf_includes + applgrid_includes  +
                                           applgrid_libs + lhapdf_libs),
                     sources = ['src/applwrap/applwrap.cc'], language="c++")
