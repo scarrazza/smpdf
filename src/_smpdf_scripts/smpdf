@@ -22,9 +22,10 @@ __version__ = '1.0.0'
 __email__ = 'stefano.carrazza@mi.infn.it'
 
 
-def main(conf, output_dir, db, quiet=False):
+def execute(conf, output_dir, db, quiet=False):
 
     import pandas as pd
+    import smpdflib.core as lib
 
     resultset = []
     for group in conf.actiongroups:
@@ -71,15 +72,17 @@ def print_results(results):
     print ("\n +--------+ Completed +--------+\n")
 
 def make_output_dir(output_dir):
-    if not osp.exists(args.output):
-        os.makedirs(args.output)
-    elif not osp.isdir(args.output):
+    if not osp.exists(output_dir):
+        os.makedirs(output_dir)
+    elif not osp.isdir(output_dir):
         print("'output' is not a directory", file=sys.stderr)
         sys.exit(1)
     figpath = osp.join(output_dir,"figures")
     if not osp.isdir(figpath):
         os.mkdir(figpath)
 
+if __name__ == '__main__':
+    main()
 
 def splash():
     s =  ("""
@@ -97,7 +100,7 @@ def splash():
 
 
 
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser(
         description = "Compare phenomenology for arrays of applgrids "
          "and pdfsets. "
@@ -184,7 +187,7 @@ if __name__ == "__main__":
         applwrap.setverbosity(0)
     multiprocessing.set_start_method('spawn')
     try:
-        results = main(conf, args.output ,db=db, quiet=args.quiet)
+        results = execute(conf, args.output ,db=db, quiet=args.quiet)
     finally:
         #bool(db) == False if empty
         if db is not None:

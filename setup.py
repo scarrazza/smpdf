@@ -38,7 +38,8 @@ setup (name = 'smpdf',
        url = 'https://github.com/scarrazza/smpdf',
        long_description = "See `smpdf --help` for the full list of options",
        ext_modules = [module1],
-       scripts = ['scripts/smpdf'],
+       #http://stackoverflow.com/questions/24799146/use-multiprocessing-process-inside-a-script-installed-by-setuptools
+       entry_points = {'console_scripts': ['smpdf = _smpdf_scripts.smpdf:main']},
        package_dir = {'': 'src'},
        packages = find_packages('src'),
        package_data = {
