@@ -25,13 +25,15 @@ lhapdf_libs = call_command('lhapdf-config --libs').split()
 applgrid_includes = call_command('applgrid-config --cxxflags').split()
 applgrid_libs = call_command('applgrid-config --ldflags').split()
 extra_compile_args = lhapdf_includes + applgrid_includes
+extra_link_args = lhapdf_includes + applgrid_includes + applgrid_libs + lhapdf_libs
+
 if platform.system() == 'Darwin':
     mac_ver = platform.mac_ver()[0]
     extra_compile_args += ['-mmacosx-version-min=%s' % mac_ver]
+    extra_link_args += ['-mmacosx-version-min=%s' % mac_ver]
 module1 = Extension('applwrap',
                     extra_compile_args = extra_compile_args ,
-                    extra_link_args = (lhapdf_includes + applgrid_includes  +
-                                          applgrid_libs + lhapdf_libs),
+                    extra_link_args = extra_link_args,
                     sources = ['src/applwrap/applwrap.cc'], language="c++")
 
 setup (name = 'smpdf',
