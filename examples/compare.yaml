@@ -1,0 +1,10 @@
+pdfsets :
+   - MMHT2014nlo68cl
+   - NNPDF30_nlo_as_0118
+observables:
+   - {name: data/applgrid/*.root, order: 1}
+actions:
+   - ciplots
+   - violinplots
+base_pdf: NNPDF30_nlo_as_0118
+fmt: [png, pdf]
