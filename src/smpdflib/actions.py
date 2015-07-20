@@ -335,6 +335,57 @@ def do_actions(acts, resources):
                 resources[key] = list(result)
         yield action, result
 
+def execute_config(conf, output_dir, db):
+
+    import pandas as pd
+    import smpdflib.core as lib
+    import logging
+
+    resultset = []
+    for group in conf.actiongroups:
+        pdfsets, observables = group['pdfsets'], group['observables']
+        resources = group.copy()
+        resources.pop('actions')
+        # perform convolution
+        #TODO Do this better
+        if any(requires_result(act) for act in group['actions']):
+            results = lib.produce_results(pdfsets, observables, db)
+            resultset.append(results)
+            data_table = lib.results_table(results)
+            summed_table = lib.summed_results_table(results)
+
+            total = pd.concat((data_table,
+                                summed_table),
+                                ignore_index = True)
+            if logging.getLogger().isEnabledFor(logging.DEBUG):
+                print_results(results)
+            resources.update({'results':results, 'data_table':data_table,
+                           'total':total, 'summed_table':summed_table})
+
+        if any(requires_correlations(act) for act in group['actions']):
+            pdfcorrlist = lib.correlations(data_table, db=db)
+            resources.update({'pdfcorrlist':pdfcorrlist})
+
+
+        prefix = group['prefix']
+        resources.update({ 'output_dir':output_dir,
+                       'prefix':prefix,
+                       'pdfsets': pdfsets,
+                       'db': db})
+        for action, res in do_actions(group['actions'], resources):
+            logging.info("Finalized action '%s'." % action)
+    return resultset
+
+#TODO: Rethink this
+def print_results(results):
+    for result in results:
+        for member in result.iterreplicas():
+            print ("\n- %s replica %d"% (result.pdf,member))
+            print ("- APPLgrid convolution results:")
+            for i, val in enumerate(result[member]):
+                print ("\tData bin %i: %e" % (i, val))
+    print ("\n +--------+ Completed +--------+\n")
+
 def helptext(action):
     if action in METAACTION_DICT:
         return METAACTION_DICT[action][1]

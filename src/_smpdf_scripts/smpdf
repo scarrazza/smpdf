@@ -9,7 +9,9 @@ import argparse
 import shelve
 import shutil
 import logging
-import multiprocessing
+
+from smpdflib.initialization import init_app
+
 
 import applwrap
 import smpdflib.actions as actions
@@ -22,54 +24,6 @@ __version__ = '1.0.0'
 __email__ = 'stefano.carrazza@mi.infn.it'
 
 
-def execute(conf, output_dir, db, quiet=False):
-
-    import pandas as pd
-    import smpdflib.core as lib
-
-    resultset = []
-    for group in conf.actiongroups:
-        pdfsets, observables = group['pdfsets'], group['observables']
-        resources = group.copy()
-        resources.pop('actions')
-        # perform convolution
-        #TODO Do this better
-        if any(actions.requires_result(act) for act in group['actions']):
-            results = lib.produce_results(pdfsets, observables, db)
-            resultset.append(results)
-            data_table = lib.results_table(results)
-            summed_table = lib.summed_results_table(results)
-
-            total = pd.concat((data_table,
-                                summed_table),
-                                ignore_index = True)
-            if logging.getLogger().isEnabledFor(logging.DEBUG):
-                print_results(results)
-            resources.update({'results':results, 'data_table':data_table,
-                           'total':total, 'summed_table':summed_table})
-
-        if any(actions.requires_correlations(act) for act in group['actions']):
-            pdfcorrlist = lib.correlations(data_table, db=db)
-            resources.update({'pdfcorrlist':pdfcorrlist})
-
-
-        prefix = group['prefix']
-        resources.update({ 'output_dir':output_dir,
-                       'prefix':prefix,
-                       'pdfsets': pdfsets,
-                       'db': db})
-        for action, res in actions.do_actions(group['actions'], resources):
-            logging.info("Finalized action '%s'." % action)
-    return resultset
-
-def print_results(results):
-    for result in results:
-        for member in result.iterreplicas():
-            print ("\n- %s replica %d"% (result.pdf,member))
-            print ("- APPLgrid convolution results:")
-            for i, val in enumerate(result[member]):
-                print ("\tData bin %i: %e" % (i, val))
-    print ("\n +--------+ Completed +--------+\n")
 
 def make_output_dir(output_dir):
     if not osp.exists(output_dir):
@@ -81,8 +35,7 @@ def make_output_dir(output_dir):
     if not osp.isdir(figpath):
         os.mkdir(figpath)
 
-if __name__ == '__main__':
-    main()
+
 
 def splash():
     s =  ("""
@@ -144,18 +97,12 @@ def main():
 
     splash()
 
-    #Slow to import
-    import matplotlib
-    #So it doesn't complain on server
-    matplotlib.use('Agg')
-    import matplotlib.pyplot as plt
+    init_app()
 
-    import smpdflib.core as lib
+
     import smpdflib.config as config
 
-    libpath = osp.dirname(lib.__file__)
-    stylefilename = osp.join(libpath, 'main.mplstyle')
-    plt.style.use(stylefilename)
+
     # read yml file
     try:
         with open(args.config_yml,'r') as f:
@@ -185,10 +132,13 @@ def main():
 
     if not logging.getLogger().isEnabledFor(logging.DEBUG):
         applwrap.setverbosity(0)
-    multiprocessing.set_start_method('spawn')
     try:
-        results = execute(conf, args.output ,db=db, quiet=args.quiet)
+        results = actions.execute_config(conf, args.output ,db=db)
     finally:
         #bool(db) == False if empty
         if db is not None:
             db.close()
+
+
+if __name__ == '__main__':
+    main()
