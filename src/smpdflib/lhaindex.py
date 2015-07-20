@@ -92,11 +92,12 @@ def as_from_name(name):
         return name
 
 
+def infofilename(name):
+    return osp.join(get_lha_path(), name, name + '.info')
 
 @fastcache.lru_cache()
 def parse_info(name):
-    infofilename = osp.join(get_lha_path(), name, name + '.info')
-    with open(infofilename) as infofile:
+    with open(infofilename(name)) as infofile:
         result = yaml.load(infofile)
     return result
 

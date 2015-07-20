@@ -20,6 +20,7 @@ import contextlib
 import numbers
 import multiprocessing
 import logging
+import hashlib
 
 import numpy as np
 import numpy.linalg as la
@@ -90,6 +91,12 @@ class Observable(BaseObservable):
     @property
     def name(self):
         return osp.splitext(osp.basename(self.filename))[0]
+
+    @property
+    @fastcache.lru_cache()
+    def sha1hash(self):
+        with open(self.filename, 'rb') as f:
+            return hashlib.sha1(f.read()).digest()
 
 _selected_grid = None
 
@@ -316,6 +323,19 @@ class PDF(TupleComp):
             res = applwrap.xfxQ(rep, fl, x, Q)
         return res
 
+    @property
+    def infopath(self):
+        return lhaindex.infofilename(self.name)
+
+    @property
+    @fastcache.lru_cache()
+    def sha1hash(self):
+        """Currently hashs the info file. This could not be sufficient for
+        as proof since the grid inside could be modified."""
+        with open(self.infopath, 'rb') as f:
+            return hashlib.sha1(f.read()).digest()
+
+
     def __getattr__(self, name):
         #next is for pandas not to get confused
         if name.startswith('__') or name == 'next':
@@ -440,6 +460,10 @@ class Result():
         sumobs = BaseObservable(self.obs.name + '[Sum]', self.obs.order)
         data = pd.DataFrame(self._data.sum(axis=0)).T
         return self.__class__(sumobs, self.pdf, data)
+
+    @property
+    def sha1hash(self):
+        return hashlib.sha1(self.pdf.sha1hash + self.obs.sha1hash).digest()
 
 
 
@@ -884,9 +908,13 @@ def get_smpdf_lincomb(pdf, pdf_results, full_grid = False,
     norm = np.sqrt(nrep - 1)
     lincomb = np.zeros(shape=(nrep,max_neig))
 
+    desc = []
+
     index = 0
 
     for result in pdf_results:
+        obs_desc = {}
+        desc.append({str(result.obs) : obs_desc})
         if result.pdf != pdf:
             raise ValueError("PDF results must be for %s" % pdf)
         for b in range(result.nbins):
@@ -922,16 +950,30 @@ def get_smpdf_lincomb(pdf, pdf_results, full_grid = False,
                 logging.info("Observable %s, "
                              "bin %d is already well reproduced."
                              % (result.obs, b+1))
+            obs_desc[b+1] = index
     lincomb = lincomb[:,:index+1]
-    return lincomb/norm, {'smpdf_description':{}}
+    input_hash = smpdf_input_hash(pdf, pdf_results, full_grid,
+                                  target_error)
+    return lincomb/norm, {'smpdf_description': {'eigenvectors': desc,
+                                                'input_hash' : input_hash}}
+
+
+#TODO: Add smpdf version info here
+def smpdf_input_hash(pdf, pdf_results, full_grid,
+                      target_error):
+
+    hashstr = b''.join(r.obs.sha1hash for r in pdf_results)
+    hashstr += target_error.hex().encode()
+    hashstr += bytes(full_grid)
+    input_hash = hashlib.sha1(hashstr).hexdigest()
+    return input_hash
+
 
 def create_mc2hessian(pdf, Q, Neig, output_dir, name=None, db=None):
     X = get_X(pdf, Q, reshape=True)
     vec, _ = compress_X(X, Neig)
     return hessian_from_lincomb(pdf, vec, folder=output_dir,
                          set_name= name, db=db)
-
-
 
 
 def create_smpdf(pdf, pdf_results, output_dir, name,  smpdf_tolerance=0.05,
