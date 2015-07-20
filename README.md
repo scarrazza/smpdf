@@ -29,7 +29,7 @@ be copied to the appromiate include path, and not only those copied by
 Ubuntu installation:
 
 ````Shell
-/applgrid-1.4.70/src $ sudo cp *.h /usr/local/include/appl_grid/
+applgrid-1.4.70/src $ sudo cp *.h /usr/local/include/appl_grid/
 ````
 
 Python 3.4+ is also required.
