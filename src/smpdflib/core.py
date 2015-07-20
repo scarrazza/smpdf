@@ -951,11 +951,25 @@ def get_smpdf_lincomb(pdf, pdf_results, full_grid = False,
                              "bin %d is already well reproduced."
                              % (result.obs, b+1))
             obs_desc[b+1] = index
-    lincomb = lincomb[:,:index+1]
+    lincomb = lincomb[:,:index]
+
+    return lincomb/norm, desc
+
+def complete_smpdf_description(desc, pdf ,pdf_results, full_grid,
+                      target_error ):
+
     input_hash = smpdf_input_hash(pdf, pdf_results, full_grid,
                                   target_error)
-    return lincomb/norm, {'smpdf_description': {'eigenvectors': desc,
-                                                'input_hash' : input_hash}}
+
+    desc = {'neig': desc,
+           'input_hash' : input_hash,
+           'target_tolarance' : target_error,
+           'full_grid' : full_grid,
+           'input_hash' : input_hash,
+           'input_set' : str(pdf),
+           }
+
+    return desc
 
 
 #TODO: Add smpdf version info here
@@ -976,20 +990,38 @@ def create_mc2hessian(pdf, Q, Neig, output_dir, name=None, db=None):
                          set_name= name, db=db)
 
 
+def save_lincomb(lincomb, description, output_dir, name):
+    name += "_lincomb.csv"
+    nrep, neig = lincomb.shape
+    columns = [description['input_hash'][:8]+'_%d'%i for i in range(1,neig+1)]
+    rows = range(1, nrep+1)
+
+    frame = pd.DataFrame(lincomb, columns=columns, index=rows)
+    frame.to_csv(osp.join(output_dir, name), sep='\t')
+
 def create_smpdf(pdf, pdf_results, output_dir, name,  smpdf_tolerance=0.05,
                  Neig_total = 200,
                  full_grid=False, db = None):
 
     vec, description = get_smpdf_lincomb(pdf, pdf_results, full_grid=full_grid,
                             target_error=smpdf_tolerance)
+    description = complete_smpdf_description(description, pdf, pdf_results,
+                                             full_grid=full_grid,
+                                             target_error=smpdf_tolerance)
     #We have do do this because LHAPDF seems to not parse complex structures
-    description['smpdf_description'] = yaml.dump(description['smpdf_description'],
-                                       default_flow_style=False)
+    parsed_desc = {'smpdf_description':yaml.dump(description,
+                                                 default_flow_style=False)}
     logging.info("Final linear combination has %d eigenvectors" % vec.shape[1])
 
 
+    save_lincomb(vec, description, output_dir, name)
+
+    with open(osp.join(output_dir, name + '_description.yaml'), 'w') as f:
+        yaml.dump(description, f, default_flow_style=False)
+
+
     return hessian_from_lincomb(pdf, vec, folder=output_dir,
-                         set_name= name, db=db, extra_fields=description)
+                         set_name= name, db=db, extra_fields=parsed_desc)
 
 def observable_correlations(results_table, base_pdf=None):
 
