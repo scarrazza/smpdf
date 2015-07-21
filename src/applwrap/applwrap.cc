@@ -223,6 +223,11 @@ static PyObject* py_getlhapdfpath(PyObject* self, PyObject* args)
   return out;
 }
 
+static PyObject* py_lhapdf_version(PyObject* self,  PyObject* noargs){
+   string version = LHAPDF::version();
+   return Py_BuildValue("s#", version.c_str(), version.length());
+}
+
 static PyMethodDef applwrap_methods[] = {
   {"setlhapdfpath", py_setlhapdfpath, METH_VARARGS, "set lhapdf path"},
   {"getlhapdfpath", py_getlhapdfpath, METH_VARARGS, "get lhapdf path"},
@@ -235,6 +240,7 @@ static PyMethodDef applwrap_methods[] = {
   {"convolute", py_convolute, METH_VARARGS, "convolute"},
   {"getobsq", py_getobsq, METH_VARARGS, "get observable q"},
   {"getnbins",py_getnbins, METH_VARARGS, "get number of bins"},
+  {"lhapdf_version",py_lhapdf_version, METH_NOARGS, "get LHAPDF version"},
   {NULL, NULL, 0, NULL}
 };
 
