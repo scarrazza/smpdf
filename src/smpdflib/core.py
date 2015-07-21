@@ -905,7 +905,14 @@ def get_smpdf_lincomb(pdf, pdf_results, full_grid = False,
     nrep = len(pdf) - 1
     max_neig = np.min([nxf, nrep])
     #We must divide by norm since we are reproducing the covmat and not XX.T
-    norm = np.sqrt(nrep - 1)
+    if pdf.ErrorType == 'replicas':
+        norm = np.sqrt(nrep - 1)
+    elif pdf.ErrorType in ('hessian', 'symmhessian'):
+        norm = 1
+    else:
+        raise NotImplementedError("SMPDF is not implemented for this type of "
+                                  "PDF error: %s" % pdf.ErrorType)
+
     lincomb = np.zeros(shape=(nrep,max_neig))
 
     desc = []
