@@ -1004,7 +1004,7 @@ def save_lincomb(lincomb, description, output_dir, name):
     rows = range(1, nrep+1)
 
     frame = pd.DataFrame(lincomb, columns=columns, index=rows)
-    frame.to_csv(osp.join(output_dir, name), sep='\t')
+    frame.to_csv(osp.join(output_dir, name), sep='\t', float_format='%e')
 
 def create_smpdf(pdf, pdf_results, output_dir, name,  smpdf_tolerance=0.05,
                  Neig_total = 200,
