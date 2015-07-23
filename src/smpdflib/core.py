@@ -43,6 +43,16 @@ NUMS_QCD = {val: key for key , val in ORDERS_QCD.items()}
 #for N_f = 4, LHAPDF's M_Z is actually M_{charm}
 M_REF = defaultdict(lambda: 'Z', {4:'c'})
 
+PDG_PARTONS = {
+                -3 : r"\bar{s}",
+                -2 : r"\bar{u}",
+                -1 : r"\bar{d}",
+                 0 : r"g",
+                 1 : r"d",
+                 2 : r"u",
+                 3 : r"s",
+              }
+
 
 
 class TupleComp(object):

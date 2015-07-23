@@ -16,7 +16,7 @@ import matplotlib.mlab as mlab
 from smpdflib import plotutils
 from smpdflib.core import (aggregate_results, M_REF,
                            MCResult, get_X, bin_corrs_from_X,
-                           observable_correlations)
+                           observable_correlations, PDG_PARTONS)
 
 
 colorlist = ['#66c2a5', '#fc8d62', '#8da0cb', '#e78ac3', '#a6d854',
@@ -282,7 +282,7 @@ def plot_correlations(results):
                 axarr[f].plot(xgrid, current_vals)
                 axarr[f].set_ylim([-1,1])
                 axarr[f].set_xscale('log')
-                axarr[f].set_ylabel("pdg: " + str(fl[f]))
+                axarr[f].set_ylabel("$%s$"%PDG_PARTONS[fl[f]])
 
                 axarr[f].axhline(threshold, c='r', ls='--')
                 axarr[f].axhline(-threshold, c='r', ls='--')
