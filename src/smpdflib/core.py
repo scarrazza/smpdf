@@ -808,13 +808,13 @@ def corrcoeff(prediction, pdf_val):
             )
 
 
-def bin_corrs_from_X(bin_val, X):
+def bin_corrs_from_X(bin_val, X, correlation_threshold=0.5):
     nxf, nrep = X.shape
     cc = np.zeros(shape=(nxf))
     #TODO: Optimize this
     for i in range(nxf):
         cc[i] = corrcoeff(bin_val, X[i,:])
-    threshold = np.max(np.abs(cc))*0.5
+    threshold = np.max(np.abs(cc))*correlation_threshold
     return cc, threshold
 
 
@@ -887,8 +887,9 @@ def _get_error(rotated_diffs, original_diffs):
 
     return error
 
-def _mask_X(X,diffs):
-     cc, threshold = bin_corrs_from_X(diffs, X)
+def _mask_X(X, diffs, correlation_threshold=0.5):
+     cc, threshold = bin_corrs_from_X(diffs, X, correlation_threshold=
+                                                correlation_threshold)
      mask = np.abs(cc) > threshold
      Xm = X[mask]
      logging.debug("Masked shape is %s" % (Xm.shape,))
@@ -902,7 +903,7 @@ def _pop_eigenvector(X):
 
 
 def get_smpdf_lincomb(pdf, pdf_results, full_grid = False,
-                      target_error = 0.1):
+                      target_error = 0.1, correlation_threshold=0.5):
     #Estimator= norm**2(rotated)/norm**2(total) which is additive when adding
     #eigenvecotors
     #Error = (1 - sqrt(1-estimator))
@@ -947,7 +948,8 @@ def get_smpdf_lincomb(pdf, pdf_results, full_grid = False,
 
             eigs_for_bin = 0
             while _get_error(rotated_diffs, original_diffs) > target_error:
-                X = _mask_X(X, rotated_diffs)
+                X = _mask_X(X, rotated_diffs, correlation_threshold=
+                                              correlation_threshold)
                 P, R = _pop_eigenvector(X)
                 if Rold is not None:
                     P = np.dot(Rold, P)
