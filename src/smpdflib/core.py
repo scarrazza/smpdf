@@ -761,7 +761,9 @@ def get_dataset_parallel(pdfsets, observables, db=None):
         for ((pdf, obs), result) in zip(to_compute, results):
             dataset[pdf][obs] = result
             if db is not None:
-                db[make_key(pdf, obs)] = result
+                key = make_key(pdf, obs)
+                logging.debug("Appending result for %s to db" % key)
+                db[key] = result
 
     return dataset
 
@@ -971,6 +973,8 @@ def get_smpdf_lincomb(pdf, pdf_results, full_grid = False,
                              % (result.obs, b+1))
             obs_desc[b+1] = index
     lincomb = lincomb[:,:index]
+    logging.info("Final linear combination has %d eigenvectors" % lincomb.shape[1])
+
 
     return lincomb/norm, desc
 
@@ -1030,8 +1034,6 @@ def create_smpdf(pdf, pdf_results, output_dir, name,  smpdf_tolerance=0.05,
     #We have do do this because LHAPDF seems to not parse complex structures
     parsed_desc = {'smpdf_description':yaml.dump(description,
                                                  default_flow_style=False)}
-    logging.info("Final linear combination has %d eigenvectors" % vec.shape[1])
-
 
     save_lincomb(vec, description, output_dir, name)
 
