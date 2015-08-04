@@ -37,6 +37,8 @@ from smpdflib.lhio import hessian_from_lincomb
 
 import applwrap
 
+_DEFAULT_CORRELATION_THRESHOLD = 0.9
+
 ORDERS_QCD = {0: 'LO', 1: 'NLO', 2: 'NNLO'}
 NUMS_QCD = {val: key for key , val in ORDERS_QCD.items()}
 
@@ -810,7 +812,8 @@ def corrcoeff(prediction, pdf_val):
             )
 
 
-def bin_corrs_from_X(bin_val, X, correlation_threshold=0.9):
+def bin_corrs_from_X(bin_val, X,
+                     correlation_threshold=_DEFAULT_CORRELATION_THRESHOLD):
     nxf, nrep = X.shape
     cc = np.zeros(shape=(nxf))
     #TODO: Optimize this
@@ -889,7 +892,7 @@ def _get_error(rotated_diffs, original_diffs):
 
     return error
 
-def _mask_X(X, diffs, correlation_threshold=0.9):
+def _mask_X(X, diffs, correlation_threshold=_DEFAULT_CORRELATION_THRESHOLD):
      cc, threshold = bin_corrs_from_X(diffs, X, correlation_threshold=
                                                 correlation_threshold)
      mask = np.abs(cc) > threshold
@@ -905,7 +908,8 @@ def _pop_eigenvector(X):
 
 
 def get_smpdf_lincomb(pdf, pdf_results, full_grid = False,
-                      target_error = 0.1, correlation_threshold=0.9):
+                      target_error = 0.1,
+                      correlation_threshold=_DEFAULT_CORRELATION_THRESHOLD):
     #Estimator= norm**2(rotated)/norm**2(total) which is additive when adding
     #eigenvecotors
     #Error = (1 - sqrt(1-estimator))
