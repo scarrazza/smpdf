@@ -976,7 +976,7 @@ def get_smpdf_lincomb(pdf, pdf_results, full_grid = False,
                              "bin %d" % (eigs_for_bin, 's'*(eigs_for_bin>1),
                                          result.obs, b+1))
             else:
-                logging.info("Observable %s, "
+                logging.debug("Observable %s, "
                              "bin %d is already well reproduced."
                              % (result.obs, b+1))
             obs_desc[b+1] = index
