@@ -906,6 +906,16 @@ def _pop_eigenvector(X):
     Rt = Vt[1:,:]
     return Pt.T, Rt.T
 
+def _pdf_normalization(pdf):
+    nrep = len(pdf) - 1
+    if pdf.ErrorType == 'replicas':
+        norm = np.sqrt(nrep - 1)
+    elif pdf.ErrorType in ('hessian', 'symmhessian'):
+        norm = 1
+    else:
+        raise NotImplementedError("SMPDF is not implemented for this type of "
+                                  "PDF error: %s" % pdf.ErrorType)
+    return norm
 
 def get_smpdf_lincomb(pdf, pdf_results, full_grid = False,
                       target_error = 0.1,
@@ -922,13 +932,7 @@ def get_smpdf_lincomb(pdf, pdf_results, full_grid = False,
     nrep = len(pdf) - 1
     max_neig = np.min([nxf, nrep])
     #We must divide by norm since we are reproducing the covmat and not XX.T
-    if pdf.ErrorType == 'replicas':
-        norm = np.sqrt(nrep - 1)
-    elif pdf.ErrorType in ('hessian', 'symmhessian'):
-        norm = 1
-    else:
-        raise NotImplementedError("SMPDF is not implemented for this type of "
-                                  "PDF error: %s" % pdf.ErrorType)
+    norm = _pdf_normalization(pdf)
 
     lincomb = np.zeros(shape=(nrep,max_neig))
 
@@ -980,7 +984,7 @@ def get_smpdf_lincomb(pdf, pdf_results, full_grid = False,
     logging.info("Final linear combination has %d eigenvectors" % lincomb.shape[1])
 
 
-    return lincomb/norm, desc
+    return lincomb, norm, desc
 
 def complete_smpdf_description(desc, pdf ,pdf_results, full_grid,
                       target_error ):
@@ -1017,22 +1021,35 @@ def create_mc2hessian(pdf, Q, Neig, output_dir, name=None, db=None):
                          set_name= name, db=db)
 
 
-def save_lincomb(lincomb, description, output_dir, name):
-    name += "_lincomb.csv"
+def save_lincomb(lincomb, norm, description, output_dir, name):
+
     nrep, neig = lincomb.shape
     columns = [description['input_hash'][:8]+'_%d'%i for i in range(1,neig+1)]
     rows = range(1, nrep+1)
 
     frame = pd.DataFrame(lincomb, columns=columns, index=rows)
-    frame.to_csv(osp.join(output_dir, name), sep='\t', float_format='%e')
+    direct = frame/norm
+    dirname = name + "_lincomb.csv"
+    direct.to_csv(osp.join(output_dir, dirname), sep='\t', float_format='%e')
+
+    invname= name + "_lincomb_inverse.csv"
+    inverse = frame.T*norm
+
+    inverse.to_csv(osp.join(output_dir, invname), sep='\t', float_format='%e')
+
 
 def create_smpdf(pdf, pdf_results, output_dir, name,  smpdf_tolerance=0.05,
                  Neig_total = 200,
                  full_grid=False, db = None,
                  correlation_threshold= _DEFAULT_CORRELATION_THRESHOLD):
 
-    vec, description = get_smpdf_lincomb(pdf, pdf_results, full_grid=full_grid,
-                            target_error=smpdf_tolerance)
+    lincomb, norm ,description = get_smpdf_lincomb(pdf, pdf_results,
+                                               full_grid=full_grid,
+                                               target_error=smpdf_tolerance,
+                                               correlation_threshold=correlation_threshold)
+
+    vec = lincomb/norm
+
     description = complete_smpdf_description(description, pdf, pdf_results,
                                              full_grid=full_grid,
                                              target_error=smpdf_tolerance)
@@ -1040,7 +1057,7 @@ def create_smpdf(pdf, pdf_results, output_dir, name,  smpdf_tolerance=0.05,
     parsed_desc = {'smpdf_description':yaml.dump(description,
                                                  default_flow_style=False)}
 
-    save_lincomb(vec, description, output_dir, name)
+    save_lincomb(lincomb, norm, description, output_dir, name)
 
     with open(osp.join(output_dir, name + '_description.yaml'), 'w') as f:
         yaml.dump(description, f, default_flow_style=False)
