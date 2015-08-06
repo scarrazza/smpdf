@@ -4,9 +4,10 @@ text.latex.unicode      : True
 font.size               : 18
 axes.titlesize          : 22
 axes.labelsize          : 18
+axes.color_cycle        : 66c2a5, fc8d62, 8da0cb, e78ac3, a6d854, ffd92f
 legend.fontsize         : small
 figure.figsize          : 16,9
-axes.formatter.limits   : -5,5 
+axes.formatter.limits   : -5,5
 axes.formatter.use_mathtext : True
 legend.loc              : best
 legend.fancybox         : True
