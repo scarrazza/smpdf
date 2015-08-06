@@ -216,9 +216,12 @@ def gen_gridnames(action, group, config):
 
 
 @check(gen_gridnames)
-def create_smpdf(data_table, output_dir, grid_names, smpdf_tolerance=0.05,
-                 Neig_total = 200, full_grid=False, db = None):
+def create_smpdf(data_table, output_dir, grid_names ,smpdf_tolerance=0.05,
+                 Neig_total = 200, full_grid=False, db=None,
+                 smpdf_correlation_threshold=None):
     import smpdflib.core as lib
+    if smpdf_correlation_threshold is None:
+        smpdf_correlation_threshold = lib._DEFAULT_CORRELATION_THRESHOLD
     gridpaths = []
     for (pdf, pdf_table) in data_table.groupby('PDF'):
         pdf_results = pdf_table.Result.unique()
@@ -227,6 +230,7 @@ def create_smpdf(data_table, output_dir, grid_names, smpdf_tolerance=0.05,
                                   smpdf_tolerance=smpdf_tolerance,
                                   Neig_total = Neig_total,
                                   full_grid=full_grid,
+                                  correlation_threshold=smpdf_correlation_threshold,
                                   db=db)
         gridpaths.append(result)
     return gridpaths

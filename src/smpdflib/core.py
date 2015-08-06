@@ -1028,7 +1028,8 @@ def save_lincomb(lincomb, description, output_dir, name):
 
 def create_smpdf(pdf, pdf_results, output_dir, name,  smpdf_tolerance=0.05,
                  Neig_total = 200,
-                 full_grid=False, db = None):
+                 full_grid=False, db = None,
+                 correlation_threshold= _DEFAULT_CORRELATION_THRESHOLD):
 
     vec, description = get_smpdf_lincomb(pdf, pdf_results, full_grid=full_grid,
                             target_error=smpdf_tolerance)
