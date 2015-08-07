@@ -182,6 +182,16 @@ class PredictionObservable(Observable):
         datas = pd.DataFrame.from_csv(path, sep='\t', index_col=0).T
         return make_result(self, pdfset, datas)
 
+    #Raise error different from AttributeError, so it's not silented by
+    # __getattr__
+    @property
+    def nbins(self):
+        try:
+            return self._params['nbins']
+        except KeyError:
+            raise KeyError("Description file must have nbins")
+
+
     @property
     def meanQ(self):
         if isinstance(self.energy_scale, numbers.Number):
@@ -190,7 +200,11 @@ class PredictionObservable(Observable):
             return self.energy_scale
 
     def __getattr__(self, attr):
-        return self._params[attr]
+        try:
+            return self._params[attr]
+        except KeyError:
+            raise AttributeError()
+
 
 
 _selected_pdf = None
