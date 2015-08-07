@@ -833,6 +833,8 @@ def bin_corrs_from_X(bin_val, X,
     #TODO: Optimize this
     for i in range(nxf):
         cc[i] = corrcoeff(bin_val, X[i,:])
+    #Replace nan with zero when std is zero, ie when pdf value at x===0
+    cc[np.isnan(cc)] = 0
     threshold = np.max(np.abs(cc))*correlation_threshold
     return cc, threshold
 
