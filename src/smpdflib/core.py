@@ -997,7 +997,8 @@ def get_smpdf_lincomb(pdf, pdf_results, full_grid = False,
                              % (result.obs, b+1))
             obs_desc[b+1] = index
     lincomb = lincomb[:,:index]
-    logging.info("Final linear combination has %d eigenvectors" % lincomb.shape[1])
+    logging.info("Final linear combination has %d eigenvectors" %
+                 lincomb.shape[1])
 
 
     return lincomb, norm, desc
