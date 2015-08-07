@@ -362,7 +362,8 @@ def execute_config(conf, output_dir, db):
                                 summed_table),
                                 ignore_index = True)
             if logging.getLogger().isEnabledFor(logging.DEBUG):
-                print_results(results)
+                ...
+                #print_results(results)
             resources.update({'results':results, 'data_table':data_table,
                            'total':total, 'summed_table':summed_table})
 
