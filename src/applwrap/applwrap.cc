@@ -30,7 +30,7 @@ extern "C" void evolvepdf_(const double& x,const double& Q, double* pdf)
 
 extern "C" double alphaspdf_(const double& Q)
 {
-  return _pdfs[_imem]->alphasQ(Q);
+  return _pdfs[0]->alphasQ(Q);
 }
 
 static PyObject* py_initpdf(PyObject* self, PyObject* args)
