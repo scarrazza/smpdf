@@ -324,6 +324,8 @@ class PDF(TupleComp):
         #Allow tuples that can be saved in cache
         elif isinstance(xgrid, tuple):
             xgrid = self.make_xgrid(*xgrid)
+        elif isinstance(xgrid, numbers.Number):
+            xgrid = [xgrid]
 
         if fl is None:
             fl = self.make_flavors()
@@ -333,7 +335,7 @@ class PDF(TupleComp):
             fl = self.make_flavors(*fl)
 
         with self:
-            all_members = [[[applwrap.xfxQ(r, f, x, Q)
+            all_members = [[[self.xfxQ(r, f, x, Q)
                              for x in xgrid]
                              for f in fl]
                              for r in range(len(self))]
@@ -376,6 +378,32 @@ class PDF(TupleComp):
 
     def __len__(self):
         return self.NumMembers
+
+class LincombPDF(PDF):
+    CUSTOM_XFXQ = True
+    def __init__(self, base, lincomb):
+        self.base  = base
+        self.lincomb = lincomb
+        super().__init__(self.base.name)
+
+    def sha1hash(self):
+        raise RuntimeError("Lincomb PDFs should not be hashed")
+
+    def __getattr__(self, name):
+        return getattr(self.base, name)
+
+    def xfxQ(self, rep, fl, x, Q):
+        if rep == 0:
+            return self.base.xfxQ(rep, fl, x, Q)
+        base_vals = get_X(self.base, Q, x, fl)
+        return self.base.xfxQ(0, fl, x, Q) + np.dot(base_vals, self.lincomb)
+
+    @property
+    def NumMembers(self):
+        return self.lincomb.shape[1]
+
+
+
 
 
 class Result():
