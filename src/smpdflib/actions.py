@@ -70,7 +70,21 @@ def save_figures(generator, table, output_dir, namefunc=None,
                 fig.savefig(path, bbox_inches='tight')
                 plt.close(fig)
 
+def check_know_errors(action, group, config):
+    from smpdflib.core import RESULT_TYPES
 
+    bad_types = []
+    for pdf in group['pdfsets']:
+        error_type = pdf.ErrorType
+        if  error_type not in RESULT_TYPES:
+            bad_types.append((pdf, error_type))
+    if bad_types:
+        msg = ("Action '%s' cannot be executed because the following PDF sets "
+              "have unknown error types:") % action
+        msg += ''.join(['\n %s with ErrorType: %s' % bad for bad in bad_types])
+        raise ActionError(msg)
+
+@check(check_know_errors)
 def save_violins(results, output_dir, prefix, base_pdf=None, fmt='pdf'):
     """
     Generate plots comparing the distributions obtained for the value of
@@ -83,7 +97,7 @@ def save_violins(results, output_dir, prefix, base_pdf=None, fmt='pdf'):
     return save_figures(plots.compare_violins, results, output_dir,
                         base_pdf=base_pdf,
                         prefix=prefix, fmt=fmt, namefunc=namefunc)
-
+@check(check_know_errors)
 def save_cis(results, output_dir, prefix, base_pdf=None, fmt='pdf'):
     """
     Generate plots comparing the confidence intervals for the value of
@@ -96,7 +110,7 @@ def save_cis(results, output_dir, prefix, base_pdf=None, fmt='pdf'):
     return save_figures(plots.compare_cis, results, output_dir,
                         base_pdf=base_pdf,
                         prefix=prefix, fmt=fmt, namefunc=namefunc)
-
+@check(check_know_errors)
 def save_as(summed_table, output_dir, prefix, fmt='pdf'):
     """Generate plots showing the value of the observables as a function
     of a_s. The value is obtained by summing each bin in the applgrid."""
@@ -128,7 +142,7 @@ def save_nf(summed_table, output_dir, prefix, fmt='pdf'):
         return 'nfplot_{obs}_{oqcd}'.format(**locals())
     return save_figures(plots.plot_nf, summed_table, output_dir,
                         prefix=prefix, fmt=fmt, namefunc=namefunc)
-
+@check(check_know_errors)
 def save_obscorrs(data_table, output_dir, prefix, base_pdf=None, fmt='pdf'):
 
     import smpdflib.plots as plots
@@ -139,8 +153,7 @@ def save_obscorrs(data_table, output_dir, prefix, base_pdf=None, fmt='pdf'):
                         prefix=prefix, fmt=fmt, namefunc=namefunc)
 
 
-
-
+@check(check_know_errors)
 def export_html(total, output_dir, prefix):
     """
     Export results as a rich HTML table."""
@@ -149,6 +162,7 @@ def export_html(total, output_dir, prefix):
     filename = "%sresults.html" % (prefix if prefix else '')
     utils.save_html(total[lib.DISPLAY_COLUMNS], osp.join(output_dir, filename))
 
+@check(check_know_errors)
 def export_obscorrs(data_table, output_dir, prefix, base_pdf=None):
     import pandas as pd
 
@@ -160,6 +174,7 @@ def export_obscorrs(data_table, output_dir, prefix, base_pdf=None):
         pd.DataFrame(corrmat, index=labels, columns=labels).to_csv(filename, sep='\t')
 
 #TODO: Ability to import exported csv
+@check(check_know_errors)
 def export_csv(total, output_dir, prefix):
     """
     Export results as a CSV so they can be processed by other tools. The
@@ -213,6 +228,8 @@ def gen_gridnames(action, group, config):
                                % grid_name)
         config._grid_names.append(grid_name)
         group['grid_names'][(action, pdf)] = grid_name
+
+
 
 
 @check(gen_gridnames)

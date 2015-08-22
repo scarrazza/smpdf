@@ -439,6 +439,10 @@ class Result():
         raise NotImplementedError("No sampling implemented for this"
                                   "type of set")
 
+    def errorbar68(self):
+        raise NotImplementedError("Error computation for PDF set"
+                                   " not implmented")
+
     def std_interval(self, nsigma=1):
         std = self.std_error(nsigma)
         return pd.DataFrame({'min':self._cv - std,
