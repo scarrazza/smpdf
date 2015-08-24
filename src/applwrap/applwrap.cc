@@ -18,16 +18,37 @@ using std::exception;
 appl::grid *_g = nullptr;
 vector<LHAPDF::PDF*> _pdfs;
 int _imem = 0;
+static PyObject *_custom_xfxq = NULL;
 
 extern "C" void evolvepdf_(const double& x,const double& Q, double* pdf)
 {
   for (int i = 0; i < 13; i++)
-    {
+  {
       const int id = i-6;
       pdf[i] = _pdfs[_imem]->xfxQ(id, x, Q);
-    }
+   }
 }
 
+
+extern "C" void evolvepdf_python_(const double& x,const double& Q, double* pdf)
+{
+  PyObject *py_result;
+  PyObject *arglist;
+  double result;
+  cout << "\nI'm here\n";
+
+  for (int i = 0; i < 13; i++)
+  {
+    const int id = i-6;
+    arglist = Py_BuildValue("(iidd)", _imem, id, x, Q);
+    py_result = PyObject_CallObject(_custom_xfxq, arglist);
+    Py_DECREF(arglist);
+    result =  PyFloat_AsDouble(py_result);
+    Py_DECREF(py_result);
+    pdf[i] = result;
+    cout << result;
+  }
+}
 extern "C" double alphaspdf_(const double& Q)
 {
   return _pdfs[0]->alphasQ(Q);
@@ -122,6 +143,34 @@ static PyObject* py_pdfreplica(PyObject* self, PyObject* args)
   return Py_BuildValue("");
 }
 
+
+
+// https://docs.python.org/3.4/extending/extending.html#calling-python-functions-from-c
+
+static PyObject *
+py_set_custom_xfxQ(PyObject *dummy, PyObject *args)
+{
+    PyObject *result = NULL;
+    PyObject *temp;
+
+    if (PyArg_ParseTuple(args, "O:set_custom_xfxQ", &temp)) {
+        if (temp == Py_None){
+           temp = NULL;
+	} else if (!PyCallable_Check(temp)) {
+            PyErr_SetString(PyExc_TypeError, "parameter must be callable or None");
+            return NULL;
+        }
+        Py_XINCREF(temp);         /* Add a reference to new callback */
+        Py_XDECREF(_custom_xfxq);  /* Dispose of previous callback */
+        _custom_xfxq = temp;       /* Remember new callback */
+        /* Boilerplate to return "None" */
+        Py_INCREF(Py_None);
+        result = Py_None;
+    }
+    return result;
+}
+
+
 static PyObject* py_initobs(PyObject* self, PyObject* args)
 {
   char *file;
@@ -144,11 +193,15 @@ static PyObject* py_initobs(PyObject* self, PyObject* args)
 static PyObject* py_convolute(PyObject* self, PyObject* args)
 {
   int pto;
+  vector<double> xsec;
   PyArg_ParseTuple(args,"i", &pto);
 
   if (!_g) exit(-1);
-  vector<double> xsec = _g->vconvolute(evolvepdf_,alphaspdf_,pto);
-
+  if (_custom_xfxq){
+     xsec = _g->vconvolute(evolvepdf_python_,alphaspdf_,pto);
+  }else{
+     xsec = _g->vconvolute(evolvepdf_,alphaspdf_,pto);
+  }
   PyObject *out = PyList_New(xsec.size());
   for (int i = 0; i < (int) xsec.size(); i++)
     PyList_SET_ITEM(out, i, PyFloat_FromDouble(xsec[i]));
@@ -234,6 +287,7 @@ static PyMethodDef applwrap_methods[] = {
   {"setverbosity",  py_setverbosity,  METH_VARARGS, "set verbosity"},
   {"initpdf", py_initpdf, METH_VARARGS, "init pdf"},
   {"xfxQ", py_xfxQ, METH_VARARGS, "get xfxQ"},
+  {"set_custom_xfxQ", py_set_custom_xfxQ, METH_VARARGS, "Set custom xfxQ for PDF"},
   {"q2Min", py_q2Min, METH_VARARGS, "get q2min"},
   {"pdfreplica", py_pdfreplica, METH_VARARGS, "set pdf replica"},
   {"initobs", py_initobs, METH_VARARGS, "init obs"},

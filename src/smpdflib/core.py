@@ -251,6 +251,10 @@ class PDF(TupleComp):
                                (_context_pdf, self))
         _selected_pdf = str(self)
         _context_pdf = str(self)
+        if getattr(self, 'CUSTOM_XFXQ', False):
+            applwrap.set_custom_xfxQ(self.xfxQ)
+        else:
+            applwrap.set_custom_xfxQ(None)
         applwrap.initpdf(self.name)
 
     def __exit__(self, exc_type, exc_value, traceback):
@@ -390,21 +394,21 @@ class LincombPDF(PDF):
         raise RuntimeError("Lincomb PDFs should not be hashed")
 
     def __getattr__(self, name):
+        #This is needed for pickle to work
+        if name == 'base':
+            raise AttributeError(name)
         return getattr(self.base, name)
 
     def xfxQ(self, rep, fl, x, Q):
         if rep == 0:
             return self.base.xfxQ(rep, fl, x, Q)
         base_vals = get_X(self.base, Q, x, fl)
-        return self.base.xfxQ(0, fl, x, Q) + np.dot(base_vals, self.lincomb)
+        return (self.base.xfxQ(0, fl, x, Q) +
+                np.dot(base_vals, self.lincomb[:,rep + 1]))
 
     @property
     def NumMembers(self):
         return self.lincomb.shape[1]
-
-
-
-
 
 class Result():
     """A class representing a result of the computation of an observable for
