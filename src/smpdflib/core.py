@@ -334,7 +334,7 @@ class PDF(TupleComp):
         if fl is None:
             fl = self.make_flavors()
         elif isinstance(fl, int):
-            fl = self.make_flavors(fl)
+            fl = [fl]
         elif isinstance(fl, tuple):
             fl = self.make_flavors(*fl)
 
@@ -892,7 +892,7 @@ def match_spec(corrlist, smpdf_spec):
     return result
 
 
-def get_X(pdf, Q=None,  reshape=False, xgrid=None, fl=None):
+def get_X(pdf, Q=None, xgrid=None, fl=None, *, reshape=False):
     # Step 1: create pdf covmat
     if Q is None:
         Q = pdf.q2min_rep0
