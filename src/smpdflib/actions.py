@@ -71,11 +71,14 @@ def save_figures(generator, table, output_dir, namefunc=None,
                 plt.close(fig)
 
 def check_know_errors(action, group, config):
-    from smpdflib.core import RESULT_TYPES
+    from smpdflib.core import RESULT_TYPES, PDFDoesNotExist
 
     bad_types = []
     for pdf in group['pdfsets']:
-        error_type = pdf.ErrorType
+        try:
+            error_type = pdf.ErrorType
+        except PDFDoesNotExist:
+            continue
         if  error_type not in RESULT_TYPES:
             bad_types.append((pdf, error_type))
     if bad_types:

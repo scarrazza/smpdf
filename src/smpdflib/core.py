@@ -205,7 +205,7 @@ class PredictionObservable(Observable):
         except KeyError:
             raise AttributeError()
 
-
+class PDFDoesNotExist(AttributeError): pass
 
 _selected_pdf = None
 _context_pdf = None
@@ -370,6 +370,8 @@ class PDF(TupleComp):
             return lhaindex.parse_info(self.name)[name]
         except KeyError:
             raise AttributeError()
+        except IOError:
+            raise PDFDoesNotExist(self.name)
 
 
     def __len__(self):
