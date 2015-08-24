@@ -42,7 +42,6 @@ extern "C" void evolvepdf_python_(const double& x,const double& Q, double* pdf)
     arglist = Py_BuildValue("(iidd)", _imem, id, x, Q);
     py_result = PyObject_CallObject(_custom_xfxq, arglist);
     if (!py_result){
-        PyObject_Print(arglist,stdout,Py_PRINT_RAW);
         PyErr_Print();
         //TODO: Can we raise python exception somewhere instead of exiting?
         exit(1);
