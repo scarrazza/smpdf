@@ -13,6 +13,7 @@ using std::string;
 using std::cout;
 using std::endl;
 using std::exception;
+using std::runtime_error;
 
 // I hate singletons - sc
 appl::grid *_g = nullptr;
@@ -29,6 +30,11 @@ extern "C" void evolvepdf_(const double& x,const double& Q, double* pdf)
    }
 }
 
+class applwrap_error : public runtime_error{
+public:
+    explicit applwrap_error(const string& msg): runtime_error(msg){}
+    explicit applwrap_error(const char* msg): runtime_error(msg){}
+};
 
 extern "C" void evolvepdf_python_(const double& x,const double& Q, double* pdf)
 {
@@ -42,12 +48,13 @@ extern "C" void evolvepdf_python_(const double& x,const double& Q, double* pdf)
     arglist = Py_BuildValue("(iidd)", _imem, id, x, Q);
     py_result = PyObject_CallObject(_custom_xfxq, arglist);
     if (!py_result){
-        PyErr_Print();
-        //TODO: Can we raise python exception somewhere instead of exiting?
-        exit(1);
+        throw applwrap_error("Python function failed");
     }
     Py_DECREF(arglist);
     result =  PyFloat_AsDouble(py_result);
+    if (PyErr_Occurred()){
+        throw applwrap_error("Cannot  cast to double");
+    }
     Py_DECREF(py_result);
     pdf[i] = result;
   }
@@ -201,7 +208,11 @@ static PyObject* py_convolute(PyObject* self, PyObject* args)
 
   if (!_g) exit(-1);
   if (_custom_xfxq){
-     xsec = _g->vconvolute(evolvepdf_python_,alphaspdf_,pto);
+      try{
+          xsec = _g->vconvolute(evolvepdf_python_,alphaspdf_,pto);
+       } catch (const applwrap_error& e) {
+          return NULL;
+      }
   }else{
      xsec = _g->vconvolute(evolvepdf_,alphaspdf_,pto);
   }
