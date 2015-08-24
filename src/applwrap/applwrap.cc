@@ -35,18 +35,22 @@ extern "C" void evolvepdf_python_(const double& x,const double& Q, double* pdf)
   PyObject *py_result;
   PyObject *arglist;
   double result;
-  cout << "\nI'm here\n";
 
   for (int i = 0; i < 13; i++)
   {
     const int id = i-6;
     arglist = Py_BuildValue("(iidd)", _imem, id, x, Q);
     py_result = PyObject_CallObject(_custom_xfxq, arglist);
+    if (!py_result){
+        PyObject_Print(arglist,stdout,Py_PRINT_RAW);
+        PyErr_Print();
+        //TODO: Can we raise python exception somewhere instead of exiting?
+        exit(1);
+    }
     Py_DECREF(arglist);
     result =  PyFloat_AsDouble(py_result);
     Py_DECREF(py_result);
     pdf[i] = result;
-    cout << result;
   }
 }
 extern "C" double alphaspdf_(const double& Q)
