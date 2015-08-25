@@ -318,7 +318,7 @@ class PDF(TupleComp):
     def make_flavors(self, nf=3):
         return np.arange(-nf,nf+1)
 
-    @fastcache.lru_cache(maxsize=128, unhashable='ignore')
+    @fastcache.lru_cache(maxsize=2**16, unhashable='ignore')
     def grid_values(self, Q, xgrid=None, fl=None):
 
         if Q is None:
@@ -349,6 +349,16 @@ class PDF(TupleComp):
             replicas = all_members[1:]
 
         return mean, replicas
+
+    @fastcache.lru_cache()
+    def grid_values_from_tuple(self, fxQtuple):
+        replist = []
+        for r in range(len(self)):
+            l = []
+            for val in fxQtuple:
+                l.append(self.xfxQ(r, *val))
+            replist.append(l)
+        return pd.DataFrame(replist, columns = fxQtuple)
 
     def xfxQ(self, rep, fl, x, Q):
         with self:
@@ -388,7 +398,9 @@ class LincombPDF(PDF):
     def __init__(self, base, lincomb):
         self.base  = base
         self.lincomb = lincomb
+        self._grid_points = []
         super().__init__(self.base.name)
+
 
     def sha1hash(self):
         raise RuntimeError("Lincomb PDFs should not be hashed")
@@ -399,12 +411,19 @@ class LincombPDF(PDF):
             raise AttributeError(name)
         return getattr(self.base, name)
 
+    @fastcache.lru_cache()
+    def evaluate_points(self):
+        vals = self.base.grid_values_from_tuple(tuple(self._grid_points))
+        X = vals.ix[1:] - vals.ix[0]
+        return vals.ix[0] + pd.DataFrame(np.dot(self.lincomb.T,X),
+                                         columns=X.columns)
+
     def xfxQ(self, rep, fl, x, Q):
         if rep == 0:
+            self._grid_points.append((fl, x, Q))
             return self.base.xfxQ(rep, fl, x, Q)
-        base_vals = get_X(self.base, Q=Q, xgrid=x, fl=fl)
-        return (self.base.xfxQ(0, fl, x, Q) +
-                np.dot(base_vals, self.lincomb[:,rep - 1]))
+
+        return self.evaluate_points()[(fl, x, Q)][rep - 1]
 
     @property
     def NumMembers(self):
@@ -891,7 +910,7 @@ def match_spec(corrlist, smpdf_spec):
 
     return result
 
-
+@fastcache.lru_cache(2**16)
 def get_X(pdf, Q=None, xgrid=None, fl=None, *, reshape=False):
     # Step 1: create pdf covmat
     if Q is None:

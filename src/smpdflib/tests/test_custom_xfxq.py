@@ -16,19 +16,19 @@ from smpdflib.core import PDF, LincombPDF, produce_results, make_observable
 
 class BadError(Exception): pass
 
-class Bad1(PDF):
+class Bad(PDF):
     CUSTOM_XFXQ = True
-    def xfxQ(self, replica, fl, x, Q):
-        raise BadError()
-    def __len__(self):
-        return 1;
-
-class Bad2(PDF):
-    CUSTOM_XFXQ = True
-    def xfxQ(self, replica, fl, x, Q):
-        return "patata"
     def __len__(self):
         return 1
+
+class Bad1(Bad):
+
+    def xfxQ(self, replica, fl, x, Q):
+        raise BadError()
+
+class Bad2(Bad):
+    def xfxQ(self, replica, fl, x, Q):
+        return "patata"
 
 
 class TestXFXQ(unittest.TestCase):
@@ -52,9 +52,10 @@ class TestXFXQ(unittest.TestCase):
     def test_lincomb_xfxq(self):
          obs = make_observable('data/applgrid/atlas-incljets-eta7.root', 'NLO')
          pdf = PDF('1000rep')
-         lincomb = np.eye(1000,2)
+         lincomb = np.eye(len(pdf) - 1, 2)
          lpdf = LincombPDF(pdf, lincomb)
-         produce_results([lpdf], [obs])
+         lin, orig = produce_results([lpdf, pdf], [obs])
+         self.assertTrue( np.all(orig._all_vals[[1,2]] == lin._all_vals))
 
 
 if __name__ == '__main__':
