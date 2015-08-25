@@ -352,6 +352,8 @@ class PDF(TupleComp):
 
     @fastcache.lru_cache()
     def grid_values_from_tuple(self, fxQtuple):
+        print("Len of tuple is")
+        print(len(fxQtuple))
         replist = []
         for r in range(len(self)):
             l = []
@@ -732,6 +734,9 @@ def convolve_one(pdf, observable, logger=None):
         for rep in pdf.reps:
             applwrap.pdfreplica(rep)
             res[rep] = np.array(applwrap.convolute(observable.order))
+            logging.debug("Did bin in PID: %d" % os.getpid())
+    logging.debug("Finished with PID: %d" % os.getpid())
+
     return res
 
 
@@ -998,7 +1003,9 @@ def _pdf_normalization(pdf):
 
 def get_smpdf_lincomb(pdf, pdf_results, full_grid = False,
                       target_error = 0.1,
-                      correlation_threshold=_DEFAULT_CORRELATION_THRESHOLD):
+                      correlation_threshold=_DEFAULT_CORRELATION_THRESHOLD,
+                      nonlinear_estimate = True
+                      ):
     #Estimator= norm**2(rotated)/norm**2(total) which is additive when adding
     #eigenvecotors
     #Error = (1 - sqrt(1-estimator))
@@ -1014,7 +1021,7 @@ def get_smpdf_lincomb(pdf, pdf_results, full_grid = False,
     norm = _pdf_normalization(pdf)
 
     lincomb = np.zeros(shape=(nrep,max_neig))
-
+    all_observables = [result.obs for result in pdf_results]
     desc = []
 
     index = 0
@@ -1048,6 +1055,11 @@ def get_smpdf_lincomb(pdf, pdf_results, full_grid = False,
                 rotated_diffs = np.dot(original_diffs, Rold)
                 X = np.dot(Xreal,Rold)
                 lincomb[:,index:index+1] = P
+                if nonlinear_estimate:
+                    logging.info("Start wasting time")
+                    lpdf = LincombPDF(pdf, P/norm)
+                    produce_results(lpdf, all_observables)
+                    logging.info("Stop wasting time")
                 index += 1
                 eigs_for_bin += 1
             if eigs_for_bin:
