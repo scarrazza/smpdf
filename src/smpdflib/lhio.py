@@ -63,7 +63,7 @@ def load_replica( pdf, rep, rep0grids=None):
 
     pdf_name = str(pdf)
 
-    path = osp.join(lhaindex.get_lha_path(), pdf_name,
+    path = osp.join(lhaindex.finddir(pdf_name),
                     pdf_name + "_" + suffix + ".dat")
 
     with open(path, 'rb') as inn:

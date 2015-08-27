@@ -275,7 +275,7 @@ def create_mc2hessian(pdfsets, Neig ,output_dir, sample_Q, grid_names,
 
 def check_lhawrite(action, group, config):
     import smpdflib.lhaindex
-    path = smpdflib.lhaindex.get_lha_path()
+    path = smpdflib.lhaindex.get_lha_datapath()
     if not os.access(path, os.W_OK):
         raise ActionError("Cannot write in LHAPDF path: %s. "
                           "Unable to complete action %s" %(path, action))
@@ -283,7 +283,7 @@ def check_lhawrite(action, group, config):
 @check(check_lhawrite)
 def install_grids(grid_names, output_dir):
     import smpdflib.lhaindex
-    dest = smpdflib.lhaindex.get_lha_path()
+    dest = smpdflib.lhaindex.get_lha_datapath()
     for name in grid_names.values():
         shutil.copytree(osp.join(output_dir, name), osp.join(dest, name))
 
