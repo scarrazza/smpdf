@@ -9,12 +9,13 @@ from __future__ import print_function
 import os
 import os.path as osp
 import re
-import subprocess
 import glob
 import fnmatch
 
 import yaml
 import fastcache
+
+import applwrap
 
 
 _indexes_to_names = None
@@ -24,8 +25,8 @@ def expand_index_names(globstr):
     return fnmatch.filter(get_names_to_indexes().keys(), globstr)
 
 def expand_local_names(globstr):
-    path = get_lha_path()
-    return [name for name in glob.glob1(path, globstr)
+    paths = get_lha_paths()
+    return [name for path in paths for name in glob.glob1(path, globstr)
             if osp.isdir(osp.join(path, name))]
 
 def expand_names(globstr):
@@ -44,7 +45,7 @@ def get_indexes_to_names():
 
 def isinstalled(name):
     """Check that name exists in LHAPDF dir"""
-    return osp.isdir(osp.join(get_lha_path(), name))
+    return any(osp.isdir(osp.join(path, name)) for path in get_lha_paths())
 
 def get_names_to_indexes():
     global _names_to_indexes
@@ -61,6 +62,7 @@ def get_pdf_indexes(name):
     return {'lhapdf_id' : ind,
             'lhapdf_min': ind + (num_members > 1),
             'lhapdf_max': ind + num_members - 1}
+
 
 def get_pdf_name(index):
     return get_indexes_to_names()[str(index)]
@@ -93,7 +95,11 @@ def as_from_name(name):
 
 
 def infofilename(name):
-    return osp.join(get_lha_path(), name, name + '.info')
+    for path in get_lha_paths():
+        info = osp.join(path, name, name + '.info')
+        if osp.exists(info):
+            return info
+    raise FileNotFoundError(name + ".info")
 
 @fastcache.lru_cache()
 def parse_info(name):
@@ -101,16 +107,16 @@ def parse_info(name):
         result = yaml.load(infofile)
     return result
 
-@fastcache.lru_cache()
-def get_lha_path():
-    lhapdf_folder = subprocess.check_output(['lhapdf-config', '--datadir'])
-    lhapdf_folder = lhapdf_folder.decode().rstrip()
-    return lhapdf_folder
+def get_lha_paths():
+    return applwrap.getlhapdfpath()
+
+def get_lha_datapath():
+    return get_lha_paths()[-1]
 
 def get_index_path(folder = None):
     if folder:
         index_file = os.path.join(folder, 'pdfsets.index')
     if folder is None or not osp.exists(index_file):
-        folder = get_lha_path()
+        folder = get_lha_datapath()
     index_file = os.path.join(folder, 'pdfsets.index')
     return index_file
