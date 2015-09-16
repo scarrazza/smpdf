@@ -25,7 +25,7 @@ def init_style():
     """Set style to that of our app"""
     import matplotlib.pyplot as plt
     libpath = osp.dirname(__file__)
-    stylefilename = osp.join(libpath, 'main.mplstyle')
+    stylefilename = osp.join(libpath, 'small.mplstyle')
     plt.style.use(stylefilename)
 
 @_initializer

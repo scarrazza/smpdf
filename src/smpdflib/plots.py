@@ -65,7 +65,7 @@ def compare_cis(results, base_pdf = None):
     for obs in combined:
         figure = plt.figure()
         colors  = plotutils.color_names_to_rgb(colorlist)
-        plt.title(str(obs))
+        plt.title(str(obs), y=1.05)
         base = combined[obs].get(base_pdf, None)
         results = sorted(combined[obs].values(), key = lambda x: x!=base)
         l = len(results)
@@ -109,6 +109,13 @@ def compare_cis(results, base_pdf = None):
         plt.legend()
         plt.xlim(0.5, results[0].nbins + 0.5)
         plt.grid(axis='x')
+        #Small style
+        dfs = plt.yticks()[0] - 1
+        l = len(dfs) // 2  + 1 - ((len(dfs) // 2) % 2)
+        mdiff = np.max(dfs)
+
+        plt.yticks(np.linspace(-mdiff, mdiff, l) + 1)
+
         yield (obs,), figure
 
 @plotutils.ax_or_gca
