@@ -68,3 +68,4 @@ docs/_build/
 target/
 scripts/smpdf.py
 ignore
+*.pdf
