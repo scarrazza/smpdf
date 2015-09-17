@@ -2,17 +2,17 @@ observables:
    - {name: data/applgrid/*.root, order: 1 }
 
 actiongroups:
-   #   - pdfsets :
-   #      - NNPDF30_nlo_as_0118
-   #     actions:
-   #      - mc2hessian
-   #      - installgrids
-   #     Neig: 50
-   #     sample_Q: 1
-   #     prefix: testmc2h1
+   - pdfsets :
+      - NNPDF30_nlo_as_0118
+     actions:
+      - mc2hessian
+      - installgrids
+     Neig: 50
+     sample_Q: 1
+     prefix: testmc2h
    - pdfsets:
       - NNPDF30_nlo_as_0118
-      - testmc2h1*
+      - testmc2h*
      actions:
         - ciplots
         - violinplots
