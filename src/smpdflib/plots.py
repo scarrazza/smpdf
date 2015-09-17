@@ -10,13 +10,13 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 from matplotlib.cbook import violin_stats
-import matplotlib.patches
 import matplotlib.mlab as mlab
 
 from smpdflib import plotutils
 from smpdflib.core import (aggregate_results, M_REF,
-                           MCResult, get_X, bin_corrs_from_X,
-                           observable_correlations, PDG_PARTONS)
+                           MCResult, get_X, PDG_PARTONS)
+
+from smpdflib.corrutils import (bin_corrs_from_X, observable_correlations,)
 
 
 colorlist = ['#66c2a5', '#fc8d62', '#8da0cb', '#e78ac3', '#a6d854',

@@ -100,6 +100,7 @@ def save_violins(results, output_dir, prefix, base_pdf=None, fmt='pdf'):
     return save_figures(plots.compare_violins, results, output_dir,
                         base_pdf=base_pdf,
                         prefix=prefix, fmt=fmt, namefunc=namefunc)
+
 @check(check_know_errors)
 def save_cis(results, output_dir, prefix, base_pdf=None, fmt='pdf'):
     """
@@ -169,7 +170,7 @@ def export_html(total, output_dir, prefix):
 def export_obscorrs(data_table, output_dir, prefix, base_pdf=None):
     import pandas as pd
 
-    from smpdflib.core import observable_correlations
+    from smpdflib.corrutils import observable_correlations
 
     for title, corrmat, labels in observable_correlations(data_table, base_pdf):
         name = prefix + "_" + normalize_name(title)
@@ -239,13 +240,15 @@ def gen_gridnames(action, group, config):
 def create_smpdf(data_table, output_dir, grid_names ,smpdf_tolerance=0.05,
                  Neig_total = 200, full_grid=False, db=None,
                  smpdf_correlation_threshold=None):
-    import smpdflib.core as lib
+    
+    from smpdflib.corrutils import DEFAULT_CORRELATION_THRESHOLD
+    from smpdflib.reducedset import create_smpdf
     if smpdf_correlation_threshold is None:
-        smpdf_correlation_threshold = lib._DEFAULT_CORRELATION_THRESHOLD
+        smpdf_correlation_threshold = DEFAULT_CORRELATION_THRESHOLD
     gridpaths = []
     for (pdf, pdf_table) in data_table.groupby('PDF'):
         pdf_results = pdf_table.Result.unique()
-        result = lib.create_smpdf(pdf, pdf_results, output_dir,
+        result = create_smpdf(pdf, pdf_results, output_dir,
                                   grid_names[('smpdf', pdf)],
                                   smpdf_tolerance=smpdf_tolerance,
                                   Neig_total = Neig_total,
@@ -259,7 +262,7 @@ def create_smpdf(data_table, output_dir, grid_names ,smpdf_tolerance=0.05,
 @check(gen_gridnames)
 def create_mc2hessian(pdfsets, Neig ,output_dir, sample_Q, grid_names,
                       db=None):
-    import smpdflib.core as lib
+    import smpdflib.reducedset as lib
     gridpaths = []
     for pdf in pdfsets:
         result = lib.create_mc2hessian(pdf, Q=sample_Q, Neig=Neig,
