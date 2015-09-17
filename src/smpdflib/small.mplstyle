@@ -1,0 +1,15 @@
+axes.grid               : True
+#text.usetex             : True
+text.latex.unicode      : True
+font.size               : 23
+axes.titlesize          : medium 
+axes.labelsize          : small
+legend.fontsize         : xx-small
+xtick.labelsize         : small
+axes.color_cycle        : 66c2a5, fc8d62, 8da0cb, e78ac3, a6d854, ffd92f
+figure.figsize          : 8,4.5
+axes.formatter.limits   : -5,5
+axes.formatter.use_mathtext : True
+legend.loc              : best
+legend.fancybox         : True
+legend.framealpha       : 0.8
