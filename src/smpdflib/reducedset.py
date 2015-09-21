@@ -10,6 +10,7 @@ import hashlib
 import tempfile
 import uuid
 import collections
+from collections import OrderedDict
 import numbers
 import itertools
 
@@ -58,6 +59,66 @@ def compress_X(X, neig):
     cov = np.dot(u, np.dot(np.diag(sn[:neig]**2), u.T))
 
     return vec, cov
+
+def merge_lincombs(lincomb1, lincomb2, desc1, desc2):
+    """Merge `lincomb2` into `lincomb1` according to the specifications given
+    by `desc1` and `desc2`.
+
+    Parameters
+    ----------
+    lincomb1 : array nrep x neig1
+           The original linear combination.
+    lincomb1 : array nrep x neig2
+           The refined linear combination we are merging. It contains
+           eigenvectors to be inserted into the appropiate places.
+    desc1: OrderedDict
+           Description in the format returned by `get_smpdf_lincomb`: An
+           ordered dictionary containing the number of eigenvectors needed to
+           reproduce each bin of each observable (another ordered dict,
+           {bin:neig}).
+    desc2: OrderedDict
+           The corresponding spec for lincomb2.
+    """
+
+    nrep = lincomb1.shape[0]
+    if nrep != lincomb2.shape[0]:
+        raise ValueError("Incompatible lincombs. "
+                         "Need to have the same number replicas.")
+    neig_tot = lincomb1.shape[1] + lincomb2.shape[1]
+    final_lincomb = np.empty((nrep, neig_tot))
+    last_neig2 = 0
+    last_neig1 = 0
+    total_index = 0
+    desc = OrderedDict()
+    for obs, obs_desc1 in desc1.items():
+        obs_desc = OrderedDict()
+        desc[obs] = obs_desc
+        for b, neig1 in obs_desc1.items():
+            #Catch both inner and outer KeyError
+            try:
+                neig2 = desc2[obs][b]
+            except KeyError:
+                neig2 = last_neig2
+
+
+            nold =  neig1 - last_neig1
+            final_lincomb[:, total_index:total_index+nold] = lincomb1[:,
+                             last_neig1:last_neig1+nold]
+            total_index += nold
+
+            to_add = neig2 - last_neig2
+            final_lincomb[:, total_index:total_index+to_add] = lincomb2[:,
+                             last_neig2:last_neig2+to_add]
+            total_index += to_add
+
+
+            last_neig2 = neig2
+            last_neig1 = neig1
+
+            obs_desc[b] = total_index
+
+    return final_lincomb, desc
+
 
 
 def _get_error(rotated_diffs, original_diffs):
@@ -127,13 +188,13 @@ def get_smpdf_lincomb(pdf, pdf_results, full_grid = False,
 
     lincomb = np.zeros(shape=(nrep,max_neig))
 
-    desc = []
+    desc = OrderedDict()
 
     index = 0
 
     for result in pdf_results:
-        obs_desc = {}
-        desc.append({str(result.obs) : obs_desc})
+        obs_desc = OrderedDict()
+        desc[str(result.obs)] = obs_desc
         if result.pdf != pdf:
             raise ValueError("PDF results must be for %s" % pdf)
         for b in result.binlabels:
@@ -259,10 +320,6 @@ def create_smpdf(pdf, pdf_results, output_dir, name,  smpdf_tolerance=0.05,
             temppdf.infopath
             real_results = produce_results(temppdf, observables)
         logging.info("Real results obtained")
-
-
-
-
 
     description = complete_smpdf_description(description, pdf, pdf_results,
                                              full_grid=full_grid,
