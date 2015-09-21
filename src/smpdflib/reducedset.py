@@ -7,6 +7,9 @@ Created on Thu Sep 17 10:25:33 2015
 import os.path as osp
 import logging
 import hashlib
+import collections
+import numbers
+import itertools
 
 import numpy as np
 import numpy.linalg as la
@@ -94,14 +97,13 @@ def _pdf_normalization(pdf):
 
 def get_smpdf_lincomb(pdf, pdf_results, full_grid = False,
                       target_error = 0.1,
-                      correlation_threshold=DEFAULT_CORRELATION_THRESHOLD):
+                      correlation_threshold=DEFAULT_CORRELATION_THRESHOLD,
+                      Rold = None):
     #Estimator= norm**2(rotated)/norm**2(total) which is additive when adding
     #eigenvecotors
     #Error = (1 - sqrt(1-estimator))
     #TODO: Optimize by calculating estimator instead of error?
     #target_estimator = 1 - (1-target_error)**2
-    Rold = None
-
 
     nxf = len(pdf.make_xgrid())*len(pdf.make_flavors())
     nrep = len(pdf) - 1
@@ -120,9 +122,9 @@ def get_smpdf_lincomb(pdf, pdf_results, full_grid = False,
         desc.append({str(result.obs) : obs_desc})
         if result.pdf != pdf:
             raise ValueError("PDF results must be for %s" % pdf)
-        for b in range(result.nbins):
+        for b in result.binlabels:
             Xreal = get_X(pdf, Q=result.meanQ[b], reshape=True)
-            prediction = result._all_vals.iloc[b,:]
+            prediction = result._all_vals.ix[b]
             original_diffs = prediction - np.mean(prediction)
             if Rold is not None:
                 X = np.dot(Xreal,Rold)
@@ -132,7 +134,8 @@ def get_smpdf_lincomb(pdf, pdf_results, full_grid = False,
                 X = Xreal
 
             eigs_for_bin = 0
-            while _get_error(rotated_diffs, original_diffs) > target_error:
+            error_val = next(target_error)
+            while _get_error(rotated_diffs, original_diffs) > error_val:
                 X = _mask_X(X, rotated_diffs, correlation_threshold=
                                               correlation_threshold)
                 P, R = _pop_eigenvector(X)
@@ -154,13 +157,13 @@ def get_smpdf_lincomb(pdf, pdf_results, full_grid = False,
                 logging.debug("Observable %s, "
                              "bin %d is already well reproduced."
                              % (result.obs, b+1))
-            obs_desc[b+1] = index
+            obs_desc[int(b+1)] = index
     lincomb = lincomb[:,:index]
     logging.info("Final linear combination has %d eigenvectors" %
                  lincomb.shape[1])
 
 
-    return lincomb, norm, desc
+    return lincomb, norm, desc, Rold
 
 def complete_smpdf_description(desc, pdf ,pdf_results, full_grid,
                       target_error ):
