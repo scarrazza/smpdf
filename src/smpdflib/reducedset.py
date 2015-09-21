@@ -7,6 +7,8 @@ Created on Thu Sep 17 10:25:33 2015
 import os.path as osp
 import logging
 import hashlib
+import tempfile
+import uuid
 import collections
 import numbers
 import itertools
@@ -16,9 +18,10 @@ import numpy.linalg as la
 import pandas as pd
 import yaml
 
-from smpdflib.core import get_X
+from smpdflib.core import get_X, produce_results, PDF
 from smpdflib.lhio import hessian_from_lincomb
 from smpdflib.corrutils import DEFAULT_CORRELATION_THRESHOLD, bin_corrs_from_X
+import applwrap
 
 
 def decompose_eigenvectors(X, predictions, target_estimator):
@@ -111,6 +114,17 @@ def get_smpdf_lincomb(pdf, pdf_results, full_grid = False,
     #We must divide by norm since we are reproducing the covmat and not XX.T
     norm = _pdf_normalization(pdf)
 
+    if isinstance(target_error, collections.Container):
+        total_bins = sum(r.nbins for r in pdf_results)
+        if len(target_error) != total_bins:
+            raise ValueError("Incorrect target error specification")
+        target_error = iter(target_error)
+    elif isinstance(target_error, numbers.Real):
+        target_error = itertools.repeat(target_error)
+    elif not isinstance(target_error, collections.Iterator):
+        raise ValueError("Target error not understood")
+
+
     lincomb = np.zeros(shape=(nrep,max_neig))
 
     desc = []
@@ -192,6 +206,9 @@ def smpdf_input_hash(pdf, pdf_results, full_grid,
     input_hash = hashlib.sha1(hashstr).hexdigest()
     return input_hash
 
+def filter_results(real_results, prior_results, target_error):
+    ...
+
 
 def create_mc2hessian(pdf, Q, Neig, output_dir, name=None, db=None):
     X = get_X(pdf, Q, reshape=True)
@@ -218,16 +235,34 @@ def save_lincomb(lincomb, norm, description, output_dir, name):
 
 
 def create_smpdf(pdf, pdf_results, output_dir, name,  smpdf_tolerance=0.05,
-                 Neig_total = 200,
-                 full_grid=False, db = None,
-                 correlation_threshold= DEFAULT_CORRELATION_THRESHOLD):
+                 Neig_total=200, full_grid=False, db =None,
+                 correlation_threshold=DEFAULT_CORRELATION_THRESHOLD,
+                 nonlinear_correction=True):
 
-    lincomb, norm ,description = get_smpdf_lincomb(pdf, pdf_results,
+    lincomb, norm ,description, Rold = get_smpdf_lincomb(pdf, pdf_results,
                                                full_grid=full_grid,
                                                target_error=smpdf_tolerance,
                                                correlation_threshold=correlation_threshold)
 
     vec = lincomb/norm
+
+    if nonlinear_correction:
+        logging.info("Estimating nonlinear correction")
+        with tempfile.TemporaryDirectory() as td:
+            applwrap.setlhapdfpath(td)
+            tempname = str(uuid.uuid1())
+            logging.info("Creating temporary PDF %s" % tempname)
+            hessian_from_lincomb(pdf, vec, folder=td,
+                         set_name= tempname, db=db)
+            observables = [r.obs for r in pdf_results]
+            temppdf = PDF(tempname)
+            temppdf.infopath
+            real_results = produce_results(temppdf, observables)
+        logging.info("Real results obtained")
+
+
+
+
 
     description = complete_smpdf_description(description, pdf, pdf_results,
                                              full_grid=full_grid,
