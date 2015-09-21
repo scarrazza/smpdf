@@ -452,6 +452,12 @@ class Result():
         return pd.DataFrame({'min':-std,
                              'max':std})
 
+    #TODO: Start from 1 by default?
+    @property
+    def binlabels(self):
+        "Return the labels of the bins for this observable"
+        return self._data.index
+
 
     def __getitem__(self, item):
         return self._data[item]
