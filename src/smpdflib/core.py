@@ -793,7 +793,7 @@ def convolve_or_load(pdfsets, observables, db=None):
     return results
 
 def produce_results(pdfsets, observables, db=None):
-    if isinstance(pdfsets, PDF):
+    if isinstance(pdfsets, PDF) or isinstance(pdfsets, str):
         pdfsets = [pdfsets]
     pdfsets = [PDF(pdf) if isinstance(pdf,str) else pdf for pdf in pdfsets]
 
