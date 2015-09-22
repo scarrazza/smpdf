@@ -37,7 +37,7 @@ module1 = Extension('applwrap',
                     sources = ['src/applwrap/applwrap.cc'], language="c++")
 
 setup (name = 'smpdf',
-       version = '0.1',
+       version = '1.0rc1',
        description = "PDFs for phenomenology",
        author = 'Stefano Carrazza and Zahari Kassabov',
        author_email = 'kassabov@to.infn.it',
