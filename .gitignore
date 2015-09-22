@@ -70,3 +70,4 @@ scripts/smpdf.py
 ignore
 *.pdf
 .ipynb_checkpoints/
+Untitled*
