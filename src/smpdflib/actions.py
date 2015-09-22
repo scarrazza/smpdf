@@ -322,8 +322,9 @@ ACTIONS = REALACTIONS | METAACTIONS
 #TODO: Do this better
 def requires_result(action):
     args = inspect.getargspec(ACTION_DICT[action]).args
-    return (('results' in args) or ('summed_table' in args) or
-           ('data_table' in args) or ('pdfcorrlist' in args))
+    possibles = set(['results', 'summed_table', 'data_table', 'pdfcorrlist',
+                     'total'])
+    return bool(possibles & set(args))
 
 #TODO: Do this better
 def requires_correlations(action):
