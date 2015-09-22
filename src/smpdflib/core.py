@@ -679,7 +679,7 @@ def convolve_one(pdf, observable, logger=None):
     res = {}
     import os
     logging.debug("Convolving in PID: %d" % os.getpid())
-    logging.info("Convloving %s with %s" % (observable, pdf))
+    logging.info("Convolving %s with %s" % (observable, pdf))
     with pdf, observable:
         for rep in pdf.reps:
             applwrap.pdfreplica(rep)
