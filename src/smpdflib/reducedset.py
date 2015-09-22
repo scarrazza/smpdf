@@ -10,7 +10,7 @@ import hashlib
 import tempfile
 import uuid
 import collections
-from collections import OrderedDict
+from collections import OrderedDict, namedtuple
 import numbers
 import itertools
 
@@ -159,6 +159,17 @@ def _pdf_normalization(pdf):
                                   "PDF error: %s" % pdf.ErrorType)
     return norm
 
+SMPDFLincombResult = namedtuple('SMPDFLincombResult',
+                                ('lincomb', 'norm', 'desc',
+                                'errors', 'Rold'))
+
+
+class TooMuchPrecision(Exception):
+    def __init__(self, obs, b):
+        super().__init__(("A SMPDF cannot be calculated with the requested "
+        "precision for observable %s, bin %s. You need to increase the "
+        "tolerance")%(obs,b))
+
 def get_smpdf_lincomb(pdf, pdf_results, full_grid = False,
                       target_error = 0.1,
                       correlation_threshold=DEFAULT_CORRELATION_THRESHOLD,
@@ -189,12 +200,15 @@ def get_smpdf_lincomb(pdf, pdf_results, full_grid = False,
     lincomb = np.zeros(shape=(nrep,max_neig))
 
     desc = OrderedDict()
+    errors = OrderedDict()
 
     index = 0
 
     for result in pdf_results:
         obs_desc = OrderedDict()
+        obs_errors = OrderedDict()
         desc[str(result.obs)] = obs_desc
+        errors[str(result.obs)] = obs_errors
         if result.pdf != pdf:
             raise ValueError("PDF results must be for %s" % pdf)
         for b in result.binlabels:
@@ -210,7 +224,14 @@ def get_smpdf_lincomb(pdf, pdf_results, full_grid = False,
 
             eigs_for_bin = 0
             error_val = next(target_error)
-            while _get_error(rotated_diffs, original_diffs) > error_val:
+
+            #Would be
+            #while _get_error(rotated_diffs, original_diffs) > error_val
+            #except that we want to capture current_error
+            while True:
+                current_error = _get_error(rotated_diffs, original_diffs)
+                if current_error < error_val:
+                    break
                 X = _mask_X(X, rotated_diffs, correlation_threshold=
                                               correlation_threshold)
                 P, R = _pop_eigenvector(X)
@@ -223,6 +244,8 @@ def get_smpdf_lincomb(pdf, pdf_results, full_grid = False,
                 X = np.dot(Xreal,Rold)
                 lincomb[:,index:index+1] = P
                 index += 1
+                if index == max_neig:
+                    raise TooMuchPrecision(result.obs, b+1)
                 eigs_for_bin += 1
             if eigs_for_bin:
                 logging.info("Obtained %d eigenvector%s for observable %s, "
@@ -233,12 +256,17 @@ def get_smpdf_lincomb(pdf, pdf_results, full_grid = False,
                              "bin %d is already well reproduced."
                              % (result.obs, b+1))
             obs_desc[int(b+1)] = index
+            obs_errors[int(b+1)] = current_error
+
+    #Prune extra zeros
     lincomb = lincomb[:,:index]
-    logging.info("Final linear combination has %d eigenvectors" %
+    logging.debug("Linear combination has %d eigenvectors" %
                  lincomb.shape[1])
 
 
-    return lincomb, norm, desc, Rold
+    return SMPDFLincombResult(lincomb=lincomb, norm=norm, desc=desc,
+                              errors=errors, Rold=Rold,
+                             )
 
 def complete_smpdf_description(desc, pdf ,pdf_results, full_grid,
                       target_error ):
@@ -296,16 +324,19 @@ def save_lincomb(lincomb, norm, description, output_dir, name):
 
 
 def create_smpdf(pdf, pdf_results, output_dir, name,  smpdf_tolerance=0.05,
-                 Neig_total=200, full_grid=False, db =None,
+                 Neig_total=200, full_grid=False, db=None,
                  correlation_threshold=DEFAULT_CORRELATION_THRESHOLD,
                  nonlinear_correction=True):
 
-    lincomb, norm ,description, Rold = get_smpdf_lincomb(pdf, pdf_results,
-                                               full_grid=full_grid,
-                                               target_error=smpdf_tolerance,
-                                               correlation_threshold=correlation_threshold)
+    first_res = get_smpdf_lincomb(pdf, pdf_results,
+                                  full_grid=full_grid,
+                                  target_error=smpdf_tolerance,
+                                  correlation_threshold=correlation_threshold)
 
-    vec = lincomb/norm
+    norm = first_res.norm
+    lincomb = first_res.lincomb
+    description = first_res.desc
+    vec = first_res.lincomb/norm
 
     if nonlinear_correction:
         logging.info("Estimating nonlinear correction")
@@ -318,8 +349,50 @@ def create_smpdf(pdf, pdf_results, output_dir, name,  smpdf_tolerance=0.05,
             observables = [r.obs for r in pdf_results]
             temppdf = PDF(tempname)
             temppdf.infopath
-            real_results = produce_results(temppdf, observables)
-        logging.info("Real results obtained")
+            real_results    = produce_results(temppdf, observables)
+            logging.info("Real results obtained")
+
+        results_to_refine = []
+        newtols = []
+        for smpdf_res, prior_res in zip(real_results, pdf_results):
+            real_error = 1 - smpdf_res.std_error()/prior_res.std_error()
+            #pandas indexing is broken, so have to call as_matrix....
+            bad_bins = (real_error > smpdf_tolerance).as_matrix()
+            if bad_bins.any():
+                obs_errors = list(first_res.errors[str(smpdf_res.obs)].values())
+                print(obs_errors)
+                newtol = smpdf_tolerance - (real_error[bad_bins] -
+                                             np.array(obs_errors)[bad_bins])
+                impossible = np.argwhere(newtol < 0)
+                if len(impossible):
+                    raise TooMuchPrecision(smpdf_res.obs,
+                                           impossible[0] + 1)
+                newtols.append(*newtol)
+                logging.debug("New tolerances for observable %s: %s" %
+                              (prior_res.obs, newtol))
+                #Create result with the same type as prior, and only
+                #bad_bins.
+                newres = type(prior_res)(prior_res.obs, prior_res.pdf,
+                                         prior_res._data.ix[bad_bins])
+
+                results_to_refine.append(newres)
+        if results_to_refine:
+            logging.info("Calculating eigenvectors to refine")
+            ref_res = get_smpdf_lincomb(pdf, results_to_refine,
+                              full_grid=full_grid,
+                              target_error=newtols,
+                              correlation_threshold=correlation_threshold,
+                              Rold=first_res.Rold)
+
+            lincomb, description = merge_lincombs(first_res.lincomb,
+                                                  ref_res.lincomb,
+                                                  description,
+                                                  ref_res.desc)
+            vec = lincomb/norm
+        else:
+            logging.info("All results are within tolerance")
+
+
 
     description = complete_smpdf_description(description, pdf, pdf_results,
                                              full_grid=full_grid,
@@ -333,8 +406,10 @@ def create_smpdf(pdf, pdf_results, output_dir, name,  smpdf_tolerance=0.05,
     with open(osp.join(output_dir, name + '_description.yaml'), 'w') as f:
         yaml.dump(description, f, default_flow_style=False)
 
+    logging.info("Final linear combination has %d eigenvectors" %
+                 lincomb.shape[1])
+
+
 
     return hessian_from_lincomb(pdf, vec, folder=output_dir,
                          set_name= name, db=db, extra_fields=parsed_desc)
-
-
