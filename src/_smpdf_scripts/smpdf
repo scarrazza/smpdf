@@ -134,6 +134,12 @@ def main():
         applwrap.setverbosity(0)
     try:
         results = actions.execute_config(conf, args.output ,db=db)
+    except actions.ActionRuntimeError as e:
+        logging.critical(e)
+        print("An action failed: %s" % e, file=sys.stderr)
+        if logging.getLogger().isEnabledFor(logging.DEBUG):
+            raise
+        sys.exit(1)
     finally:
         #bool(db) == False if empty
         if db is not None:

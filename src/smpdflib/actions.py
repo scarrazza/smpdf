@@ -16,6 +16,11 @@ import inspect
 class ActionError(Exception):
     pass
 
+class ActionRuntimeError(Exception):
+    """To be avoided at all costs. Inputs shuold be verified as much 
+    as possible."""
+    pass
+
 def appends_to(resource):
     def decorator(f):
         f.appends_to = resource
@@ -242,19 +247,23 @@ def create_smpdf(data_table, output_dir, grid_names ,smpdf_tolerance=0.05,
                  smpdf_correlation_threshold=None):
     
     from smpdflib.corrutils import DEFAULT_CORRELATION_THRESHOLD
-    from smpdflib.reducedset import create_smpdf
+    from smpdflib.reducedset import create_smpdf, TooMuchPrecision
     if smpdf_correlation_threshold is None:
         smpdf_correlation_threshold = DEFAULT_CORRELATION_THRESHOLD
     gridpaths = []
     for (pdf, pdf_table) in data_table.groupby('PDF'):
         pdf_results = pdf_table.Result.unique()
-        result = create_smpdf(pdf, pdf_results, output_dir,
+        try:
+            result = create_smpdf(pdf, pdf_results, output_dir,
                                   grid_names[('smpdf', pdf)],
                                   smpdf_tolerance=smpdf_tolerance,
                                   Neig_total = Neig_total,
                                   full_grid=full_grid,
                                   correlation_threshold=smpdf_correlation_threshold,
                                   db=db)
+        except TooMuchPrecision as e:
+            raise ActionRuntimeError(str(e))
+            
         gridpaths.append(result)
     return gridpaths
 
