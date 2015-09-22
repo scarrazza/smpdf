@@ -359,15 +359,16 @@ def create_smpdf(pdf, pdf_results, output_dir, name,  smpdf_tolerance=0.05,
             #pandas indexing is broken, so have to call as_matrix....
             bad_bins = (real_error > smpdf_tolerance).as_matrix()
             if bad_bins.any():
-                obs_errors = list(first_res.errors[str(smpdf_res.obs)].values())
-                print(obs_errors)
+                lin_errors = list(first_res.errors[str(smpdf_res.obs)].values())
+
                 newtol = smpdf_tolerance - (real_error[bad_bins] -
-                                             np.array(obs_errors)[bad_bins])
+                                             np.array(lin_errors)[bad_bins])
+
                 impossible = np.argwhere(newtol < 0)
                 if len(impossible):
                     raise TooMuchPrecision(smpdf_res.obs,
                                            impossible[0] + 1)
-                newtols.append(*newtol)
+                newtols +=  list(newtol)
                 logging.debug("New tolerances for observable %s: %s" %
                               (prior_res.obs, newtol))
                 #Create result with the same type as prior, and only
