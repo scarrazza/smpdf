@@ -17,7 +17,7 @@ class ActionError(Exception):
     pass
 
 class ActionRuntimeError(Exception):
-    """To be avoided at all costs. Inputs shuold be verified as much 
+    """To be avoided at all costs. Inputs shuold be verified as much
     as possible."""
     pass
 
@@ -244,8 +244,9 @@ def gen_gridnames(action, group, config):
 @check(gen_gridnames)
 def create_smpdf(data_table, output_dir, grid_names ,smpdf_tolerance=0.05,
                  Neig_total = 200, full_grid=False, db=None,
-                 smpdf_correlation_threshold=None):
-    
+                 smpdf_correlation_threshold=None,
+                 smpdf_nonlinear_correction=True):
+
     from smpdflib.corrutils import DEFAULT_CORRELATION_THRESHOLD
     from smpdflib.reducedset import create_smpdf, TooMuchPrecision
     if smpdf_correlation_threshold is None:
@@ -260,10 +261,11 @@ def create_smpdf(data_table, output_dir, grid_names ,smpdf_tolerance=0.05,
                                   Neig_total = Neig_total,
                                   full_grid=full_grid,
                                   correlation_threshold=smpdf_correlation_threshold,
+                                  nonlinear_correction=smpdf_nonlinear_correction,
                                   db=db)
         except TooMuchPrecision as e:
             raise ActionRuntimeError(str(e))
-            
+
         gridpaths.append(result)
     return gridpaths
 
