@@ -240,10 +240,9 @@ def gen_gridnames(action, group, config):
 
 
 
-
 @check(gen_gridnames)
-def create_smpdf(data_table, output_dir, grid_names ,smpdf_tolerance=0.05,
-                 Neig_total = 200, full_grid=False, db=None,
+def create_smpdf(data_table, output_dir, grid_names, smpdf_tolerance=0.05,
+                 full_grid=False, db=None,
                  smpdf_correlation_threshold=None,
                  smpdf_nonlinear_correction=True):
 
@@ -258,7 +257,6 @@ def create_smpdf(data_table, output_dir, grid_names ,smpdf_tolerance=0.05,
             result = create_smpdf(pdf, pdf_results, output_dir,
                                   grid_names[('smpdf', pdf)],
                                   smpdf_tolerance=smpdf_tolerance,
-                                  Neig_total = Neig_total,
                                   full_grid=full_grid,
                                   correlation_threshold=smpdf_correlation_threshold,
                                   nonlinear_correction=smpdf_nonlinear_correction,

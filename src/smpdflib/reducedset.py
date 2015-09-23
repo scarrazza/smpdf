@@ -170,8 +170,8 @@ class TooMuchPrecision(Exception):
         "precision for observable %s, bin %s. You need to increase the "
         "tolerance")%(obs,b))
 
-def get_smpdf_lincomb(pdf, pdf_results, full_grid = False,
-                      target_error = 0.1,
+def get_smpdf_lincomb(pdf, pdf_results,
+                      target_error, full_grid = False,
                       correlation_threshold=DEFAULT_CORRELATION_THRESHOLD,
                       Rold = None):
     #Estimator= norm**2(rotated)/norm**2(total) which is additive when adding
@@ -295,10 +295,6 @@ def smpdf_input_hash(pdf, pdf_results, full_grid,
     input_hash = hashlib.sha1(hashstr).hexdigest()
     return input_hash
 
-def filter_results(real_results, prior_results, target_error):
-    ...
-
-
 def create_mc2hessian(pdf, Q, Neig, output_dir, name=None, db=None):
     X = get_X(pdf, Q, reshape=True)
     vec, _ = compress_X(X, Neig)
@@ -322,17 +318,16 @@ def save_lincomb(lincomb, norm, description, output_dir, name):
 
     inverse.to_csv(osp.join(output_dir, invname), sep='\t', float_format='%e')
 
+def get_smpdf_params(pdf, pdf_results, smpdf_tolerance, full_grid=False,
+                    db=None,
+                    correlation_threshold=DEFAULT_CORRELATION_THRESHOLD,
+                    nonlinear_correction=True):
 
-def create_smpdf(pdf, pdf_results, output_dir, name,  smpdf_tolerance=0.05,
-                 Neig_total=200, full_grid=False, db=None,
-                 correlation_threshold=DEFAULT_CORRELATION_THRESHOLD,
-                 nonlinear_correction=True):
 
     first_res = get_smpdf_lincomb(pdf, pdf_results,
                                   full_grid=full_grid,
                                   target_error=smpdf_tolerance,
                                   correlation_threshold=correlation_threshold)
-
     norm = first_res.norm
     lincomb = first_res.lincomb
     description = first_res.desc
@@ -389,11 +384,29 @@ def create_smpdf(pdf, pdf_results, output_dir, name,  smpdf_tolerance=0.05,
                                                   ref_res.lincomb,
                                                   description,
                                                   ref_res.desc)
-            vec = lincomb/norm
+
         else:
             logging.info("All results are within tolerance")
 
+        return lincomb, norm, description
 
+
+
+def create_smpdf(pdf, pdf_results, output_dir, name,
+                 smpdf_tolerance,
+                 full_grid=False, db=None,
+                 correlation_threshold=DEFAULT_CORRELATION_THRESHOLD,
+                 nonlinear_correction=True):
+
+    lincomb, norm, description = get_smpdf_params(pdf, pdf_results,
+                                     smpdf_tolerance,
+                                     full_grid=full_grid,
+                                     db=db,
+                                     correlation_threshold=correlation_threshold,
+                                     nonlinear_correction=nonlinear_correction)
+
+
+    vec = lincomb/norm
 
     description = complete_smpdf_description(description, pdf, pdf_results,
                                              full_grid=full_grid,
