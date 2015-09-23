@@ -3,6 +3,11 @@
 Created on Thu Sep 17 10:25:33 2015
 
 @author: zah
+
+
+This module containts the functionality to compute reduced set using the
+`mc2hessian` (Appendix of `1505.06736 <http://arxiv.org/abs/1505.06736>`_)
+and `SMPDF` <paper> algorithms.
 """
 import os.path as osp
 import logging
@@ -143,12 +148,15 @@ def _mask_X(X, diffs, correlation_threshold=DEFAULT_CORRELATION_THRESHOLD):
      return Xm
 
 def _pop_eigenvector(X):
+    """Extract the biggest eigenvector from X"""
     U,s,Vt = la.svd(X)
     Pt = Vt[:1,:]
     Rt = Vt[1:,:]
     return Pt.T, Rt.T
 
 def _pdf_normalization(pdf):
+    """Extract the quantity by which we have to divide the eigenvectors to
+    get the correct errors, depending on the `ErrorType` of `pdf`."""
     nrep = len(pdf) - 1
     if pdf.ErrorType == 'replicas':
         norm = np.sqrt(nrep - 1)
@@ -174,6 +182,11 @@ def get_smpdf_lincomb(pdf, pdf_results,
                       target_error, full_grid = False,
                       correlation_threshold=DEFAULT_CORRELATION_THRESHOLD,
                       Rold = None):
+    """Extract the linear combination that describes the linar part of
+    the error of the given results with at least `target_error` precision`.
+    See <paper> for details.
+    `Rold` is returned so computation can be resumed iteratively (and then
+    merged) with for example `merge_lincombs`."""
     #Estimator= norm**2(rotated)/norm**2(total) which is additive when adding
     #eigenvecotors
     #Error = (1 - sqrt(1-estimator))
