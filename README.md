@@ -71,3 +71,17 @@ $ python smpdf.py --help
 for the full list of options. Note that you will probably want to
 run with the `--use-db` flag.
 
+Generating documentation
+------------------------
+
+[Sphinx](http://sphinx-doc.org/) version 1.3.1 or greater is required. 
+
+In order to build the documentation, go into the `docs` directory, and
+type:
+
+````bash
+make api
+make html
+````
+
+You can use the other build targets allowed by Sphinx.
