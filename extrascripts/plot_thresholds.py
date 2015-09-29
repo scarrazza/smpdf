@@ -20,9 +20,9 @@ results_nnpdf2 = [62, 28, 20, 14, 15, 16]
 results_combined_higgs = [26, 23, 18, 10, 10, 9]
 results_nnpdf_higgs = [29, 20, 13, 9, 7, 8]
 
-results_combined_w = [34, 27, 22, 13, 13, 14]
+results_combined_w = [35, 27, 22, 15, 14, 14]
 
-plt.figure()
+plt.figure(figsize=(8,6))
 #plt.plot(thresholds, results_comb, marker="s", label = "MC900")
 #plt.plot(thresholds, results_nnpdf, marker="s", label= "NNPDF 3.0")
 #plt.plot(thresholds, results_nnpdf2, marker="s", label= "NNPDF 3.0")
@@ -35,7 +35,7 @@ plt.plot(thresholds, results_combined_w, marker="s", label = "W")
 
 plt.xlabel("$t$")
 plt.ylabel("$N_{eig}$")
-plt.title("$N_{eig}$ at fixed $T=5\%$", y=1.01)
+plt.title("$N_{eig}$ at fixed $T_R=5\%$ for MC900 NLO", y=1.01)
 plt.gca().yaxis.set_major_locator(MaxNLocator(prune='lower'))
 plt.legend()
 plt.tight_layout()
