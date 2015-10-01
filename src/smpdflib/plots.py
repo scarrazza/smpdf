@@ -31,7 +31,7 @@ def compare_violins(results, base_pdf = None):
         figure = plt.figure()
         norms = None
         handles = []
-        plt.title(str(obs))
+        plt.title(str(obs),  y=1.05)
         colors  = plotutils.color_names_to_rgb(colorlist)
         alpha = 1
         base = combined[obs].get(base_pdf, None)
@@ -54,6 +54,15 @@ def compare_violins(results, base_pdf = None):
         else:
             plt.ylabel("Observable value")
         plt.xticks(range(1,len(result.central_value) + 1))
+        
+        #Small style
+        dfs = plt.yticks()[0] - 1
+        l = len(dfs) // 2  + 1 - ((len(dfs) // 2) % 2)
+        mdiff = np.max(dfs)
+
+        plt.yticks(np.linspace(-mdiff, mdiff, l) + 1)
+        #
+        
         plt.legend(handles=handles)
         yield (obs,), figure
 

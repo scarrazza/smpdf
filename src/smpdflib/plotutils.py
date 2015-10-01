@@ -13,6 +13,7 @@ from matplotlib.cbook import violin_stats
 import matplotlib.patches
 import matplotlib.mlab as mlab
 import matplotlib.colors as colors
+from matplotlib.ticker import MaxNLocator
 
 colors.LinearSegmentedColormap
 
@@ -32,6 +33,9 @@ nicecolors = [(0.3686274509803922, 0.30980392156862746, 0.6352941176470588),
 
 spectral_cm = colors.LinearSegmentedColormap.from_list('Spectral_r',
                                                  nicecolors,)
+
+class ArbitraryPointMaxNLocator(MaxNLocatror):
+    ...
 
 #TODO: use inspect to allow ax as arg?
 def ax_or_gca(f):
