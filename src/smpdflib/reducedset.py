@@ -401,7 +401,7 @@ def get_smpdf_params(pdf, pdf_results, smpdf_tolerance, full_grid=False,
         else:
             logging.info("All results are within tolerance")
 
-        return lincomb, norm, description
+    return lincomb, norm, description
 
 
 
