@@ -43,7 +43,8 @@ def observable_correlations(results_table, base_pdf=None):
             continue
         results = pdf_table.Result.unique()
         M = np.concatenate([result._all_vals.as_matrix() for result in results])
-        corrmat = np.corrcoef(M)
+        #Without atleast_2d would return a scalar if M has only one element.
+        corrmat = np.atleast_2d(np.corrcoef(M))
         title = "Observables correlation\n%s" % pdf
         if base_pdf:
             corrmat -= base_corr
