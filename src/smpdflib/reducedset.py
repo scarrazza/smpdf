@@ -365,7 +365,7 @@ def get_smpdf_params(pdf, pdf_results, smpdf_tolerance, full_grid=False,
         for smpdf_res, prior_res in zip(real_results, pdf_results):
             real_error = 1 - smpdf_res.std_error()/prior_res.std_error()
             #pandas indexing is broken, so have to call as_matrix....
-            bad_bins = (real_error > smpdf_tolerance).as_matrix()
+            bad_bins = np.array(real_error > smpdf_tolerance, copy=False)
             if bad_bins.any():
                 lin_errors = list(first_res.errors[str(smpdf_res.obs)].values())
 
