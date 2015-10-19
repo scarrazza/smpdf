@@ -5,6 +5,7 @@ Created on Wed Jun 24 15:41:26 2015
 @author: zah
 """
 import pandas as pd
+import numpy as np
 
 def save_html(df, path):
     import jinja2
@@ -35,3 +36,22 @@ def break_bins(results):
             if result.nbins > 1:
                 name += " Bin (%d)" % bin+1
             yield name, result._all_vals.iloc[bin,:]
+
+def split_ranges(a,cond=None,*, filter_falses=False):
+    """Split ``a`` so that each range has the same
+    value for ``cond`` . If ``filter_falses`` is true, only the ranges
+    for which the
+    condition is true will be returned."""
+    if cond is None:
+        cond = a
+    cond = cond.astype(bool)
+    d = np.r_[False, np.diff(cond)]
+    split_at = np.argwhere(d)
+    splits = np.split(a, split_at)
+    if filter_falses:
+        #Evaluate condition at split points
+        it = iter(cond[np.r_[0, np.ravel(split_at)]])
+        return [s for s in splits if next(it)]
+    else:
+        return splits
+

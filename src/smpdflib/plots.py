@@ -18,6 +18,8 @@ from smpdflib.core import (aggregate_results, M_REF,
 
 from smpdflib.corrutils import (bin_corrs_from_X, observable_correlations,)
 
+from smpdflib.utils import split_ranges
+
 
 colorlist = ['#66c2a5', '#fc8d62', '#8da0cb', '#e78ac3', '#a6d854',
                      '#ffd92f']
@@ -291,17 +293,24 @@ def plot_correlations(results):
             X = get_X(pdf, Q=Q, xgrid=xgrid, fl=fl, reshape=True)
             values, threshold = bin_corrs_from_X(result._all_vals.ix[b], X)
             ind = 0
-            for f in range(len(fl)):
+            for f, axis in zip(fl, axarr):
                 step = len(xgrid)
                 current_vals = values[ind:ind+step]
                 ind+=step
-                axarr[f].plot(xgrid, current_vals)
-                axarr[f].set_ylim([-1,1])
-                axarr[f].set_xscale('log')
-                axarr[f].set_ylabel("$%s$"%PDG_PARTONS[fl[f]])
+                line, = axis.plot(xgrid, current_vals)
+                stacked = np.array([xgrid, current_vals]).T
+                sel_ranges = split_ranges(stacked, abs(current_vals)>threshold,
+                             filter_falses=True)
+                for arr in sel_ranges:
+                    x,y = arr.T
+                    axis.plot(x,y, linewidth=3, color=line.get_color())
+                    axis.axvspan(np.min(x), np.max(x), color="#eeeeff")
+                axis.set_ylim([-1,1])
+                axis.set_xscale('log')
+                axis.set_ylabel("$%s$"%PDG_PARTONS[f])
 
-                axarr[f].axhline(threshold, c='r', ls='--')
-                axarr[f].axhline(-threshold, c='r', ls='--')
+                axis.axhline(threshold, c='r', ls='--')
+                axis.axhline(-threshold, c='r', ls='--')
 
         axarr[0].set_title(str(obs) + "\n")
         plt.xlabel("x")
