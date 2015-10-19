@@ -1,5 +1,5 @@
 observables:
-   - {name: data/applgrid/atlas-incljets-r06-arxiv-1112.6297-eta7.root, order: 1 }
+   - {name: data/z/z_13tev.root, order: 1 }
 
 actiongroups:
    - pdfsets :
