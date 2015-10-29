@@ -504,10 +504,16 @@ class Result():
 
 class SymHessianResult(Result):
     """Result obtained from a symmetric Hessain PDF set"""
+    
+    def rescale_ci(self):
+        if hasattr(self.pdf, "ErrorConfLevel"):
+            return scipy.stats.norm.isf((1 - self.pdf.ErrorConfLevel)/2)
+        else:
+            return 1
 
     def std_error(self, nsigma=1):
         diffsq = (self._all_vals.subtract(self._cv, axis=0))**2
-        return diffsq.sum(axis=1).apply(np.sqrt)*nsigma
+        return diffsq.sum(axis=1).apply(np.sqrt)*nsigma*self.rescale_ci()
 
     @property
     def errorbar68(self):
@@ -518,7 +524,7 @@ class SymHessianResult(Result):
         """Sample n random values from th resulting Gaussian distribution"""
         diffs = self._all_vals.subtract(self._cv, axis=0)
         for _ in range(n):
-            weights = np.random.normal(size=self.nrep)
+            weights = np.random.normal(scale=self.rescale_ci(), size=self.nrep)
             error = (diffs*weights).sum(axis=1)
             yield self._cv + error
 
@@ -558,7 +564,7 @@ class HessianResult(SymHessianResult):
     def std_error(self, nsigma=1):
         m = self._all_vals.as_matrix()
         diffsq = (m[:, ::2] - m[:, 1::2])**2
-        return np.sqrt(diffsq.sum(axis=1))/2.0*nsigma
+        return np.sqrt(diffsq.sum(axis=1))/2.0*nsigma*self.rescale_ci()
 
     def sample_values(self, n):
         """Sample n random values from the resulting asymmetric
@@ -568,7 +574,7 @@ class HessianResult(SymHessianResult):
         minus = m[:, 1::2]
 
         for _ in range(n):
-            r = np.random.normal(size=len(plus))
+            r = np.random.normal(scale=self.rescale_ci(), size=len(plus))
             error = (r >=0)*r*plus - (r < 0)*r*minus
             yield self._cv + error
 
