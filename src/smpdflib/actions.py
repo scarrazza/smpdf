@@ -92,9 +92,19 @@ def check_know_errors(action, group, config):
         msg += ''.join(['\n %s with ErrorType: %s' % bad for bad in bad_types])
         raise ActionError(msg)
 
+def check_valid_smpdf_prior(action, group, config):
+    valid_errors = set(("symmhessian", "replicas"))
+    bad = [pdf for pdf in group["pdfsets"] if pdf.ErrorType 
+                                              not in valid_errors]
+    if bad:
+        badstr = ', '.join(str(pdf) for pdf in bad)
+        msg = ("An SMPDF cannot be constructed for: %s. The PDF ErrorType must"
+               " be one of %s") % (badstr, valid_errors)
+        raise ActionError(msg)
+
 @check(check_know_errors)
 def save_violins(results, output_dir, prefix, base_pdf=None, fmt='pdf'):
-    """
+    """ 
     Generate plots comparing the distributions obtained for the value of
     the observable using different PDF sets. If 'base_pdf' is specified, the
     values will be relative to the central value of that PDF."""
@@ -241,6 +251,7 @@ def gen_gridnames(action, group, config):
 
 
 @check(gen_gridnames)
+@check(check_valid_smpdf_prior)
 def create_smpdf(data_table, output_dir, grid_names, smpdf_tolerance=0.05,
                  full_grid=False, db=None,
                  smpdf_correlation_threshold=None,
