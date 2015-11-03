@@ -313,7 +313,7 @@ def plot_correlations(results):
                 axis.axhline(-threshold, c='r', ls='--')
 
         axarr[0].set_title(str(obs) + "\n")
-        plt.xlabel("x")
+        plt.xlabel("$x$")
         figure.subplots_adjust(hspace=0)
         plt.setp([a.get_xticklabels() for a in figure.axes[:-1]], visible=False)
 
