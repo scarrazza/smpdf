@@ -507,13 +507,17 @@ class SymHessianResult(Result):
 
     def rescale_ci(self):
         if hasattr(self.pdf, "ErrorConfLevel"):
-            return scipy.stats.norm.isf((1 - self.pdf.ErrorConfLevel)/2)
+            val = scipy.stats.norm.isf((1 - 0.01*self.pdf.ErrorConfLevel)/2)
+            if np.isnan(val):
+                raise ValueError("Invalid 'ErrorConfLevel' of PDF %s: %s" %
+                                 (self.pdf, val))
+            return val
         else:
             return 1
 
     def std_error(self, nsigma=1):
         diffsq = (self._all_vals.subtract(self._cv, axis=0))**2
-        return diffsq.sum(axis=1).apply(np.sqrt)*nsigma*self.rescale_ci()
+        return diffsq.sum(axis=1).apply(np.sqrt)*nsigma/self.rescale_ci()
 
     @property
     def errorbar68(self):
@@ -564,7 +568,7 @@ class HessianResult(SymHessianResult):
     def std_error(self, nsigma=1):
         m = self._all_vals.as_matrix()
         diffsq = (m[:, ::2] - m[:, 1::2])**2
-        return np.sqrt(diffsq.sum(axis=1))/2.0*nsigma*self.rescale_ci()
+        return np.sqrt(diffsq.sum(axis=1))/2.0*nsigma/self.rescale_ci()
 
     def sample_values(self, n):
         """Sample n random values from the resulting asymmetric
