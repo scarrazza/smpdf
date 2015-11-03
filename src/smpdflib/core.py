@@ -504,7 +504,7 @@ class Result():
 
 class SymHessianResult(Result):
     """Result obtained from a symmetric Hessain PDF set"""
-    
+
     def rescale_ci(self):
         if hasattr(self.pdf, "ErrorConfLevel"):
             return scipy.stats.norm.isf((1 - self.pdf.ErrorConfLevel)/2)
@@ -582,9 +582,13 @@ class HessianResult(SymHessianResult):
 class MCResult(Result):
     """Result obtained from a Monte Carlo PDF set"""
     def centered_interval(self, percent=68, addcentral=True):
-        """Compute the 69% prediction gor each bin in the following way:
+        """Compute the ``percent`` confidence intervals for each bin in the
+        following way:
         Sort all results by the absolute value of the distance from the mean,
-        and select """
+        and select the closest ones until they represent the desired
+        percentage. With the option  ``addcentral`` enabled,
+        the intervals will be
+        returned around the mean, and without it, will be around zero."""
         n = percent*self.nrep//100
         def get_lims(row):
             row = row.as_matrix()
