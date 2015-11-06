@@ -55,3 +55,7 @@ def split_ranges(a,cond=None,*, filter_falses=False):
     else:
         return splits
 
+def break_along(a, axis):
+    """Break ``a`` in subarrays along ``axis``."""
+    return [x.squeeze(axis=axis) for x in np.split(a, a.shape[axis],
+            axis=axis, )];

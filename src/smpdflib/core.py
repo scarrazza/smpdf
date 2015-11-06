@@ -32,6 +32,7 @@ from pandas.stats import ols
 from smpdflib import lhaindex
 from smpdflib import plotutils
 from smpdflib.loggingutils import supress_stdout, initlogging, get_logging_queue
+from smpdflib.utils import break_along
 
 import applwrap
 
@@ -202,6 +203,21 @@ class PredictionObservable(Observable):
             return self._params[attr]
         except KeyError:
             raise AttributeError()
+
+#Abuse the concept of Observable a litle bit.
+#TODO: Does this class make sense?
+class PDFValues(Observable):
+    """Stores a particular Q and flavour. To be used inside
+    ``make_pdf_results`` mainly."""
+    def __init__(self, pdf, Q, fl):
+        self.order = pdf.OrderQCD
+        self.fl = fl
+        self._meanQ = Q
+
+    @property
+    def name(self):
+        return PDG_PARTONS[self.fl]
+
 
 class PDFDoesNotExist(AttributeError): pass
 
@@ -674,6 +690,26 @@ RESULT_TYPES = defaultdict(lambda:Result,
 def make_result(obs, pdf, datas):
     error_type = pdf.ErrorType
     return RESULT_TYPES[error_type](obs, pdf, datas)
+
+def make_pdf_results(pdf, Q, flavors=None, xgrid=None):
+    """Return a Result object containig the value of the pdfs a function of
+    x for the specified Q and flavors given by their PDG id (all by default)."""
+    if flavors is None:
+        flavors = pdf.make_flavors()
+
+    central, errors = pdf.grid_values(Q=Q, fl=flavors, xgrid=xgrid)
+    central_fl = break_along(central, axis=0)
+    errors_fl = break_along(errors, 1)
+
+    results = []
+    for central, error, fl in zip(central_fl, errors_fl, flavors):
+        datas = np.r_[[central], error]
+        obs = PDFValues(pdf, Q, fl)
+        result = make_result(obs, pdf, datas.T)
+        results.append(result)
+    return results
+
+
 
 def make_observable(name, *args, **kwargs):
     extension = osp.splitext(name)[-1]

@@ -37,6 +37,17 @@ spectral_cm = colors.LinearSegmentedColormap.from_list('Spectral_r',
 class ArbitraryPointMaxNLocator(MaxNLocator):
     ...
 
+
+def hatch_iter():
+    hatches = "/ \\ - + o 0".split()
+    i = 1
+    while True:
+        for hatch in hatches:
+            yield hatch*i
+        i+=1
+
+
+
 #TODO: use inspect to allow ax as arg?
 def ax_or_gca(f):
     @functools.wraps(f)

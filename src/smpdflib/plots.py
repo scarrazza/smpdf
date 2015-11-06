@@ -4,7 +4,8 @@ Created on Fri May 15 15:35:45 2015
 
 @author: zah
 """
-from __future__ import division
+#TODO: Enable this ASAP
+#from __future__ import generator_stop
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -14,7 +15,7 @@ import matplotlib.mlab as mlab
 
 from smpdflib import plotutils
 from smpdflib.core import (aggregate_results, M_REF,
-                           MCResult, get_X, PDG_PARTONS)
+                           MCResult, get_X, PDG_PARTONS, make_pdf_results, PDF)
 
 from smpdflib.corrutils import (bin_corrs_from_X, observable_correlations,)
 
@@ -23,6 +24,86 @@ from smpdflib.utils import split_ranges
 
 colorlist = ['#66c2a5', '#fc8d62', '#8da0cb', '#e78ac3', '#a6d854',
                      '#ffd92f']
+
+def plot_pdfs(pdfsets, Q, base_pdf = None, flavors=None):
+
+    if flavors is None:
+        flavors = PDF.make_flavors()
+
+    nflavors = len(flavors)
+
+    xgrid = PDF.make_xgrid()
+
+    #Squeeze=False is for the case where we have one flavour
+    w,h = plt.rcParams["figure.figsize"]
+    fig, axes = plt.subplots(nflavors, 1, figsize=(w, 1.1*h*nflavors),
+                             squeeze=False)
+
+    axiter = iter(axes[:,0])
+
+    resultlists = []
+    for pdf in pdfsets:
+        r = make_pdf_results(pdf, Q, flavors=flavors, xgrid=xgrid)
+        if pdf == base_pdf:
+            base_results = iter(r)
+        resultlists.append(r)
+
+
+
+    for fl, flresults in zip(flavors, zip(*resultlists)):
+        ax = next(axiter)
+        hatchiter = plotutils.hatch_iter()
+        if base_pdf:
+            base_result = next(base_results)
+
+        view_min = float("inf")
+        view_max = -float("inf")
+
+        for result in flresults:
+            #Without copy the /= operator affects the underlying data.
+            central = result.central_value.as_matrix().copy()
+            error = result.errorbar68.as_matrix().copy()
+            if base_pdf:
+                central /= base_result.central_value.as_matrix()
+                error /=  base_result.central_value.as_matrix()[:,np.newaxis]
+
+            line, = ax.plot(xgrid, central, label=result.pdf.label)
+            band_up = central + error[:,1]
+            band_down = central+ error[:,0]
+            ax.fill_between(xgrid, band_up,
+                            band_down, color=line.get_color(),
+                            alpha=0.2, hatch=next(hatchiter))
+
+            #Adjust view to middle region
+            mask = (1e-4 < xgrid) & (xgrid < 1e-1)
+            ext_max = np.max((central + 2*error[:,0])[mask])
+            print(result.pdf)
+            print(ext_max)
+            ext_min = np.min((central + 2*error[:,1])[mask])
+            if ext_max > view_max:
+                view_max = ext_max
+            if ext_min < view_min:
+                view_min = ext_min
+
+        amin, amax = ax.get_ylim()
+        print(amin, amax)
+        print(view_min, view_max)
+        ax.set_ylim(max(view_min, amin), min(view_max, amax))
+
+        ax.set_xscale('log')
+
+        ax.set_title("$%s$ at $Q=%.2f$ GeV" % (PDG_PARTONS[fl], Q))
+
+        ax.legend()
+
+        if base_pdf:
+            ax.set_ylabel('Ratio to %s' % base_pdf.label)
+        else:
+            ax.set_ylabel("$x%s(x)$" % PDG_PARTONS[fl])
+        ax.set_xlabel("$x$")
+
+    yield fig
+
 
 def compare_violins(results, base_pdf = None):
     if not isinstance(results, dict):
@@ -56,7 +137,7 @@ def compare_violins(results, base_pdf = None):
         else:
             plt.ylabel("Observable value")
         plt.xticks(range(1,len(result.central_value) + 1))
-        
+
         #Small style
         dfs = plt.yticks()[0] - 1
         l = len(dfs) // 2  + 1 - ((len(dfs) // 2) % 2)
@@ -64,7 +145,7 @@ def compare_violins(results, base_pdf = None):
 
         plt.yticks(np.linspace(-mdiff, mdiff, l) + 1)
         #
-        
+
         plt.legend(handles=handles)
         yield (obs,), figure
 
@@ -87,6 +168,7 @@ def compare_cis(results, base_pdf = None):
         #x = iter(np.arange(1, len(results) + 1))
         for result in results:
             x = np.arange(1, result.nbins+1) + next(delta)
+            #Without copy the /= operator affects the underlying data.
             data_cv = result.central_value.as_matrix().copy()
             data_ci = result.errorbar68.as_matrix().copy()
             if base is not None:
@@ -101,6 +183,7 @@ def compare_cis(results, base_pdf = None):
                                      label=result.pdf.label, elinewidth = 2,
                                      capsize=10)
             if isinstance(result, MCResult):
+                #Without copy the /= operator affects the underlying data.
                 data_std = result.rel_std_interval().as_matrix().copy()
                 if base is not None:
                     data_std /= base_cv[:,np.newaxis]
