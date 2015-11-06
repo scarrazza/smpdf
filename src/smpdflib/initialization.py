@@ -20,7 +20,7 @@ def _initializer(f):
         return f(*args, **kwargs)
     return _f
 
-@_initializer
+#@_initializer
 def init_style():
     """Set style to that of our app"""
     import matplotlib.pyplot as plt
