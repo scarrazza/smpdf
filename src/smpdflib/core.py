@@ -299,7 +299,8 @@ class PDF(TupleComp):
             res = applwrap.q2Min()
         return res
 
-    def make_xgrid(self, xminlog=1e-5, xminlin=1e-1, xmax=1, nplog=50, nplin=50):
+    @staticmethod
+    def make_xgrid(xminlog=1e-5, xminlin=1e-1, xmax=1, nplog=50, nplin=50):
         """Provides the points in x to sample the PDF. `logspace` and `linspace`
         will be called with the respsctive parameters."""
 
@@ -308,7 +309,8 @@ class PDF(TupleComp):
                          np.linspace(xminlin, xmax, num=nplin, endpoint=False)
                         )
 
-    def make_flavors(self, nf=3):
+    @staticmethod
+    def make_flavors(nf=3):
         return np.arange(-nf,nf+1)
 
     @fastcache.lru_cache(maxsize=128, unhashable='ignore')
