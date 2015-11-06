@@ -3,17 +3,17 @@ observables:
 
 actiongroups:
    - pdfsets :
-      - NNPDF30_nlo_as_0118
+      - MC900_nf4_nlo
      actions:
       - mc2hessian
       - installgrids
-     Neig: 50
-     sample_Q: 1
-     prefix: testmc2h
+     Neig: 100
+     sample_Q: 8
+     prefix: tobechanged
    - pdfsets:
-      - NNPDF30_nlo_as_0118
-      - testmc2h*
+      - MC900_nf4_nlo
+      - tobechanged*
      actions:
         - ciplots
         - violinplots
-     base_pdf: NNPDF30_nlo_as_0118
+     base_pdf: MC900_nf4_nlo
