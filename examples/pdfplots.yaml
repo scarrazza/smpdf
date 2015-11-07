@@ -1,0 +1,13 @@
+fmt: png
+pdfsets:
+    - MMHT2014nlo68cl
+    - CT14nlo
+    - NNPDF30_nlo_as_0118
+
+base_pdf: NNPDF30_nlo_as_0118
+
+plot_Q: 500
+plot_flavors: [1,2,3,4]
+
+actions: 
+    - pdfplots
