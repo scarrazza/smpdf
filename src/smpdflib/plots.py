@@ -75,19 +75,20 @@ def plot_pdfs(pdfsets, Q, base_pdf = None, flavors=None):
                             alpha=0.2, hatch=next(hatchiter))
 
             #Adjust view to middle region
-            mask = (1e-4 < xgrid) & (xgrid < 1e-1)
-            ext_max = np.max((central + 2*error[:,0])[mask])
-            print(result.pdf)
-            print(ext_max)
-            ext_min = np.min((central + 2*error[:,1])[mask])
+            lx = np.log10(xgrid)
+            extrema = lx[[0,-1]]
+            middle = np.mean(extrema)
+            diff = np.diff(extrema)
+            mask =  np.abs(lx - middle) < diff/4
+            ext_max = np.percentile((central + 2*error[:,0])[mask], 90)
+
+            ext_min = np.percentile((central + 2*error[:,1])[mask], 10)
             if ext_max > view_max:
                 view_max = ext_max
             if ext_min < view_min:
                 view_min = ext_min
 
         amin, amax = ax.get_ylim()
-        print(amin, amax)
-        print(view_min, view_max)
         ax.set_ylim(max(view_min, amin), min(view_max, amax))
 
         ax.set_xscale('log')
