@@ -56,8 +56,8 @@ def normalize_name(name):
     return re.sub(r'[\.\,]', '', str(name))
 
 
-def save_figures(generator, table, output_dir, namefunc=None,
-                 prefix=None, fmt ='pdf', **kwargs):
+def save_figures(generator, output_dir, namefunc=None,
+                 prefix=None, fmt ='pdf'):
 
         import matplotlib.pyplot as plt
         if isinstance(fmt, str):
@@ -67,7 +67,7 @@ def save_figures(generator, table, output_dir, namefunc=None,
         prefixstr = prefix if prefix else ''
         if namefunc is None:
             namefunc = lambda *spec: ''.join(str(x) for x in spec)
-        for namespec, fig in generator(table, **kwargs):
+        for namespec, fig in generator:
             nameresult = namefunc(*namespec)
             for fmt in fmts:
                 filename = "{prefixstr}{nameresult}.{fmt}".format(**locals())
@@ -112,8 +112,8 @@ def save_violins(results, output_dir, prefix, base_pdf=None, fmt='pdf'):
     import smpdflib.plots as plots
     def namefunc(obs):
         return "violinplot_%s"%normalize_name(obs)
-    return save_figures(plots.compare_violins, results, output_dir,
-                        base_pdf=base_pdf,
+    return save_figures(plots.compare_violins(results,
+                        base_pdf=base_pdf), output_dir,
                         prefix=prefix, fmt=fmt, namefunc=namefunc)
 
 @check(check_know_errors)
@@ -126,8 +126,8 @@ def save_cis(results, output_dir, prefix, base_pdf=None, fmt='pdf'):
     import smpdflib.plots as plots
     def namefunc(obs):
         return "ciplot_%s"%normalize_name(obs)
-    return save_figures(plots.compare_cis, results, output_dir,
-                        base_pdf=base_pdf,
+    return save_figures(plots.compare_cis(results,  base_pdf=base_pdf),
+                        output_dir,
                         prefix=prefix, fmt=fmt, namefunc=namefunc)
 @check(check_know_errors)
 def save_as(summed_table, output_dir, prefix, fmt='pdf'):
@@ -139,14 +139,14 @@ def save_as(summed_table, output_dir, prefix, fmt='pdf'):
     def namefunc(obs, nf, bin_):
         obs = normalize_name(obs)
         return 'alphaplot_{obs}_nf_{nf}'.format(**locals())
-    return save_figures(plots.plot_alphaS, summed_table, output_dir,
+    return save_figures(plots.plot_alphaS(summed_table), output_dir,
                         prefix=prefix, fmt=fmt, namefunc=namefunc)
 
 def save_asq(pdfsets, output_dir, prefix, fmt='pdf'):
     import smpdflib.plots as plots
     def namefunc(nf):
         return 'alphaSQ_nf_{nf}'.format(**locals())
-    return save_figures(plots.plot_asQ, pdfsets, output_dir,
+    return save_figures(plots.plot_asQ(pdfsets), output_dir,
                         prefix=prefix, fmt=fmt, namefunc=namefunc)
 
 def save_nf(summed_table, output_dir, prefix, fmt='pdf'):
@@ -159,7 +159,7 @@ def save_nf(summed_table, output_dir, prefix, fmt='pdf'):
     def namefunc(obs, bin_, oqcd):
         obs = normalize_name(obs)
         return 'nfplot_{obs}_{oqcd}'.format(**locals())
-    return save_figures(plots.plot_nf, summed_table, output_dir,
+    return save_figures(plots.plot_nf(summed_table), output_dir,
                         prefix=prefix, fmt=fmt, namefunc=namefunc)
 @check(check_know_errors)
 def save_obscorrs(data_table, output_dir, prefix, base_pdf=None, fmt='pdf'):
@@ -167,8 +167,9 @@ def save_obscorrs(data_table, output_dir, prefix, base_pdf=None, fmt='pdf'):
     import smpdflib.plots as plots
     def namefunc(pdf):
         return 'obs_corrs_%s' % pdf
-    return save_figures(plots.plot_observable_correlations, data_table,
-                        output_dir, base_pdf = base_pdf,
+    return save_figures(plots.plot_observable_correlations(data_table,
+                                                           base_pdf=base_pdf),
+                        output_dir,
                         prefix=prefix, fmt=fmt, namefunc=namefunc)
 
 
