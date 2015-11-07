@@ -103,7 +103,9 @@ def plot_pdfs(pdfsets, Q, base_pdf = None, flavors=None):
             ax.set_ylabel("$x%s(x)$" % PDG_PARTONS[fl])
         ax.set_xlabel("$x$")
 
-    yield fig
+    fig.tight_layout()
+
+    yield (None,),fig
 
 
 def compare_violins(results, base_pdf = None):

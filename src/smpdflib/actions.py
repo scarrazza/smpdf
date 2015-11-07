@@ -103,8 +103,27 @@ def check_valid_smpdf_prior(action, group, config):
         raise ActionError(msg)
 
 @check(check_know_errors)
+@require_args("plot_Q")
+def save_pdfplots(pdfsets, output_dir, prefix, plot_Q , plot_flavors=None,
+                  base_pdf=None, fmt='pdf'):
+    """
+    Generate PDF plots at the scale plot_Q (given in GeV).
+    A subset of flavors can be passed,
+    as a list of PDG IDs.
+    """
+    import smpdflib.plots as plots
+    namefunc = lambda none: "pdfplots"
+    return save_figures(plots.plot_pdfs(pdfsets,
+                            flavors = plot_flavors,
+                            Q = plot_Q,
+                            base_pdf=base_pdf),
+                        output_dir,
+                        prefix=prefix, fmt=fmt, namefunc=namefunc)
+
+
+@check(check_know_errors)
 def save_violins(results, output_dir, prefix, base_pdf=None, fmt='pdf'):
-    """ 
+    """
     Generate plots comparing the distributions obtained for the value of
     the observable using different PDF sets. If 'base_pdf' is specified, the
     values will be relative to the central value of that PDF."""
@@ -311,6 +330,7 @@ def install_grids(grid_names, output_dir):
 
 ACTION_DICT = OrderedDict((
                ('testas',  test_as_linearity),
+               ('pdfplots',save_pdfplots),
                ('violinplots',save_violins),
                ('ciplots',save_cis),
                ('asplots',save_as),
