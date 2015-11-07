@@ -44,6 +44,8 @@ NUMS_QCD = {val: key for key , val in ORDERS_QCD.items()}
 M_REF = defaultdict(lambda: 'Z', {4:'c'})
 
 PDG_PARTONS = OrderedDict((
+                (-5 , r"\bar{b}"),
+                (-4 , r"\bar{c}"),
                 (-3 , r"\bar{s}"),
                 (-2 , r"\bar{u}"),
                 (-1 , r"\bar{d}"),
@@ -51,6 +53,8 @@ PDG_PARTONS = OrderedDict((
                 (1 , r"d"),
                 (2 , r"u"),
                 (3 , r"s"),
+                (4 , r"c"),
+                (5 , r"b"),
               )
               )
 
