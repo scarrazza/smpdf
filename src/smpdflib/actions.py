@@ -94,7 +94,7 @@ def check_know_errors(action, group, config):
 
 def check_valid_smpdf_prior(action, group, config):
     valid_errors = set(("symmhessian", "replicas"))
-    bad = [pdf for pdf in group["pdfsets"] if pdf.ErrorType 
+    bad = [pdf for pdf in group["pdfsets"] if pdf.ErrorType
                                               not in valid_errors]
     if bad:
         badstr = ', '.join(str(pdf) for pdf in bad)
@@ -247,13 +247,34 @@ def _mc2hname(prefix, pdf, group, config):
 
 _namemap = {'mc2hessian': _mc2hname}
 
+_nameoverride = {'mc2hessian': 'mc2hname', 'smpdf': 'smpdfname'}
+
 def gen_gridnames(action, group, config):
     from smpdflib import lhaindex
     prefix = group['prefix']
     if 'grid_names' not in group:
         group['grid_names'] = {}
     for pdf in group['pdfsets']:
-        if action in _namemap:
+        name_key = _nameoverride.get(action, None)
+        if name_key in group:
+            user_name = group[name_key]
+            if isinstance(user_name, str):
+                if len(group['pdfsets']) == 1:
+                    grid_name = user_name
+                else:
+                    raise ActionError(("Ambiguous specification of name (%s) "
+                                  "for action "
+                                  "%s. Use a mapping to specify a name for "
+                                  "each input") % (user_name, action))
+            elif isinstance(user_name, dict):
+                try:
+                    grid_name = user_name[str(pdf)]
+                except KeyError:
+                    raise ActionError("No name specification for PDF '%s'" %
+                                      pdf)
+            else:
+                raise ActionError("Invalid value for parameter %s" % name_key)
+        elif action in _namemap:
             grid_name = _namemap[action](prefix, pdf, group, config)
         else:
             grid_name = prefix + action + '_' + str(pdf)
@@ -275,7 +296,7 @@ def gen_gridnames(action, group, config):
 def create_smpdf(data_table, output_dir, grid_names, smpdf_tolerance=0.05,
                  full_grid=False, db=None,
                  smpdf_correlation_threshold=None,
-                 smpdf_nonlinear_correction=True):
+                 smpdf_nonlinear_correction=True, smpdfname=None):
 
     from smpdflib.corrutils import DEFAULT_CORRELATION_THRESHOLD
     from smpdflib.reducedset import create_smpdf, TooMuchPrecision
@@ -301,7 +322,7 @@ def create_smpdf(data_table, output_dir, grid_names, smpdf_tolerance=0.05,
 @require_args('sample_Q', 'Neig')
 @check(gen_gridnames)
 def create_mc2hessian(pdfsets, Neig ,output_dir, sample_Q, grid_names,
-                      db=None):
+                      db=None, mc2hname=None):
     import smpdflib.reducedset as lib
     gridpaths = []
     for pdf in pdfsets:
