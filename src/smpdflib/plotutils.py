@@ -6,11 +6,13 @@ Created on Fri Mar 13 11:32:30 2015
 """
 import functools
 import itertools
+from collections import namedtuple
+
 
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.cbook import violin_stats
-import matplotlib.patches
+import matplotlib.patches as mpatches
 import matplotlib.mlab as mlab
 import matplotlib.colors as colors
 from matplotlib.ticker import MaxNLocator
@@ -250,9 +252,45 @@ def violin_plot(data, normvalues=None, ax=None, bw_method=None, **kwargs):
         if not color:
             color =  vp['bodies'][0].get_facecolor()[0]
         vp['bodies'][0].set_label(label)
-        handle = matplotlib.patches.Patch(facecolor=color, label=label,
+        handle = mpatches.Patch(facecolor=color, label=label,
                                           hatch=hatches, edgecolor=color[:3])
     else:
         handle = None
 
     return vp, handle, ournorms
+
+HandlerSpec = namedtuple('HandelrSpec', ["color", "alpha", "hatch", "outer"])
+
+class ComposedHandler:
+    def legend_artist(self, legend, orig_handle, fontsize, handlebox):
+        x0, y0 = handlebox.xdescent, handlebox.ydescent
+        width, height = handlebox.width, handlebox.height
+
+        patches = []
+        if orig_handle.outer:
+            wpad = width*0.1
+            hpad = height*0.1
+            edges = 'none'
+            outer = mpatches.Rectangle([x0, y0], width, height,
+                                   facecolor='none',
+                                   linestyle= 'dashed',
+                                   edgecolor = orig_handle.color,
+                                   transform=handlebox.get_transform())
+            handlebox.add_artist(outer)
+            patches.append(outer)
+        else:
+            wpad = hpad = 0
+            edges = 'black'
+
+        patch = mpatches.Rectangle([x0+wpad, y0+hpad],
+                                   width-2*wpad, height-2*hpad,
+                                   facecolor=orig_handle.color,
+                                   alpha = orig_handle.alpha,
+                                   hatch=orig_handle.hatch,
+                                   edgecolor=edges,
+                                   transform=handlebox.get_transform())
+
+        handlebox.add_artist(patch)
+        patches.append(patch)
+        return patches
+

@@ -59,20 +59,47 @@ def plot_pdfs(pdfsets, Q, base_pdf = None, flavors=None):
         view_min = float("inf")
         view_max = -float("inf")
 
+        labels = []
+        handles = []
+
         for result in flresults:
             #Without copy the /= operator affects the underlying data.
             central = result.central_value.as_matrix().copy()
+            if isinstance(result, MCResult):
+                stderror = result.rel_std_interval().as_matrix().copy()
             error = result.errorbar68.as_matrix().copy()
             if base_pdf:
-                central /= base_result.central_value.as_matrix()
-                error /=  base_result.central_value.as_matrix()[:,np.newaxis]
+                base_cv = base_result.central_value.as_matrix()
+                central /= base_cv
+                error /=  base_cv[:,np.newaxis]
+                if isinstance(result, MCResult):
+                    stderror /=  base_cv[:,np.newaxis]
 
-            line, = ax.plot(xgrid, central, label=result.pdf.label)
+            line, = ax.plot(xgrid, central)
+
+            color = line.get_color()
+            alpha = 0.2
+            hatch = next(hatchiter)
             band_up = central + error[:,1]
             band_down = central+ error[:,0]
             ax.fill_between(xgrid, band_up,
-                            band_down, color=line.get_color(),
-                            alpha=0.2, hatch=next(hatchiter))
+                            band_down, color=color,
+                            alpha=alpha, hatch=hatch)
+            if isinstance(result, MCResult):
+                outer = True
+                label = "%s ($68\%%$ c.l. + $1\sigma$)" % result.pdf.label
+                ax.plot(xgrid, central + stderror[:,1], color=color,
+                    linestyle="--")
+                ax.plot(xgrid, central + stderror[:,0], color=color,
+                    linestyle="--")
+            else:
+                outer = False
+                label = "%s ($68\%%$ c.l.)" % result.pdf.label
+
+            handle = plotutils.HandlerSpec(color=color, alpha=alpha,
+                                           hatch=hatch, outer=outer)
+            handles.append(handle)
+            labels.append(label)
 
             #Adjust view to middle region
             lx = np.log10(xgrid)
@@ -95,7 +122,8 @@ def plot_pdfs(pdfsets, Q, base_pdf = None, flavors=None):
 
         ax.set_title("$%s$ at $Q=%.2f$ GeV" % (PDG_PARTONS[fl], Q))
 
-        ax.legend()
+        ax.legend(handles, labels, handler_map={plotutils.HandlerSpec:
+                                                plotutils.ComposedHandler()})
 
         if base_pdf:
             ax.set_ylabel('Ratio to %s' % base_pdf.label)
