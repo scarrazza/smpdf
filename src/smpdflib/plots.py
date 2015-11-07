@@ -84,10 +84,10 @@ def plot_pdfs(pdfsets, Q, base_pdf = None, flavors=None):
             band_down = central+ error[:,0]
             ax.fill_between(xgrid, band_up,
                             band_down, color=color,
-                            alpha=alpha, hatch=hatch)
+                            alpha=alpha, hatch=hatch, zorder=-1)
             if isinstance(result, MCResult):
                 outer = True
-                label = "%s ($68\%%$ c.l. + $1\sigma$)" % result.pdf.label
+                label = "%s ($68\%%$ c.l.+$1\sigma$)" % result.pdf.label
                 ax.plot(xgrid, central + stderror[:,1], color=color,
                     linestyle="--")
                 ax.plot(xgrid, central + stderror[:,0], color=color,
