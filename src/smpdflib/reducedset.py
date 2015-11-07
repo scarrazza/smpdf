@@ -57,13 +57,9 @@ def decompose_eigenvectors(X, predictions, target_estimator):
 
 def compress_X(X, neig):
     U, s, V = np.linalg.svd(X, full_matrices=False)
-    norm = np.sqrt(X.shape[1] - 1)
-    sn = s/norm
-    u = U[:,:neig]
-    vec = V[:neig,:].T/norm
-    cov = np.dot(u, np.dot(np.diag(sn[:neig]**2), u.T))
+    vec = V[:neig,:].T
 
-    return vec, cov
+    return vec
 
 def merge_lincombs(lincomb1, lincomb2, desc1, desc2):
     """Merge `lincomb2` into `lincomb1` according to the specifications given
@@ -308,10 +304,20 @@ def smpdf_input_hash(pdf, pdf_results, full_grid,
     input_hash = hashlib.sha1(hashstr).hexdigest()
     return input_hash
 
+def mc2h_input_hash(pdf, Q, Neig):
+    hashstr = b''.join([pdf.sha1hash, float(Q).hex().encode(),
+                        hex(Neig).encode()])
+    return hashlib.sha1(hashstr).hexdigest()
+
 def create_mc2hessian(pdf, Q, Neig, output_dir, name=None, db=None):
     X = get_X(pdf, Q, reshape=True)
-    vec, _ = compress_X(X, Neig)
-    return hessian_from_lincomb(pdf, vec, folder=output_dir,
+    vec = compress_X(X, Neig)
+    norm = _pdf_normalization(pdf)
+    description = {'input_hash': mc2h_input_hash(pdf,Q,Neig)}
+    save_lincomb(vec, norm, description=description,
+                 output_dir=output_dir, name=name)
+
+    return hessian_from_lincomb(pdf, vec/norm, folder=output_dir,
                          set_name= name, db=db)
 
 
