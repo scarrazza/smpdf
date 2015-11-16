@@ -190,23 +190,49 @@ static PyObject* py_getobsq(PyObject* self, PyObject* args)
 static PyObject* py_getbinq2x1x2(PyObject* self, PyObject* args)
 {
   int pto, bin;
-  PyArg_ParseTuple(args,"ii", &pto, &bin);
+  if (!PyArg_ParseTuple(args,"ii", &pto, &bin))
+    return NULL;    
 
   vector<double> Q;
+  vector<double> x1;
+  vector<double> x2;
+  vector<double> w;
 
   int iorder = pto;
   if (_g->calculation() == appl::grid::AMCATNLO) // if aMCfast change iorder
     iorder = (pto == 0) ? 3:0;
 
   appl::igrid const *igrid = _g->weightgrid(iorder,bin);
-  double q2min = igrid->getQ2min();
-  double q2max = igrid->getQ2max();
-  double x1min = igrid->getx1min();
-  double x1max = igrid->getx1min();
-  double x2min = igrid->getx2min();
-  double x2max = igrid->getx2max();
+  for (int ix1 = 0; ix1 < igrid->Ny1(); ix1++)
+    for (int ix2 = 0; ix2 < igrid->Ny2(); ix2++)
+      for (int t = 0; t < igrid->Ntau(); t++)
+	for (int ip = 0; ip < _g->subProcesses(0); ip++)
+	  {
 
-  return Py_BuildValue("dddddd",q2min,q2max,x1min,x1max,x2min,x2max);
+	    const bool zero_weight = (*(const SparseMatrix3d*) const_cast<appl::igrid*>(igrid)->weightgrid(ip))(t,ix1,ix2) == 0;
+
+	    if (!zero_weight)
+	      {
+		w.push_back(zero_weight);
+		x1.push_back(igrid->fx(igrid->gety1(ix1)));
+		x2.push_back(igrid->fx(igrid->gety2(ix2)));
+		Q.push_back(sqrt(igrid->fQ2(igrid->gettau(t))));
+	      }
+	  }
+
+  double sum = 0, q = 0, xx1 = 0, xx2 = 0;
+  for (int i = 0; i < (int) w.size(); i++) 
+    {
+      q  += w[i]*Q[i];
+      xx1 += w[i]*x1[i];
+      xx2 += w[i]*x2[i];
+      sum += w[i];
+    }
+  q /= sum;
+  xx1 /= sum;
+  xx2 /= sum;
+
+  return Py_BuildValue("ddd",q,xx1,xx2);
 }
 
 
