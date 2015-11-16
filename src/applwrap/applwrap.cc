@@ -187,6 +187,29 @@ static PyObject* py_getobsq(PyObject* self, PyObject* args)
   return Py_BuildValue("d", sum);
 }
 
+static PyObject* py_getbinq2x1x2(PyObject* self, PyObject* args)
+{
+  int pto, bin;
+  PyArg_ParseTuple(args,"ii", &pto, &bin);
+
+  vector<double> Q;
+
+  int iorder = pto;
+  if (_g->calculation() == appl::grid::AMCATNLO) // if aMCfast change iorder
+    iorder = (pto == 0) ? 3:0;
+
+  appl::igrid const *igrid = _g->weightgrid(iorder,bin);
+  double q2min = igrid->getQ2min();
+  double q2max = igrid->getQ2max();
+  double x1min = igrid->getx1min();
+  double x1max = igrid->getx1min();
+  double x2min = igrid->getx2min();
+  double x2max = igrid->getx2max();
+
+  return Py_BuildValue("dddddd",q2min,q2max,x1min,x1max,x2min,x2max);
+}
+
+
 static PyObject* py_getnbins(PyObject* self, PyObject* args)
 {
   int nbins;
@@ -239,6 +262,7 @@ static PyMethodDef applwrap_methods[] = {
   {"initobs", py_initobs, METH_VARARGS, "init obs"},
   {"convolute", py_convolute, METH_VARARGS, "convolute"},
   {"getobsq", py_getobsq, METH_VARARGS, "get observable q"},
+  {"getbinq2x1x2", py_getbinq2x1x2, METH_VARARGS, "get observable q2,x1,x2"},
   {"getnbins",py_getnbins, METH_VARARGS, "get number of bins"},
   {"lhapdf_version",py_lhapdf_version, METH_NOARGS, "get LHAPDF version"},
   {NULL, NULL, 0, NULL}
