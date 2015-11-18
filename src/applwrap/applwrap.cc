@@ -8,7 +8,6 @@
 #include <LHAPDF/Exceptions.h>
 #include <appl_grid/appl_grid.h>
 #include <appl_grid/appl_igrid.h>
-#include <cmath>
 using std::vector;
 using std::string;
 using std::cout;
@@ -188,57 +187,6 @@ static PyObject* py_getobsq(PyObject* self, PyObject* args)
   return Py_BuildValue("d", sum);
 }
 
-static PyObject* py_getbinq2x1x2(PyObject* self, PyObject* args)
-{
-  int pto, bin;
-  if (!PyArg_ParseTuple(args,"ii", &pto, &bin))
-    return NULL;    
-
-  vector<double> Q;
-  vector<double> x1;
-  vector<double> x2;
-  vector<double> w;
-
-  int iorder = pto;
-  if (_g->calculation() == appl::grid::AMCATNLO) // if aMCfast change iorder
-    iorder = (pto == 0) ? 3:0;
-
-  appl::igrid const *igrid = _g->weightgrid(iorder,bin);
-  for (int ix1 = 0; ix1 < igrid->Ny1(); ix1++)
-    for (int ix2 = 0; ix2 < igrid->Ny2(); ix2++)
-      for (int t = 0; t < igrid->Ntau(); t++)
-	for (int ip = 0; ip < _g->subProcesses(0); ip++)
-	  {
-
-	    const bool zero_weight = (*(const SparseMatrix3d*) const_cast<appl::igrid*>(igrid)->weightgrid(ip))(t,ix1,ix2) == 0;
-
-		const double weight =  (*(const SparseMatrix3d*) const_cast<appl::igrid*>(igrid)->weightgrid(ip))(t,ix1,ix2);
-
-	    if (!zero_weight)
-	      {
-		w.push_back(fabs(weight));
-		x1.push_back(igrid->fx(igrid->gety1(ix1)));
-		x2.push_back(igrid->fx(igrid->gety2(ix2)));
-		Q.push_back(sqrt(igrid->fQ2(igrid->gettau(t))));
-	      }
-	  }
-
-  double sum = 0, q = 0, xx1 = 0, xx2 = 0;
-  for (int i = 0; i < (int) w.size(); i++) 
-    {
-      q  += w[i]*Q[i];
-      xx1 += w[i]*x1[i];
-      xx2 += w[i]*x2[i];
-      sum += w[i];
-    }
-  q /= sum;
-  xx1 /= sum;
-  xx2 /= sum;
-
-  return Py_BuildValue("ddd",q,xx1,xx2);
-}
-
-
 static PyObject* py_getnbins(PyObject* self, PyObject* args)
 {
   int nbins;
@@ -291,7 +239,6 @@ static PyMethodDef applwrap_methods[] = {
   {"initobs", py_initobs, METH_VARARGS, "init obs"},
   {"convolute", py_convolute, METH_VARARGS, "convolute"},
   {"getobsq", py_getobsq, METH_VARARGS, "get observable q"},
-  {"getbinq2x1x2", py_getbinq2x1x2, METH_VARARGS, "get observable q2,x1,x2"},
   {"getnbins",py_getnbins, METH_VARARGS, "get number of bins"},
   {"lhapdf_version",py_lhapdf_version, METH_NOARGS, "get LHAPDF version"},
   {NULL, NULL, 0, NULL}
