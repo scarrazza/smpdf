@@ -8,6 +8,7 @@
 #include <LHAPDF/Exceptions.h>
 #include <appl_grid/appl_grid.h>
 #include <appl_grid/appl_igrid.h>
+#include <cmath>
 using std::vector;
 using std::string;
 using std::cout;
@@ -211,9 +212,11 @@ static PyObject* py_getbinq2x1x2(PyObject* self, PyObject* args)
 
 	    const bool zero_weight = (*(const SparseMatrix3d*) const_cast<appl::igrid*>(igrid)->weightgrid(ip))(t,ix1,ix2) == 0;
 
+		const double weight =  (*(const SparseMatrix3d*) const_cast<appl::igrid*>(igrid)->weightgrid(ip))(t,ix1,ix2);
+
 	    if (!zero_weight)
 	      {
-		w.push_back(zero_weight);
+		w.push_back(fabs(weight));
 		x1.push_back(igrid->fx(igrid->gety1(ix1)));
 		x2.push_back(igrid->fx(igrid->gety2(ix2)));
 		Q.push_back(sqrt(igrid->fQ2(igrid->gettau(t))));
