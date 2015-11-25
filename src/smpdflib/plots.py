@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 
 from matplotlib.cbook import violin_stats
 import matplotlib.mlab as mlab
+from matplotlib.ticker import MaxNLocator
 
 from smpdflib import plotutils
 from smpdflib.core import (aggregate_results, M_REF,
@@ -347,7 +348,8 @@ def plot_bindist(obs_table, b, base_pdf=None):
     if len(obs) != 1:
         raise ValueError("Must be only one observable")
     obs = obs[0]
-    figure = plt.figure()
+    figure, ax = plt.subplots()
+
     plt.title("%s [Bin %d]" % (obs, b+1))
     colors  = plotutils.color_names_to_rgb(colorlist)
     alpha = 1
@@ -383,6 +385,10 @@ def plot_bindist(obs_table, b, base_pdf=None):
         plt.xlabel('Ratio to %s' % base_pdf.label)
     else:
         plt.xlabel("Observable value")
+
+    ax.yaxis.set_major_locator(MaxNLocator(nbins=10, prune="both"))
+    ax.xaxis.set_major_locator(MaxNLocator(nbins=8, prune="both"))
+
     plt.legend()
     yield (obs, b), figure
 
