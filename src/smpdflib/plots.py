@@ -402,7 +402,7 @@ def plot_correlations(results):
                                      sharey=True,
                                      figsize=(8, len(fl)+3))
 
-        for b in range(obs.nbins):
+        for b in result.binlabels:
             Q = Qs[b]
             X = get_X(pdf, Q=Q, xgrid=xgrid, fl=fl, reshape=True)
             values, threshold = bin_corrs_from_X(result._all_vals.ix[b], X)
