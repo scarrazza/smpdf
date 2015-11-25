@@ -53,7 +53,7 @@ def require_args(*args):
     return decorator
 
 def normalize_name(name):
-    return re.sub(r'[\.\,]', '', str(name))
+    return re.sub(r'[\.\,\s\$\*\?;&\\:]', '', str(name))
 
 
 def save_figures(generator, output_dir, namefunc=None,
