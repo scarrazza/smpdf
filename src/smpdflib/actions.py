@@ -235,7 +235,7 @@ def save_correlations(results, output_dir, prefix, fmt='pdf'):
     import smpdflib.plots as plots
     def namefunc(obs,pdf):
         return "smpdfplot_%s_%s"%(pdf, obs)
-    return save_figures(plots.plot_correlations, results, output_dir,
+    return save_figures(plots.plot_correlations(results), output_dir,
                         prefix=prefix,
                         fmt=fmt, namefunc=namefunc)
 
