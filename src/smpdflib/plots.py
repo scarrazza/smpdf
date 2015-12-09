@@ -399,7 +399,7 @@ def plot_correlations(results):
         pdf = result.pdf
         obs = result.obs
 
-        Qs = obs.meanQ
+        Qs = iter(obs.meanQ)
         xgrid = pdf.make_xgrid()
 
         fl = pdf.make_flavors()
@@ -409,7 +409,7 @@ def plot_correlations(results):
                                      figsize=(8, len(fl)+3))
 
         for b in result.binlabels:
-            Q = Qs[b]
+            Q = next(Qs)
             X = get_X(pdf, Q=Q, xgrid=xgrid, fl=fl, reshape=True)
             values, threshold = bin_corrs_from_X(result._all_vals.ix[b], X)
             ind = 0
