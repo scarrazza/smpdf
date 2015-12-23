@@ -38,7 +38,7 @@ def init_backend():
     matplotlib.use('Agg')
 
 @_initializer
-def init_multiprocessong():
+def init_multiprocessing():
     """Set multiprcesing method to 'spawn'. All memory is copied, and bugs
     with APPLgrid are when loading multiple grids are avoided for good.
     """
@@ -53,7 +53,7 @@ def init_app():
     Also set the matplotlib style to
     those of SMPDF. **Must** be called **before** importing `matplotlib`.
     """
-    init_multiprocessong()
+    init_multiprocessing()
     init_backend()
     init_style()
 
