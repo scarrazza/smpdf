@@ -36,3 +36,4 @@ actiongroups:
       - obscorrplots
       - exportobscorrs
       - pdfplots
+      - plotcorrs
