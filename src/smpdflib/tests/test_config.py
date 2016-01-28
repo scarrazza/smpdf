@@ -183,6 +183,23 @@ actions:
         )
         self._test_bad_config(s)
 
+    def test_correct_obs_dict(self):
+        s= (
+"""observables:
+   - {name: data/applgrid/atlas-incljets-r06-arxiv-1112.6297-eta7.root, order: 1 }
+   - {name: data/applgrid/ttbar-xsectot-8tev.root, order: 0}
+pdfsets:
+   - NNPDF30_nlo_as_0118
+actions:
+   - savedata
+
+
+"""
+        )
+        c = config.Config.from_yaml(s)
+        self.assertEqual([obs.order
+                          for obs in c.actiongroups[0]['observables']], [1,0])
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -214,17 +214,17 @@ class Config(object):
             if not names:
                 raise ConfigError("No observables found for %s" %
                                   namestr)
-            allnames += names
-        for name in allnames:
-            try:
-                obsobj = make_observable(name, **obsdict)
-            except ValueError as e:
-                raise ConfigError("Could not parse the observable %s: %s"
-                                       % (name, e))
-            except TypeError as e:
-                    raise ConfigError("Incorrect arguments passed to process "
-                                      "observable %s: %s" % (name, e))
-            observables.append(obsobj)
+            allnames = names
+            for name in allnames:
+                try:
+                    obsobj = make_observable(name, **obsdict)
+                except ValueError as e:
+                    raise ConfigError("Could not parse the observable %s: %s"
+                                           % (name, e))
+                except TypeError as e:
+                        raise ConfigError("Incorrect arguments passed to process "
+                                          "observable %s: %s" % (name, e))
+                observables.append(obsobj)
         s = set(observables)
         if len(s) != len(observables):
             c = Counter(observables)
