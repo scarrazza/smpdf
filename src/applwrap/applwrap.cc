@@ -144,10 +144,17 @@ static PyObject* py_initobs(PyObject* self, PyObject* args)
 static PyObject* py_convolute(PyObject* self, PyObject* args)
 {
   int pto;
-  PyArg_ParseTuple(args,"i", &pto);
+
+  // Added handling of muR and muF generic factors
+  // you might want to extend this to other
+  // functions as well!
+  
+  double Kr(1.), Kf(1.);
+  PyArg_ParseTuple(args,"i|dd", &pto, &Kr, &Kf);
 
   if (!_g) exit(-1);
-  vector<double> xsec = _g->vconvolute(evolvepdf_,alphaspdf_,pto);
+  vector<double> xsec = _g->vconvolute(evolvepdf_,alphaspdf_,pto,
+				       Kr, Kf);
 
   PyObject *out = PyList_New(xsec.size());
   for (int i = 0; i < (int) xsec.size(); i++)
