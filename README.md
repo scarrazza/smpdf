@@ -2,6 +2,13 @@
 
 Specialized Minimal PDFs tools.
 
+##Citation
+
+If you use this code in your publication, please cite:
+
+*Specialized minimal PDFs for optimized LHC
+calculations* [http://arxiv.org/abs/1602.00005](http://arxiv.org/abs/1602.00005) 
+
 ## Download
 
 Clone the master development repository by running the following command:
