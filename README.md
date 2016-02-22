@@ -83,7 +83,7 @@ description).
 See
 
 ````Shell
-$ python smpdf.py --help
+$ smpdf --help
 ```
 
 for the full list of options. Note that you will probably want to
@@ -102,4 +102,5 @@ make api
 make html
 ````
 
-You can use the other build targets allowed by Sphinx.
+You can use the other build targets allowed by Sphinx. Note that the
+`--help` flag provides an overview of the most useful options.
