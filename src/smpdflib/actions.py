@@ -105,7 +105,7 @@ def check_valid_smpdf_prior(action, group, config):
 @check(check_know_errors)
 @require_args("plot_Q")
 def save_pdfplots(pdfsets, output_dir, prefix, plot_Q , plot_flavors=None,
-                  base_pdf=None, fmt='pdf'):
+                  base_pdf=None, fmt='pdf', photon=False):
     """
     Generate PDF plots at the scale plot_Q (given in GeV).
     A subset of flavors can be passed,
@@ -116,7 +116,7 @@ def save_pdfplots(pdfsets, output_dir, prefix, plot_Q , plot_flavors=None,
     return save_figures(plots.plot_pdfs(pdfsets,
                             flavors = plot_flavors,
                             Q = plot_Q,
-                            base_pdf=base_pdf),
+                            base_pdf=base_pdf, photon=photon),
                         output_dir,
                         prefix=prefix, fmt=fmt, namefunc=namefunc)
 
@@ -322,14 +322,14 @@ def create_smpdf(data_table, output_dir, grid_names, smpdf_tolerance=0.05,
 @require_args('sample_Q', 'Neig')
 @check(gen_gridnames)
 def create_mc2hessian(pdfsets, Neig ,output_dir, sample_Q, grid_names,
-                      db=None, mc2hname=None):
+                      db=None, mc2hname=None, photon=False):
     import smpdflib.reducedset as lib
     gridpaths = []
     for pdf in pdfsets:
         result = lib.create_mc2hessian(pdf, Q=sample_Q, Neig=Neig,
                                        output_dir=output_dir,
                                        name=grid_names[('mc2hessian', pdf)],
-                                       db=db)
+                                       db=db, photon=photon)
         gridpaths.append(result)
     return gridpaths
 

@@ -55,6 +55,7 @@ PDG_PARTONS = OrderedDict((
                 (3 , r"s"),
                 (4 , r"c"),
                 (5 , r"b"),
+                (22 , r"\gamma"),
               )
               )
 
@@ -331,11 +332,14 @@ class PDF(TupleComp):
                         )
 
     @staticmethod
-    def make_flavors(nf=3):
-        return np.arange(-nf,nf+1)
+    def make_flavors(nf=3, photon=False):
+        fl =  np.arange(-nf,nf+1)
+        if photon:
+            fl = np.r_[fl, [22]]
+        return fl
 
     @fastcache.lru_cache(maxsize=128, unhashable='ignore')
-    def grid_values(self, Q, xgrid=None, fl=None):
+    def grid_values(self, Q, xgrid=None, fl=None, photon=False):
 
         if Q is None:
             Q = self.q2Min
@@ -350,7 +354,7 @@ class PDF(TupleComp):
         elif isinstance(fl, int):
             fl = self.make_flavors(fl)
         elif isinstance(fl, tuple):
-            fl = self.make_flavors(*fl)
+            fl = self.make_flavors(*fl, photon=photon)
 
         with self:
             all_members = [[[applwrap.xfxQ(r, f, x, Q)
@@ -902,12 +906,13 @@ def match_spec(corrlist, smpdf_spec):
     return result
 
 
-def get_X(pdf, Q=None,  reshape=False, xgrid=None, fl=None):
+def get_X(pdf, Q=None,  reshape=False, xgrid=None, fl=None,
+        photon=False):
     # Step 1: create pdf covmat
     if Q is None:
         Q = pdf.q2min_rep0
     logging.debug("Building PDF matrix at %f GeV:" % Q)
-    mean, replicas = pdf.grid_values(Q, xgrid, fl)
+    mean, replicas = pdf.grid_values(Q, xgrid, fl, photon=photon)
     Xt = (replicas - mean)
     if reshape:
         Xt = Xt.reshape(Xt.shape[0], Xt.shape[1]*Xt.shape[2])

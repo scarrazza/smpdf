@@ -309,8 +309,9 @@ def mc2h_input_hash(pdf, Q, Neig):
                         hex(Neig).encode()])
     return hashlib.sha1(hashstr).hexdigest()
 
-def create_mc2hessian(pdf, Q, Neig, output_dir, name=None, db=None):
-    X = get_X(pdf, Q, reshape=True)
+def create_mc2hessian(pdf, Q, Neig, output_dir, name=None, db=None,
+        photon=False):
+    X = get_X(pdf, Q, reshape=True, photon=photon)
     vec = compress_X(X, Neig)
     norm = _pdf_normalization(pdf)
     description = {'input_hash': mc2h_input_hash(pdf,Q,Neig)}
