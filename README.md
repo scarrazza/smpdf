@@ -9,6 +9,17 @@ If you use this code in your publication, please cite:
 *Specialized minimal PDFs for optimized LHC
 calculations* [http://arxiv.org/abs/1602.00005](http://arxiv.org/abs/1602.00005) 
 
+##Existing results
+
+The compressed sets quoted in the paper above can be found here:
+
+<http://pcteserver.mi.infn.it/~nnpdf/smpdf_output/>
+
+
+The APPLGrids used to generate these sets can be found here:
+
+<http://pcteserver.mi.infn.it/~nnpdf/smpdf-applgrids/>
+
 ## Download
 
 Clone the master development repository by running the following command:
@@ -24,7 +35,7 @@ Or download the compressed archive without using git
 
 SMPDF requires [APPlgrid](https://applgrid.hepforge.org/) and
 [LHAPDF](https://lhapdf.hepforge.org/). Make sure the following commands can be
-executed and give valid reesults:
+executed and give valid results:
 
 ````Shell
 $ lhapdf-config
