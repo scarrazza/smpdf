@@ -120,6 +120,23 @@ def save_pdfplots(pdfsets, output_dir, prefix, plot_Q , plot_flavors=None,
                         output_dir,
                         prefix=prefix, fmt=fmt, namefunc=namefunc)
 
+@check(check_know_errors)
+@require_args("plot_Q")
+def save_pdfcorr(pdfsets, output_dir, prefix, plot_Q, plot_flavors=None,
+                 base_pdf=None, fmt='pdf', photon=False):
+    """
+    Generate PDF-PDF correlations at the scale plot_Q (given in GeV)
+    A subset of flavors can be passed as a list of PDG IDs.
+    """
+    import smpdflib.plots as plots
+    namefunc = lambda x: "pdfcorr_%s" % normalize_name(x)
+    return save_figures(plots.plot_pdfcorr(pdfsets,
+                            flavors=plot_flavors,
+                            Q=plot_Q,
+                            base_pdf=base_pdf, photon=photon),
+                        output_dir,
+                        prefix=prefix, fmt=fmt, namefunc=namefunc)
+
 
 @check(check_know_errors)
 def save_violins(results, output_dir, prefix, base_pdf=None, fmt='pdf'):
@@ -352,6 +369,7 @@ def install_grids(grid_names, output_dir):
 ACTION_DICT = OrderedDict((
                ('testas',  test_as_linearity),
                ('pdfplots',save_pdfplots),
+               ('pdfcorr', save_pdfcorr),
                ('violinplots',save_violins),
                ('ciplots',save_cis),
                ('asplots',save_as),

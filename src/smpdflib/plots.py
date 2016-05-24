@@ -12,13 +12,15 @@ import matplotlib.pyplot as plt
 
 from matplotlib.cbook import violin_stats
 import matplotlib.mlab as mlab
-from matplotlib.ticker import MaxNLocator
+from matplotlib.ticker import MaxNLocator, LinearLocator, FixedFormatter
+
 
 from smpdflib import plotutils
 from smpdflib.core import (aggregate_results, M_REF,
                            MCResult, get_X, PDG_PARTONS, make_pdf_results, PDF)
 
-from smpdflib.corrutils import (bin_corrs_from_X, observable_correlations,)
+from smpdflib.corrutils import (bin_corrs_from_X, observable_correlations,
+                                corrcoeff,)
 
 from smpdflib.utils import split_ranges
 
@@ -132,6 +134,51 @@ def plot_pdfs(pdfsets, Q, base_pdf = None, flavors=None, photon=False):
 
         yield (fl,),fig
 
+def plot_pdfcorr(pdfsets, Q, base_pdf=None, flavors=None, photon=False):
+
+    if flavors is None:
+        flavors = PDF.make_flavors(photon=photon)
+
+    nflavors = len(flavors)
+    xgrid = PDF.make_xgrid()
+
+    resultlists = []
+    for pdf in pdfsets:
+        mean, replicas = pdf.grid_values(Q, xgrid, flavors)
+        replicas = replicas.reshape(replicas.shape[0],
+                                    replicas.shape[1]*replicas.shape[2])
+        if pdf == base_pdf:
+            base_results = replicas
+        resultlists.append(replicas)
+
+    for pdf, replicas in zip(pdfsets, resultlists):
+        fig = plt.figure()
+
+        corrmat = np.corrcoef(replicas, rowvar=False)
+        if base_pdf:
+            corrmat -= np.corrcoef(base_results, rowvar=False)
+
+        plt.imshow(corrmat, cmap=plotutils.spectral_cm, vmin=-1, vmax=1)
+        plt.grid(False)
+        if base_pdf:
+            plt.title("Correlations at $Q=%.2f$ GeV for\n%s-%s" %
+                      (Q, pdf.label, base_pdf.label), fontsize=15)
+        else:
+            plt.title("Correlations at $Q=%.2f$ GeV for\n%s" % (Q, pdf.label),
+                      fontsize=15)
+
+        ylabels = [ '\n\n' + r'$%s$' % PDG_PARTONS[fl] for fl in flavors]
+        xlabels = [ '\t' + r'$%s$' % PDG_PARTONS[fl] for fl in flavors]
+        frame = plt.gca()
+        frame.axes.get_yaxis().set_major_locator(LinearLocator(len(flavors)+1))
+        frame.get_yaxis().set_major_formatter(FixedFormatter(ylabels))
+        frame.axes.get_xaxis().set_major_locator(LinearLocator(len(flavors)+1))
+        frame.get_xaxis().set_major_formatter(FixedFormatter(xlabels))
+
+        plt.tight_layout()
+        plt.colorbar()
+
+        yield (pdf.name,),fig
 
 def compare_violins(results, base_pdf = None):
     if not isinstance(results, dict):
