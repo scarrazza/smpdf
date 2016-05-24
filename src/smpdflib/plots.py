@@ -37,10 +37,6 @@ def plot_pdfs(pdfsets, Q, base_pdf = None, flavors=None, photon=False):
 
     #Squeeze=False is for the case where we have one flavour
     w,h = plt.rcParams["figure.figsize"]
-    fig, axes = plt.subplots(nflavors, 1, figsize=(w, 1.1*h*nflavors),
-                             squeeze=False)
-
-    axiter = iter(axes[:,0])
 
     resultlists = []
     for pdf in pdfsets:
@@ -52,7 +48,7 @@ def plot_pdfs(pdfsets, Q, base_pdf = None, flavors=None, photon=False):
 
 
     for fl, flresults in zip(flavors, zip(*resultlists)):
-        ax = next(axiter)
+        fig, ax = plt.subplots()
         hatchiter = plotutils.hatch_iter()
         if base_pdf:
             base_result = next(base_results)
@@ -132,9 +128,9 @@ def plot_pdfs(pdfsets, Q, base_pdf = None, flavors=None, photon=False):
             ax.set_ylabel("$x%s(x)$" % PDG_PARTONS[fl])
         ax.set_xlabel("$x$")
 
-    fig.tight_layout()
+        fig.tight_layout()
 
-    yield (None,),fig
+        yield (fl,),fig
 
 
 def compare_violins(results, base_pdf = None):
