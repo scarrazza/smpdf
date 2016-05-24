@@ -56,6 +56,7 @@ PDG_PARTONS = OrderedDict((
                 (4 , r"c"),
                 (5 , r"b"),
                 (22 , r"\gamma"),
+                (21 , r"g"),
               )
               )
 
