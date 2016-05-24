@@ -112,7 +112,7 @@ def save_pdfplots(pdfsets, output_dir, prefix, plot_Q , plot_flavors=None,
     as a list of PDG IDs.
     """
     import smpdflib.plots as plots
-    namefunc = lambda none: "pdfplots"
+    namefunc = lambda x: "pdfplot_%d" % x
     return save_figures(plots.plot_pdfs(pdfsets,
                             flavors = plot_flavors,
                             Q = plot_Q,
