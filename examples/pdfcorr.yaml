@@ -1,0 +1,7 @@
+pdfsets :
+   - NNPDF30_nlo_as_0118
+   - MMHT2014nlo68cl
+actions:
+   - pdfcorr
+plot_Q: 1
+fmt: [png,pdf]
