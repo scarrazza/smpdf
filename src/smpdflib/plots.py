@@ -155,9 +155,9 @@ def plot_pdfcorr(pdfsets, Q, base_pdf=None, flavors=None, photon=False):
         plt.grid(False)
         if base_pdf:
             plt.title("Correlations at $Q=%.2f$ GeV for\n%s-%s" %
-                      (Q, pdf.label, base_pdf.label), fontsize=15)
+                      (Q, res.pdf.label, base_pdf.label), fontsize=15)
         else:
-            plt.title("Correlations at $Q=%.2f$ GeV for\n%s" % (Q, pdf.label),
+            plt.title("Correlations at $Q=%.2f$ GeV for\n%s" % (Q, res.pdf.label),
                       fontsize=15)
 
         ylabels = [ '\n\n' + r'$%s$' % PDG_PARTONS[fl] for fl in flavors]
