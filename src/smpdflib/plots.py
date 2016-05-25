@@ -16,8 +16,8 @@ from matplotlib.ticker import MaxNLocator, LinearLocator, FixedFormatter
 
 
 from smpdflib import plotutils
-from smpdflib.core import (aggregate_results, M_REF,
-                           MCResult, get_X, PDG_PARTONS, make_pdf_results, PDF)
+from smpdflib.core import (aggregate_results, M_REF, MCResult,
+                           get_X, PDG_PARTONS, make_pdf_results, make_pdfcorr_results, PDF)
 
 from smpdflib.corrutils import (bin_corrs_from_X, observable_correlations,
                                 corrcoeff,)
@@ -32,8 +32,6 @@ def plot_pdfs(pdfsets, Q, base_pdf = None, flavors=None, photon=False):
 
     if flavors is None:
         flavors = PDF.make_flavors(photon=photon)
-
-    nflavors = len(flavors)
 
     xgrid = PDF.make_xgrid()
 
@@ -139,24 +137,19 @@ def plot_pdfcorr(pdfsets, Q, base_pdf=None, flavors=None, photon=False):
     if flavors is None:
         flavors = PDF.make_flavors(photon=photon)
 
-    nflavors = len(flavors)
     xgrid = PDF.make_xgrid()
 
     resultlists = []
     for pdf in pdfsets:
-        mean, replicas = pdf.grid_values(Q, xgrid, flavors)
-        replicas = replicas.reshape(replicas.shape[0],
-                                    replicas.shape[1]*replicas.shape[2])
+        r = make_pdfcorr_results(pdf, Q, flavors=flavors, xgrid=xgrid)
         if pdf == base_pdf:
-            base_results = replicas
-        resultlists.append(replicas)
+            base_results = r
+        resultlists.append(r)
 
-    for pdf, replicas in zip(pdfsets, resultlists):
-        fig = plt.figure()
-
-        corrmat = np.corrcoef(replicas, rowvar=False)
-        if base_pdf:
-            corrmat -= np.corrcoef(base_results, rowvar=False)
+    for res in resultlists:
+        fig, frame = plt.subplots()
+        corrmat = res.correlations()
+        if base_pdf: corrmat -= base_results.correlations()
 
         plt.imshow(corrmat, cmap=plotutils.spectral_cm, vmin=-1, vmax=1)
         plt.grid(False)
@@ -178,7 +171,7 @@ def plot_pdfcorr(pdfsets, Q, base_pdf=None, flavors=None, photon=False):
         plt.tight_layout()
         plt.colorbar()
 
-        yield (pdf.name,),fig
+        yield (res.pdf.name,),fig
 
 def compare_violins(results, base_pdf = None):
     if not isinstance(results, dict):
@@ -514,6 +507,3 @@ def plot_observable_correlations(results_table, base_pdf=None):
         plt.colorbar()
 
         yield (title.split()[-1],) , fig
-
-
-

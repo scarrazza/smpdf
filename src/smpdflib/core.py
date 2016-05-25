@@ -33,6 +33,7 @@ from smpdflib import lhaindex
 from smpdflib import plotutils
 from smpdflib.loggingutils import supress_stdout, initlogging, get_logging_queue
 from smpdflib.utils import break_along
+from smpdflib.corrutils import corrcoeffhessian, corrcoeffsymmhessian
 
 import applwrap
 
@@ -590,6 +591,9 @@ class SymHessianResult(Result):
 
         return vpstats
 
+    def correlations(self):
+        return corrcoeffsymmhessian(self._cv, self._all_vals.as_matrix())
+
 class HessianResult(SymHessianResult):
     """Result obtained from an asymmetric Hessian PDF set"""
 
@@ -609,6 +613,9 @@ class HessianResult(SymHessianResult):
             r = np.random.normal(scale=self.rescale_ci(), size=len(plus))
             error = (r >=0)*r*plus - (r < 0)*r*minus
             yield self._cv + error
+
+    def correlations(self):
+        return corrcoeffhessian(self._all_vals.as_matrix())
 
 
 class MCResult(Result):
@@ -651,6 +658,9 @@ class MCResult(Result):
         if rel_to is None:
             rel_to = 1
         return self._all_vals.as_matrix().T/ rel_to
+
+    def correlations(self):
+        return np.corrcoef(self._all_vals)
 
 def aggregate_results(results):
     combined = defaultdict(lambda: OrderedDict())
@@ -718,6 +728,19 @@ def make_pdf_results(pdf, Q, flavors=None, xgrid=None):
         results.append(result)
     return results
 
+
+def make_pdfcorr_results(pdf, Q, flavors=None, xgrid=None):
+    """Return a Result object containig the value of the pdfs a function of
+        x for the specified Q and flavors given by their PDG id (all by default)."""
+    if flavors is None:
+        flavors = pdf.make_flavors()
+
+    central, errors = pdf.grid_values(Q=Q, fl=flavors, xgrid=xgrid)
+    central = central.reshape(1, central.shape[0]*central.shape[1])
+    errors = errors.reshape(errors.shape[0], errors.shape[1] * errors.shape[2])
+    datas = np.r_[central, errors]
+    obs = PDFValues(pdf, Q, flavors)
+    return make_result(obs, pdf, datas.T)
 
 
 def make_observable(name, *args, **kwargs):
@@ -918,4 +941,3 @@ def get_X(pdf, Q=None,  reshape=False, xgrid=None, fl=None,
     if reshape:
         Xt = Xt.reshape(Xt.shape[0], Xt.shape[1]*Xt.shape[2])
     return Xt.T
-

@@ -102,6 +102,16 @@ def check_valid_smpdf_prior(action, group, config):
                " be one of %s") % (badstr, valid_errors)
         raise ActionError(msg)
 
+def check_valid_pdfcorr_prior(action, group, config):
+    valid_errors = set(("symmhessian","replicas","hessian"))
+    bad = [pdf for pdf in group["pdfsets"] if pdf.ErrorType
+                                              not in valid_errors]
+    if bad:
+        badstr = ', '.join(str(pdf) for pdf in bad)
+        msg = ("The PDF-PDF correlation cannot be constructed for: %s."
+               "The PDF ErrorType must be one of %s") % (badstr, valid_errors)
+        raise ActionError(msg)
+
 @check(check_know_errors)
 @require_args("plot_Q")
 def save_pdfplots(pdfsets, output_dir, prefix, plot_Q , plot_flavors=None,
@@ -121,6 +131,7 @@ def save_pdfplots(pdfsets, output_dir, prefix, plot_Q , plot_flavors=None,
                         prefix=prefix, fmt=fmt, namefunc=namefunc)
 
 @check(check_know_errors)
+@check(check_valid_pdfcorr_prior)
 @require_args("plot_Q")
 def save_pdfcorr(pdfsets, output_dir, prefix, plot_Q, plot_flavors=None,
                  base_pdf=None, fmt='pdf', photon=False):
