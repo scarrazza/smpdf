@@ -144,6 +144,7 @@ def plot_pdfcorr(pdfsets, Q, base_pdf=None, flavors=None, photon=False):
         r = make_pdfcorr_results(pdf, Q, flavors=flavors, xgrid=xgrid)
         if pdf == base_pdf:
             base_results = r
+            continue
         resultlists.append(r)
 
     for res in resultlists:
