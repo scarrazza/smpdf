@@ -16,6 +16,25 @@ def corrcoeff(prediction, pdf_val):
             (np.std(prediction,ddof=1)*np.std(pdf_val,ddof=1))
             )
 
+def corrcoeffhessian(pdf_val):
+    size = pdf_val.shape[0]
+    cc = np.zeros(shape=(size,size))
+    for i in range(size):
+        for j in range(i, size):
+            v1 = pdf_val[i,::2] - pdf_val[i,1::2]
+            v2 = pdf_val[j,::2] - pdf_val[j,1::2]
+            cc[i,j] = cc[j,i] = np.sum(v1*v2)/np.sum(v1**2)**0.5/np.sum(v2**2)**0.5
+    return cc
+
+def corrcoeffsymmhessian(central, pdf_val):
+    size = pdf_val.shape[0]
+    cc = np.zeros(shape=(size,size))
+    for i in range(size):
+        for j in range(i, size):
+            v1 = pdf_val[i,:] - central[i]
+            v2 = pdf_val[j,:] - central[j]
+            cc[i,j] = cc[j,i] = np.sum(v1*v2)/np.sum(v1**2)**0.5/np.sum(v2**2)**0.5
+    return cc
 
 def bin_corrs_from_X(bin_val, X,
                      correlation_threshold=DEFAULT_CORRELATION_THRESHOLD):

@@ -1,0 +1,9 @@
+pdfsets :
+   - NNPDF30_nlo_as_0118
+   - MMHT2014nlo68cl
+   - mc2hessian_NNPDF30_nlo_as_0118_20
+actions:
+   - pdfcorr
+base_pdf: NNPDF30_nlo_as_0118
+plot_Q: 1
+fmt: [png,pdf]
