@@ -278,7 +278,7 @@ def get_smpdf_lincomb(pdf, pdf_results,
                              )
 
 def complete_smpdf_description(desc, pdf ,pdf_results, full_grid,
-                      target_error ):
+                      target_error, total_neig ):
 
     input_hash = smpdf_input_hash(pdf, pdf_results, full_grid,
                                   target_error)
@@ -289,6 +289,7 @@ def complete_smpdf_description(desc, pdf ,pdf_results, full_grid,
            'full_grid' : full_grid,
            'input_hash' : input_hash,
            'input_set' : str(pdf),
+           'total_neig': total_neig,
            }
 
     return desc
@@ -430,7 +431,8 @@ def create_smpdf(pdf, pdf_results, output_dir, name,
 
     description = complete_smpdf_description(description, pdf, pdf_results,
                                              full_grid=full_grid,
-                                             target_error=smpdf_tolerance)
+                                             target_error=smpdf_tolerance,
+                                             total_neig=lincomb.shape[1])
     #We have do do this because LHAPDF seems to not parse complex structures
     parsed_desc = {'smpdf_description':yaml.dump(description,
                                                  default_flow_style=False)}

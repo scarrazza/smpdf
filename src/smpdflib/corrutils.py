@@ -64,10 +64,12 @@ def observable_correlations(results_table, base_pdf=None):
         M = np.concatenate([result._all_vals.as_matrix() for result in results])
         #Without atleast_2d would return a scalar if M has only one element.
         corrmat = np.atleast_2d(np.corrcoef(M))
-        title = "Observables correlation\n%s" % pdf
+        title = "Observables correlation\n%s" % pdf.label
+        filename = "%s" % pdf
         if base_pdf:
             corrmat -= base_corr
-            title += "-%s" % base_pdf
+            title += "-%s" % base_pdf.label
+            filename += "-%s" % base_pdf
 
 
         def make_labels(results):
@@ -83,4 +85,4 @@ def observable_correlations(results_table, base_pdf=None):
                         yield "%s (Bin %d)" % (obslabel, b+1)
 
         labels = list(make_labels(results))
-        yield title, corrmat, labels
+        yield title, corrmat, labels, filename

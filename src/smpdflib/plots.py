@@ -479,7 +479,7 @@ def plot_correlations(results):
 
 def plot_observable_correlations(results_table, base_pdf=None):
 
-    for title, corrmat, labels in observable_correlations(results_table, base_pdf):
+    for title, corrmat, labels, filename in observable_correlations(results_table, base_pdf):
         if base_pdf is not None:
             rlim = np.max(np.abs(corrmat))
         else:
@@ -507,4 +507,4 @@ def plot_observable_correlations(results_table, base_pdf=None):
         plt.tight_layout()
         plt.colorbar()
 
-        yield (title.split()[-1],) , fig
+        yield (filename,) , fig

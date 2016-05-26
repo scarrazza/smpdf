@@ -224,7 +224,7 @@ def export_obscorrs(data_table, output_dir, prefix, base_pdf=None):
 
     from smpdflib.corrutils import observable_correlations
 
-    for title, corrmat, labels in observable_correlations(data_table, base_pdf):
+    for title, corrmat, labels, filename in observable_correlations(data_table, base_pdf):
         name = prefix + "_" + normalize_name(title)
         filename = osp.join(output_dir, name + ".csv")
         pd.DataFrame(corrmat, index=labels, columns=labels).to_csv(filename, sep='\t')
