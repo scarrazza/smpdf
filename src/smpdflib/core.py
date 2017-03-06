@@ -839,8 +839,10 @@ def get_dataset_parallel(pdfsets, observables, db=None):
 
     Only once at the beginning of the program. This only works in Python 3.4+.
     """
+    assert  multiprocessing.get_start_method() == 'spawn'
     def make_key(pdf, obs):
         return str((pdf.get_key(), obs.get_key()))
+
     n_cores = multiprocessing.cpu_count()
     dataset = OrderedDict()
     to_compute =  []

@@ -8,16 +8,57 @@
 #include <LHAPDF/Exceptions.h>
 #include <appl_grid/appl_grid.h>
 #include <appl_grid/appl_igrid.h>
+#include  <APFEL/APFEL.h>
+#include  <APFEL/APFELdev.h>
+#include <NNPDF/nnpdfdb.h>
 using std::vector;
 using std::string;
 using std::cout;
+using std::cerr;
 using std::endl;
 using std::exception;
+using std::map;
+
+using namespace NNPDF;
+
+const auto Q0 = 1.65;
+
+auto Qold = -1.;
 
 // I hate singletons - sc
 appl::grid *_g = nullptr;
 vector<LHAPDF::PDF*> _pdfs;
 int _imem = 0;
+
+extern "C" double alphsapfel_(const double& Q)
+{
+  return APFEL::AlphaQCD(Q);
+}
+
+
+extern "C" void apfel_evolv(const double &x, const double &Q, double *xf)
+{
+
+  // check that we are doing the right evolution
+  if ( fabs(Q0 - Q ) < 1E-5 ) // Fuzzy comparison for Q0
+    {
+      std::cerr << "APFELSingleton::xfxQ calling PDF at initial scale, this is not supposed to happen" << std::endl;
+      std::exit(-1);
+    }
+
+
+  if (fabs(Qold - Q) > 1e-5)
+      {
+      APFEL::EvolveAPFEL(Q0, Q);
+      Qold = Q;
+    }
+
+  for (int i = 0; i < 13; i++){
+    xf[i] = APFEL::xPDFj(i-6, x);
+  }
+
+  return;
+}
 
 extern "C" void evolvepdf_(const double& x,const double& Q, double* pdf)
 {
@@ -38,7 +79,7 @@ static PyObject* py_initpdf(PyObject* self, PyObject* args)
   char* setname;
   PyArg_ParseTuple(args, "s", &setname);
 
-  for (int i = 0; i < (int) _pdfs.size(); i++)
+  /*for (int i = 0; i < (int) _pdfs.size(); i++)
     if (_pdfs[i]) delete _pdfs[i];
   _pdfs.clear();
 
@@ -50,8 +91,17 @@ static PyObject* py_initpdf(PyObject* self, PyObject* args)
   {
     PyErr_SetString(PyExc_ValueError, e.what());
     return NULL;
-  }
+  }*/
   _imem = 0;
+
+   map<string,string> fTheory {};
+   IndexDB db("/home/zah/nngit/nnpdfcpp/data/theory.db", "theoryIndex");
+   db.ExtractMap(52, APFEL::kValues, fTheory);
+   APFEL::SetPDFSet(std::string(setname)+".LHgrid");
+
+   APFEL::InitializeAPFEL();
+   return Py_BuildValue("");
+
 
   return Py_BuildValue("");
 }
@@ -118,6 +168,8 @@ static PyObject* py_pdfreplica(PyObject* self, PyObject* args)
   int nrep;
   PyArg_ParseTuple(args, "i", &nrep);
   _imem = nrep;
+  APFEL::SetReplica(_imem);
+
 
   return Py_BuildValue("");
 }
@@ -153,7 +205,7 @@ static PyObject* py_convolute(PyObject* self, PyObject* args)
   PyArg_ParseTuple(args,"i|dd", &pto, &Kr, &Kf);
 
   if (!_g) exit(-1);
-  vector<double> xsec = _g->vconvolute(evolvepdf_,alphaspdf_,pto,
+  vector<double> xsec = _g->vconvolute(apfel_evolv,alphsapfel_,pto,
 				       Kr, Kf);
 
   PyObject *out = PyList_New(xsec.size());

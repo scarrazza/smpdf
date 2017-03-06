@@ -24,8 +24,21 @@ lhapdf_libs = call_command('lhapdf-config --libs').split()
 
 applgrid_includes = call_command('applgrid-config --cxxflags').split()
 applgrid_libs = call_command('applgrid-config --ldflags').split()
-extra_compile_args = lhapdf_includes + applgrid_includes
-extra_link_args = lhapdf_includes + applgrid_includes + applgrid_libs + lhapdf_libs
+
+
+apfel_libs = call_command('apfel-config --ldflags').split()
+apfel_includes = call_command('apfel-config --cxxflags').split()
+
+nnpdf_libs = call_command('nnpdf-config --ldflags').split()
+nnpdf_includes = call_command('nnpdf-config --cxxflags').split()
+
+
+extra_compile_args = (lhapdf_includes + applgrid_includes
++ nnpdf_includes)
+
+extra_link_args = (lhapdf_includes + applgrid_includes + applgrid_libs
++ lhapdf_libs + apfel_libs+ apfel_includes + nnpdf_libs
++ nnpdf_includes)
 
 if platform.system() == 'Darwin':
     mac_ver = platform.mac_ver()[0]
