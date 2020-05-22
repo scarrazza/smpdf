@@ -95,7 +95,7 @@ def _rep_to_buffer(out, header, subgrids):
                       newline=' ')
         out.write(b'\n ')
         #Reshape so printing is easy
-        reshaped = g.reshape((len(g.groupby(level=1))*len(g.groupby(level=2)),
+        reshaped = g.to_numpy().reshape((len(g.groupby(level=1))*len(g.groupby(level=2)),
                               len(g.groupby(level=3))))
         np.savetxt(out, reshaped, delimiter=" ", newline="\n ", fmt='%14.7E')
         out.write(sep)

@@ -222,7 +222,7 @@ def get_smpdf_lincomb(pdf, pdf_results,
             raise ValueError("PDF results must be for %s" % pdf)
         for b in result.binlabels:
             Xreal = get_X(pdf, Q=result.meanQ[b], reshape=True)
-            prediction = result._all_vals.ix[b]
+            prediction = result._all_vals.loc[b]
             original_diffs = prediction - np.mean(prediction)
             if Rold is not None:
                 X = np.dot(Xreal,Rold)

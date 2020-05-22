@@ -448,7 +448,7 @@ def plot_correlations(results):
         for b in result.binlabels:
             Q = next(Qs)
             X = get_X(pdf, Q=Q, xgrid=xgrid, fl=fl, reshape=True)
-            values, threshold = bin_corrs_from_X(result._all_vals.ix[b], X)
+            values, threshold = bin_corrs_from_X(result._all_vals.loc[b], X)
             ind = 0
             for f, axis in zip(fl, axarr):
                 step = len(xgrid)

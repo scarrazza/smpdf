@@ -27,7 +27,7 @@ import pandas as pd
 import yaml
 import scipy.stats
 import fastcache
-from pandas.stats import ols
+import statsmodels.regression.linear_model as ols
 
 from smpdflib import lhaindex
 from smpdflib import plotutils
@@ -509,7 +509,7 @@ class Result():
         absdata = pd.concat(self.sample_values(10000),axis=1)
         if rel_to is None:
             rel_to = 1
-        reldata = absdata.as_matrix().T/rel_to
+        reldata = absdata.to_numpy().T/rel_to
         return reldata
 
     def violin_plot(self, data=None , **kwargs):
@@ -563,7 +563,7 @@ class SymHessianResult(Result):
 
     def _violin_data(self, rel_to = None):
         std = self.std_error()
-        mean = self.central_value.as_matrix()
+        mean = self.central_value.to_numpy()
 
         if rel_to is None:
             rel_to = np.ones_like(mean)
@@ -592,20 +592,20 @@ class SymHessianResult(Result):
         return vpstats
 
     def correlations(self):
-        return corrcoeffsymmhessian(self._cv, self._all_vals.as_matrix())
+        return corrcoeffsymmhessian(self._cv, self._all_vals.to_numpy())
 
 class HessianResult(SymHessianResult):
     """Result obtained from an asymmetric Hessian PDF set"""
 
     def std_error(self, nsigma=1):
-        m = self._all_vals.as_matrix()
+        m = self._all_vals.to_numpy()
         diffsq = (m[:, ::2] - m[:, 1::2])**2
         return np.sqrt(diffsq.sum(axis=1))/2.0*nsigma/self.rescale_ci()
 
     def sample_values(self, n):
         """Sample n random values from the resulting asymmetric
         distribution"""
-        m = self._all_vals.as_matrix()
+        m = self._all_vals.to_numpy()
         plus = m[:, ::2]
         minus = m[:, 1::2]
 
@@ -615,7 +615,7 @@ class HessianResult(SymHessianResult):
             yield self._cv + error
 
     def correlations(self):
-        return corrcoeffhessian(self._all_vals.as_matrix())
+        return corrcoeffhessian(self._all_vals.to_numpy())
 
 
 class MCResult(Result):
@@ -630,7 +630,7 @@ class MCResult(Result):
         returned around the mean, and without it, will be around zero."""
         n = percent*self.nrep//100
         def get_lims(row):
-            row = row.as_matrix()
+            row = row.to_numpy()
             s = np.argsort(np.abs(row))
             sel = row[s][:n]
             return pd.Series({'min':np.min(sel), 'max':np.max(sel)})
@@ -657,7 +657,7 @@ class MCResult(Result):
     def _violin_data(self, rel_to = None):
         if rel_to is None:
             rel_to = 1
-        return self._all_vals.as_matrix().T/ rel_to
+        return self._all_vals.to_numpy().T/ rel_to
 
     def correlations(self):
         return np.corrcoef(self._all_vals)
@@ -915,7 +915,7 @@ def test_as_linearity(summed_table, diff_from_line = 0.25):
         bad = diff > diff_from_line
         for ind in curve_df[bad].index:
                 remark = (u"Point away from linear fit by %1.1fσ" %
-                                diff.ix[ind])
+                                diff.loc[ind])
                 summed_table.loc[ind,'Remarks'].append(remark)
 
 
